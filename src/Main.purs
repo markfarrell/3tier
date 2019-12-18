@@ -107,29 +107,13 @@ summaryLinux = do
     query = "SELECT MessageType AS 'MessageType', COUNT(DISTINCT UUID) AS 'Entries' FROM Linux GROUP BY MessageType ORDER BY Entries DESC"
     filename = "logs.db"
 
-summaryHosts :: String -> DB.Request (Tuple (Array SQLite3.Row) (Array SQLite3.Row))
-summaryHosts sourceIP = do
-  database    <- DB.connect filename SQLite3.OpenReadWrite
-  windowsRows <- DB.all windowsQuery $ database
-  linuxRows   <- DB.all linuxQuery $ database
-  _           <- DB.close database
-  lift $ pure (Tuple windowsRows linuxRows)
-  where
-    windowsQuery = "SELECT x.TaskCategory AS 'TaskCategory',SUM(y.Entries) AS 'Entries' FROM TaskCategories as x INNER JOIN"
-      <> " (SELECT EventID, COUNT (DISTINCT UUID) as 'Entries' FROM Windows WHERE SourceHost LIKE '%:" <>  sourceIP <> ":%'"
-      <> " GROUP BY EventID) AS y ON y.EventID=x.EventID GROUP BY x.TaskCategory ORDER BY x.TaskCategory,y.Entries DESC;" 
-    linuxQuery = "SELECT MessageType AS 'MessageType', COUNT(DISTINCT UUID) AS 'Entries' FROM Linux WHERE SourceHost LIKE '%:" <> sourceIP <> ":%'"
-      <> " GROUP BY MessageType ORDER BY Entries DESC"
-    filename = "logs.db"
-
-data Route = InsertLinux Linux.Entry | InsertWindows Windows.Entry | SummaryWindows | SummaryLinux | SummaryHosts String
+data Route = InsertLinux Linux.Entry | InsertWindows Windows.Entry | SummaryWindows | SummaryLinux
  
 instance showRoute :: Show Route where
   show (InsertLinux entry) = "(InsertLinux " <> show entry <> ")"
   show (InsertWindows entry) = "(InsertWindows " <> show entry <> ")"
   show (SummaryWindows) = "(SummaryWindows)"
   show (SummaryLinux) = "(SummaryLinux)"
-  show (SummaryHosts sourceIP) = "(SummaryHosts " <> sourceIP <> ")"
 
 parseEntryString :: Parser String String
 parseEntryString = do
@@ -165,17 +149,8 @@ parseSummaryLinux = do
   _ <- string "/summary/linux"
   pure (SummaryLinux)
 
-parseSummaryHosts :: Parser String Route
-parseSummaryHosts = do
-  _          <- string "/summary/hosts"
-  _          <- string "?"
-  _          <- string "sourceIP"
-  _          <- string "="
-  sourceIP <- foldMap singleton <$> many anyChar
-  pure (SummaryHosts sourceIP)
-
 parseRoute :: Parser String Route
-parseRoute = parseInsertLinux <|> parseInsertWindows <|> parseSummaryWindows <|> parseSummaryLinux <|> parseSummaryHosts
+parseRoute = parseInsertLinux <|> parseInsertWindows <|> parseSummaryWindows <|> parseSummaryLinux
 
 data ContentType a = TextHTML a | TextJSON a
 
@@ -236,16 +211,6 @@ runRoute req  = do
            _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
            pure $ InternalServerError ""
         (Right (Tuple rows steps)) -> do
-           _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
-           pure $ Ok (TextJSON "")
-    (Right (SummaryHosts sourceIP)) -> do
-      _ <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (SummaryHosts sourceIP))) $ req
-      result' <- DB.runRequest $ summaryHosts sourceIP
-      case result' of
-        (Left error)             -> do 
-           _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
-           pure $ InternalServerError ""
-        (Right (Tuple (Tuple windowsRows linuxRows) steps)) -> do
            _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
            pure $ Ok (TextJSON "")
   where filename = "logs.db"
