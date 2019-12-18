@@ -92,7 +92,7 @@ summaryWindows = do
   _        <- DB.close database
   lift $ pure rows
   where
-    query = "SELECT x.TaskCategory,SUM(y.Entries) AS 'Entries' FROM TaskCategories as x INNER JOIN"
+    query = "SELECT x.TaskCategory AS 'TaskCategory',SUM(y.Entries) AS 'Entries' FROM TaskCategories as x INNER JOIN"
       <> " (SELECT EventID, COUNT (DISTINCT UUID) as 'Entries' FROM Windows GROUP BY EventID) AS y"
       <> " ON y.EventID=x.EventID GROUP BY x.TaskCategory ORDER BY x.TaskCategory,y.Entries DESC;" 
     filename = "logs.db"
@@ -104,7 +104,7 @@ summaryLinux = do
   _        <- DB.close database
   lift $ pure rows
   where
-    query = "SELECT MessageType, COUNT(DISTINCT UUID) AS Entries FROM Linux GROUP BY MessageType ORDER BY Entries DESC"
+    query = "SELECT MessageType AS 'MessageType', COUNT(DISTINCT UUID) AS 'Entries' FROM Linux GROUP BY MessageType ORDER BY Entries DESC"
     filename = "logs.db"
 
 summaryHosts :: String -> DB.Request (Tuple (Array SQLite3.Row) (Array SQLite3.Row))
@@ -115,10 +115,10 @@ summaryHosts sourceIP = do
   _           <- DB.close database
   lift $ pure (Tuple windowsRows linuxRows)
   where
-    windowsQuery = "SELECT x.TaskCategory,SUM(y.Entries) AS 'Entries' FROM TaskCategories as x INNER JOIN"
+    windowsQuery = "SELECT x.TaskCategory AS 'TaskCategory',SUM(y.Entries) AS 'Entries' FROM TaskCategories as x INNER JOIN"
       <> " (SELECT EventID, COUNT (DISTINCT UUID) as 'Entries' FROM Windows WHERE SourceHost LIKE '%:" <>  sourceIP <> ":%'"
       <> " GROUP BY EventID) AS y ON y.EventID=x.EventID GROUP BY x.TaskCategory ORDER BY x.TaskCategory,y.Entries DESC;" 
-    linuxQuery = "SELECT MessageType, COUNT(DISTINCT UUID) AS Entries FROM Linux WHERE SourceHost LIKE '%:" <> sourceIP <> ":%'"
+    linuxQuery = "SELECT MessageType AS 'MessageType', COUNT(DISTINCT UUID) AS 'Entries' FROM Linux WHERE SourceHost LIKE '%:" <> sourceIP <> ":%'"
       <> " GROUP BY MessageType ORDER BY Entries DESC"
     filename = "logs.db"
 
@@ -226,9 +226,8 @@ runRoute req  = do
            _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
            pure $ InternalServerError ""
         (Right (Tuple rows steps)) -> do
-           _ <- log $ show rows
            _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
-           pure $ Ok (TextJSON (show rows))
+           pure $ Ok (TextJSON "")
     (Right (SummaryLinux)) -> do
       _ <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (SummaryLinux))) $ req
       result' <- DB.runRequest $ summaryLinux
@@ -237,9 +236,8 @@ runRoute req  = do
            _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
            pure $ InternalServerError ""
         (Right (Tuple rows steps)) -> do
-           _ <- log $ show rows
            _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
-           pure $ Ok (TextJSON (show rows))
+           pure $ Ok (TextJSON "")
     (Right (SummaryHosts sourceIP)) -> do
       _ <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (SummaryHosts sourceIP))) $ req
       result' <- DB.runRequest $ summaryHosts sourceIP
@@ -248,9 +246,8 @@ runRoute req  = do
            _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
            pure $ InternalServerError ""
         (Right (Tuple (Tuple windowsRows linuxRows) steps)) -> do
-           _ <- log $ show (Tuple windowsRows linuxRows)
            _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
-           pure $ Ok (TextJSON (show [windowsRows, linuxRows]))
+           pure $ Ok (TextJSON "")
   where filename = "logs.db"
  
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit

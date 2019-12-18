@@ -12,6 +12,8 @@ import Prelude
 import Effect.Aff (Aff)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 
+import Foreign (Foreign)
+
 data Mode = OpenReadOnly | OpenCreate | OpenReadWrite
 
 instance showMode :: Show Mode where
@@ -25,7 +27,8 @@ mode' OpenCreate = 4
 mode' OpenReadWrite = 2 
 
 foreign import data Database :: Type
-foreign import data Row :: Type
+
+type Row = Foreign
 
 foreign import connectImpl :: String -> Int -> EffectFnAff Database
 
@@ -46,6 +49,3 @@ all query db = fromEffectFnAff $ allImpl query db
 
 instance showDatabase :: Show Database where
   show _ = "Database"
-
-instance showRow :: Show Row where
-  show = showRowImpl
