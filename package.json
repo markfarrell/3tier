@@ -1,0 +1,26 @@
+{
+  "name": "purescript-siem",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/markfarrell/purescript-siem.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/markfarrell/purescript-siem/issues"
+  },
+  "homepage": "https://github.com/markfarrell/purescipt-siem#readme",
+  "dependencies": {
+    "sqlite3": "^4.1.1",
+    "uuid": "^3.3.3"
+  }
+}
