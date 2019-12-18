@@ -6,11 +6,13 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Coroutine (Producer, Consumer, Process, pullFrom, await, runProcess)
 import Control.Coroutine.Aff (produce, emit)
+import Control.Monad.Except (runExcept)
 import Control.Monad.Error.Class (try)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
 
-import Data.Either(Either(..))
+import Data.Either (Either(..))
+import Data.Either (either) as Either
 
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
@@ -20,8 +22,11 @@ import Effect.Class (liftEffect)
 import Data.Foldable (fold)
 import Data.Traversable(foldMap, sequence)
 import Data.Tuple (Tuple(..), snd)
-import Data.List(many)
+import Data.List (many)
 import Data.String.CodeUnits (singleton)
+
+import Foreign as Foreign
+import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string, anyChar)
@@ -85,25 +90,35 @@ insertLinux entry = \req -> request <$> Linux.entryQueries (UUIDv3.url $ HTTP.me
       lift $ pure unit
     filename = "logs.db"
 
-summaryWindows :: DB.Request (Array SQLite3.Row)
-summaryWindows = do
+select :: forall a. String -> String -> (SQLite3.Row -> Foreign.F a) -> DB.Request (Array a)
+select filename query readResult = do
   database <- DB.connect filename SQLite3.OpenReadWrite
   rows     <- DB.all query $ database
   _        <- DB.close database
-  lift $ pure rows
+  lift $ pure (resultSet rows)
   where
+    resultSet  rows = Either.either (const []) identity $ resultSet' rows
+    resultSet' rows = sequence $ runExcept <$> readResult <$> rows
+
+summaryWindows :: DB.Request (Array (Array String))
+summaryWindows = select filename query readResult
+  where
+    readResult row = do
+       taskCategory <- row ! "TaskCategory" >>= Foreign.readString
+       entries      <- row ! "Entries"      >>= Foreign.readString
+       pure $ [taskCategory, entries]
     query = "SELECT x.TaskCategory AS 'TaskCategory',SUM(y.Entries) AS 'Entries' FROM TaskCategories as x INNER JOIN"
       <> " (SELECT EventID, COUNT (DISTINCT UUID) as 'Entries' FROM Windows GROUP BY EventID) AS y"
       <> " ON y.EventID=x.EventID GROUP BY x.TaskCategory ORDER BY x.TaskCategory,y.Entries DESC;" 
     filename = "logs.db"
 
-summaryLinux :: DB.Request (Array SQLite3.Row)
-summaryLinux = do
-  database <- DB.connect filename SQLite3.OpenReadWrite
-  rows     <- DB.all query $ database
-  _        <- DB.close database
-  lift $ pure rows
+summaryLinux :: DB.Request (Array (Array String))
+summaryLinux = select filename query readResult
   where
+    readResult row = do
+       messageType <- row ! "MessageType" >>= Foreign.readString
+       entries     <- row ! "Entries"     >>= Foreign.readString
+       pure $ [messageType, entries]
     query = "SELECT MessageType AS 'MessageType', COUNT(DISTINCT UUID) AS 'Entries' FROM Linux GROUP BY MessageType ORDER BY Entries DESC"
     filename = "logs.db"
 
@@ -200,9 +215,9 @@ runRoute req  = do
         (Left error)             -> do 
            _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
            pure $ InternalServerError ""
-        (Right (Tuple rows steps)) -> do
+        (Right (Tuple resultSet steps)) -> do
            _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
-           pure $ Ok (TextJSON "")
+           pure $ Ok (TextJSON (show resultSet))
     (Right (SummaryLinux)) -> do
       _ <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (SummaryLinux))) $ req
       result' <- DB.runRequest $ summaryLinux
@@ -210,9 +225,9 @@ runRoute req  = do
         (Left error)             -> do 
            _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
            pure $ InternalServerError ""
-        (Right (Tuple rows steps)) -> do
+        (Right (Tuple resultSet steps)) -> do
            _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
-           pure $ Ok (TextJSON "")
+           pure $ Ok (TextJSON (show resultSet))
   where filename = "logs.db"
  
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
