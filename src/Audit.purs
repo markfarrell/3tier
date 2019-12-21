@@ -2,12 +2,17 @@ module Audit
   ( EventType(..)
   , EventID(..)
   , Entry(..)
-  , entryQuery
+  , insert
   ) where
 
 import Prelude
-import Effect (Effect)
 
+import Control.Monad.Trans.Class (lift)
+
+import Effect (Effect)
+import Effect.Class (liftEffect)
+
+import DB as DB
 import Date as Date
 import HTTP as HTTP
 import Socket as Socket
@@ -42,3 +47,9 @@ entryQuery (Entry eventType eventID msg) req = do
     uuid = UUIDv3.url $ HTTP.messageURL req
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
+
+insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert entry = \req -> do
+  query <- lift $ liftEffect $ entryQuery entry req
+  DB.insert filename query
+  where filename = "audit.db"

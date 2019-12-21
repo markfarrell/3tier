@@ -3,14 +3,18 @@ module Linux
  , Entry
  , Message
  , MessageType
- , parseEntry 
- , entryQueries
+ , parseEntry
+ , insert
+ , summary
  )  where
 
 import Prelude
 
 import Control.Alternative ((<|>))
+import Control.Monad.Trans.Class (lift)
+
 import Effect (Effect)
+import Effect.Class (liftEffect)
 import Effect.Console (log)
 
 import Data.Array (fromFoldable) as Array
@@ -18,11 +22,15 @@ import Data.Traversable(foldMap)
 import Data.List(List, many)
 import Data.String.CodeUnits (singleton)
 
+import Foreign (readString) as Foreign
+import Foreign.Index ((!))
+
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.Combinators(sepBy)
 import Text.Parsing.Parser.String (string, satisfy)
 
 import Date as Date
+import DB as DB
 import HTTP as HTTP
 import Socket as Socket
 import UUIDv3 as UUIDv3
@@ -774,19 +782,30 @@ messageType (Login) = "LOGIN"
 message :: Message -> String
 message (Message msg) = msg
 
-fieldQuery :: HTTP.IncomingMessage -> MessageType -> Message -> Field -> Effect String
-fieldQuery req ty msg field = do
-  timestamp <- Date.now
-  pure $ query timestamp
+insert' :: HTTP.IncomingMessage -> MessageType -> Message -> Field -> DB.Request Unit
+insert' req ty msg field = do
+  timestamp <- lift $ liftEffect $ Date.now
+  DB.insert filename $ query timestamp
   where
     query timestamp  = "INSERT INTO Linux (UUID, Timestamp, RemoteAddress, RemotePort, MessageType, Message, FieldName, FieldValue) VALUES (" <> values timestamp <> ")"
     values timestamp = "'" <> uuid <> "','" <> show timestamp <> "','" <> remoteAddress <> "','" <> show remotePort <> "','" <> (messageType ty) <> "','" <> (message msg) <> "','" <> (fieldName field) <> "','" <> (escapeString <<< fieldValue $ field) <> "'" 
     uuid = UUIDv3.url $ HTTP.messageURL req
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
+    filename = "logs.db"
 
-entryQueries :: Entry -> HTTP.IncomingMessage -> Array (Effect String)
-entryQueries (Entry ty msg fields) req = fieldQuery req ty msg <$> fields
+insert :: Entry -> HTTP.IncomingMessage -> Array (DB.Request Unit)
+insert (Entry ty msg fields) req = insert' req ty msg <$> fields
+
+summary :: DB.Request (Array (Array String))
+summary = DB.select filename query readResult
+  where
+    readResult row = do
+       ty          <- row ! "MessageType" >>= Foreign.readString
+       entries     <- row ! "Entries"     >>= Foreign.readString
+       pure $ [ty, entries]
+    query = "SELECT MessageType AS 'MessageType', COUNT(DISTINCT UUID) AS 'Entries' FROM Linux GROUP BY MessageType ORDER BY Entries DESC"
+    filename = "logs.db"
 
 test :: Effect Unit
 test = do

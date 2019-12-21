@@ -1,20 +1,29 @@
 module Windows
   ( Entry(..)
   , parseEntry
-  , entryQuery
+  , insert
+  , summary
   ) where
 
 import Prelude
+
+import Control.Monad.Trans.Class (lift)
+
 import Effect (Effect)
+import Effect.Class (liftEffect)
 
 import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
-import Data.List( many)
+import Data.List(many)
+
+import Foreign (readString) as Foreign
+import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.String (string, satisfy)
 
 import Date as Date
+import DB as DB
 import HTTP as HTTP
 import Socket as Socket
 import UUIDv3 as UUIDv3
@@ -107,3 +116,21 @@ entryQuery (Entry entry) req = do
     uuid = UUIDv3.url $ HTTP.messageURL req
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
+
+insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert entry = \req -> do
+  query <- lift $ liftEffect $ entryQuery entry req
+  DB.insert filename query
+  where filename = "logs.db"
+
+summary :: DB.Request (Array (Array String))
+summary = DB.select filename query readResult
+  where
+    readResult row = do
+       taskCategory <- row ! "TaskCategory" >>= Foreign.readString
+       entries      <- row ! "Entries"      >>= Foreign.readString
+       pure $ [taskCategory, entries]
+    query = "SELECT x.TaskCategory AS 'TaskCategory',SUM(y.Entries) AS 'Entries' FROM TaskCategories as x INNER JOIN"
+      <> " (SELECT EventID, COUNT (DISTINCT UUID) as 'Entries' FROM Windows GROUP BY EventID) AS y"
+      <> " ON y.EventID=x.EventID GROUP BY x.TaskCategory ORDER BY x.TaskCategory,y.Entries DESC;"
+    filename = "logs.db"

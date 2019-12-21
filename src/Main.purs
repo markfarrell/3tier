@@ -17,13 +17,11 @@ import Effect.Aff (Aff, launchAff)
 import Effect.Console (log) as Console
 import Effect.Class (liftEffect)
 
-import Data.Traversable(foldMap)
-import Data.Tuple (Tuple(..))
+import Data.Foldable (fold)
+import Data.Traversable(foldMap, sequence)
+import Data.Tuple (Tuple(..), snd)
 import Data.List (many)
 import Data.String.CodeUnits (singleton)
-
-import Foreign as Foreign
-import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string, anyChar)
@@ -33,6 +31,7 @@ import HTTP as HTTP
 
 import Audit as Audit
 import Windows as Windows
+import Linux as Linux
 
 foreign import decodeURI :: String -> String
 
@@ -45,7 +44,7 @@ log = liftEffect <<< Console.log
 
 audit :: Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
 audit (Audit.Entry eventType eventID msg) = \req -> do
-  result <- try $ DB.runRequest $ insertAudit entry req
+  result <- try $ DB.runRequest (Audit.insert entry $ req)
   case result of
     (Left error) -> log $ show result
     (Right _)    -> do 
@@ -54,35 +53,13 @@ audit (Audit.Entry eventType eventID msg) = \req -> do
         _                               -> pure unit
   where entry = (Audit.Entry eventType eventID (encodeBase64 msg))
 
-insertAudit :: Audit.Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insertAudit entry = \req -> do
-  query <- lift $ liftEffect $ Audit.entryQuery entry req
-  DB.insert filename query
-  where filename = "audit.db"
+data Route = InsertLinux Linux.Entry | InsertWindows Windows.Entry | SummaryWindows | SummaryLinux
 
-insertWindows :: Windows.Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insertWindows entry = \req -> do
-  query <- lift $ liftEffect $ Windows.entryQuery entry req
-  DB.insert filename query
-  where filename = "logs.db"
-
-summaryWindows :: DB.Request (Array (Array String))
-summaryWindows = DB.select filename query readResult
-  where
-    readResult row = do
-       taskCategory <- row ! "TaskCategory" >>= Foreign.readString
-       entries      <- row ! "Entries"      >>= Foreign.readString
-       pure $ [taskCategory, entries]
-    query = "SELECT x.TaskCategory AS 'TaskCategory',SUM(y.Entries) AS 'Entries' FROM TaskCategories as x INNER JOIN"
-      <> " (SELECT EventID, COUNT (DISTINCT UUID) as 'Entries' FROM Windows GROUP BY EventID) AS y"
-      <> " ON y.EventID=x.EventID GROUP BY x.TaskCategory ORDER BY x.TaskCategory,y.Entries DESC;" 
-    filename = "logs.db"
-
-data Route = InsertWindows Windows.Entry | SummaryWindows
- 
 instance showRoute :: Show Route where
+  show (InsertLinux entry) = "(InsertLinux " <> show entry <> ")"
   show (InsertWindows entry) = "(InsertWindows " <> show entry <> ")"
   show (SummaryWindows) = "(SummaryWindows)"
+  show (SummaryLinux) = "(SummaryLinux)"
 
 parseEntryString :: Parser String String
 parseEntryString = do
@@ -104,8 +81,22 @@ parseSummaryWindows = do
   _ <- string "/summary/windows"
   pure (SummaryWindows)
 
+parseInsertLinux :: Parser String Route
+parseInsertLinux = do
+  _ <- string "/insert/linux"
+  _ <- string "?"
+  _ <- string "entry"
+  _ <- string "="
+  entry <- Linux.parseEntry
+  pure (InsertLinux entry)
+
+parseSummaryLinux :: Parser String Route
+parseSummaryLinux = do
+  _ <- string "/summary/linux"
+  pure (SummaryLinux)
+
 parseRoute :: Parser String Route
-parseRoute = parseInsertWindows <|> parseSummaryWindows
+parseRoute = parseInsertWindows <|> parseSummaryWindows <|> parseInsertLinux <|> parseSummaryLinux
 
 data ContentType a = TextHTML a | TextJSON a
 
@@ -129,7 +120,7 @@ runRoute req  = do
         pure $ BadRequest (HTTP.messageURL req)
     (Right (InsertWindows entry)) -> do
       _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (InsertWindows entry))) $ req
-      result' <- DB.runRequest $ insertWindows entry $ req
+      result' <- DB.runRequest $ Windows.insert entry $ req
       case result' of
         (Left error)             -> do 
            _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
@@ -139,7 +130,7 @@ runRoute req  = do
            pure $ Ok (TextHTML "")
     (Right (SummaryWindows)) -> do
       _ <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (SummaryWindows))) $ req
-      result' <- DB.runRequest $ summaryWindows
+      result' <- DB.runRequest $ Windows.summary
       case result' of
         (Left error)             -> do 
            _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
@@ -147,7 +138,27 @@ runRoute req  = do
         (Right (Tuple resultSet steps)) -> do
            _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
            pure $ Ok (TextJSON (show resultSet))
-  where filename = "logs.db"
+    (Right (InsertLinux entry)) -> do
+      _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (InsertLinux entry))) $ req
+      result' <- sequence <$> sequence (DB.runRequest <$> (Linux.insert entry $ req))
+      case result' of
+        (Left error)             -> do 
+           _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
+           pure $ InternalServerError ""
+        (Right result'') -> do
+           steps <- pure $ fold (snd <$> result'')
+           _     <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
+           pure $ Ok (TextHTML "")
+    (Right (SummaryLinux)) -> do
+      _ <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (SummaryLinux))) $ req
+      result' <- DB.runRequest $ Linux.summary
+      case result' of
+        (Left error)             -> do
+           _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req
+           pure $ InternalServerError ""
+        (Right (Tuple resultSet steps)) -> do
+           _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req
+           pure $ Ok (TextJSON (show resultSet))
  
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextHTML body)) = \res -> liftEffect $ do
