@@ -8,7 +8,7 @@ module HTTP
   , listen
   , messageMethod
   , messageURL
-  , host
+  , socket
   , messageHeaders
   , end
   , writeHead
@@ -20,6 +20,8 @@ module HTTP
 import Prelude
 
 import Effect (Effect)
+
+import Socket (Socket)
 
 foreign import data Server :: Type
 foreign import data IncomingMessage :: Type
@@ -34,7 +36,7 @@ foreign import messageMethod :: IncomingMessage -> String
 
 foreign import messageURL :: IncomingMessage -> String
 
-foreign import host :: IncomingMessage -> String
+foreign import socket :: IncomingMessage -> Socket
 
 foreign import messageHeaders :: IncomingMessage -> MessageHeaders
 

@@ -50,7 +50,3 @@ exports.allImpl = function(query) {
     };
   };
 };
-
-exports.showRowImpl = function(row) {
-  return JSON.stringify(row);
-};

@@ -5,6 +5,7 @@ module Windows
   ) where
 
 import Prelude
+import Effect (Effect)
 
 import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
@@ -12,6 +13,11 @@ import Data.List( many)
 
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.String (string, satisfy)
+
+import Date as Date
+import HTTP as HTTP
+import Socket as Socket
+import UUIDv3 as UUIDv3
 
 newtype Entry = Entry
   { eventID :: String
@@ -90,7 +96,14 @@ parseEntry = do
     , container : container
     }
   
-entryQuery :: String -> String -> Entry -> String
-entryQuery uuid sourceHost (Entry entry) = "INSERT INTO Windows (UUID, SourceHost, EventID, MachineName, EntryData, EntryIndex, Category, CategoryNumber, EntryType, Message, Source, ReplacementStrings, InstanceID, TimeGenerated, TimeWritten, UserName, Site, Container)" <> " " <> "VALUES" <> " " <> "(" <> values <> ")"
-  where values = "'" <> uuid <> "','" <> sourceHost <> "','"  <> entry.eventID <> "','" <> entry.machineName <> "','" <> entry.entryData <> "','" <> entry.category <> "','" <> entry.categoryNumber <> "','" <> entry.entryType <> "','" <> entry.message <> "','" <> entry.source <> "','" <> entry.replacementStrings <> "','" <> entry.instanceID <> "','" <> entry.timeGenerated <> "','" <> entry.timeWritten <> "','" <> entry.userName <> "','"
+entryQuery :: Entry -> HTTP.IncomingMessage -> Effect String
+entryQuery (Entry entry) req = do
+  timestamp <- Date.now
+  pure $ query timestamp
+  where
+    query timestamp = "INSERT INTO Windows (UUID, Timestamp, RemoteAddress, RemotePort, EventID, MachineName, EntryData, EntryIndex, Category, CategoryNumber, EntryType, Message, Source, ReplacementStrings, InstanceID, TimeGenerated, TimeWritten, UserName, Site, Container)" <> " " <> "VALUES" <> " " <> "(" <> values timestamp <> ")"
+    values timestamp = "'" <> uuid <> "','" <> show timestamp <> "','" <> remoteAddress <> "','" <> show remotePort <> "','"  <> entry.eventID <> "','" <> entry.machineName <> "','" <> entry.entryData <> "','" <> entry.category <> "','" <> entry.categoryNumber <> "','" <> entry.entryType <> "','" <> entry.message <> "','" <> entry.source <> "','" <> entry.replacementStrings <> "','" <> entry.instanceID <> "','" <> entry.timeGenerated <> "','" <> entry.timeWritten <> "','" <> entry.userName <> "','"
           <> entry.userName <> "','" <>  entry.site <> "','" <> entry.container <> "'"
+    uuid = UUIDv3.url $ HTTP.messageURL req
+    remoteAddress = Socket.remoteAddress $ HTTP.socket req
+    remotePort = Socket.remotePort $ HTTP.socket req

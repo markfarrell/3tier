@@ -22,6 +22,11 @@ import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.Combinators(sepBy)
 import Text.Parsing.Parser.String (string, satisfy)
 
+import Date as Date
+import HTTP as HTTP
+import Socket as Socket
+import UUIDv3 as UUIDv3
+
 foreign import escapeString :: String -> String
 
 data Field =
@@ -769,13 +774,19 @@ messageType (Login) = "LOGIN"
 message :: Message -> String
 message (Message msg) = msg
 
-fieldQuery :: String -> String -> MessageType -> Message -> Field -> String
-fieldQuery uuid sourceHost ty msg field = "INSERT INTO Linux (UUID, SourceHost, MessageType, Message, FieldName, FieldValue) VALUES (" <> values <> ")"
-  where values = "'" <> uuid <> "','" <> sourceHost <> "','" <> (messageType ty) <> "','" <> (message msg) <> "','" <> (fieldName field) <> "','" <> (escapeString <<< fieldValue $ field) <> "'" 
+fieldQuery :: HTTP.IncomingMessage -> MessageType -> Message -> Field -> Effect String
+fieldQuery req ty msg field = do
+  timestamp <- Date.now
+  pure $ query timestamp
+  where
+    query timestamp  = "INSERT INTO Linux (UUID, Timestamp, RemoteAddress, RemotePort, MessageType, Message, FieldName, FieldValue) VALUES (" <> values timestamp <> ")"
+    values timestamp = "'" <> uuid <> "','" <> show timestamp <> "','" <> remoteAddress <> "','" <> show remotePort <> "','" <> (messageType ty) <> "','" <> (message msg) <> "','" <> (fieldName field) <> "','" <> (escapeString <<< fieldValue $ field) <> "'" 
+    uuid = UUIDv3.url $ HTTP.messageURL req
+    remoteAddress = Socket.remoteAddress $ HTTP.socket req
+    remotePort = Socket.remotePort $ HTTP.socket req
 
-entryQueries :: String -> String -> Entry -> Array String
-entryQueries uuid sourceHost (Entry ty msg fields) = fieldQuery' <$> fields
-  where fieldQuery' = fieldQuery uuid sourceHost ty msg
+entryQueries :: Entry -> HTTP.IncomingMessage -> Array (Effect String)
+entryQueries (Entry ty msg fields) req = fieldQuery req ty msg <$> fields
 
 test :: Effect Unit
 test = do
@@ -784,4 +795,3 @@ test = do
   where 
     entry="type=DAEMON_START msg=audit(1575912248.984:3695): op=start ver=2.8.5 format=raw kernel=3.10.0-1062.1.2.el7.x86_64 auid=4294967295 pid=705 uid=0 ses=4294967295 res=success"
     expect="(Right (Entry (DaemonStart) (Message \"audit(1575912248.984:3695):\") [(Op \"start\"),(Ver \"2.8.5\"),(Format \"raw\"),(Kernel \"3.10.0-1062.1.2.el7.x86_64\"),(Auid \"4294967295\"),(Pid \"705\"),(Uid \"0\"),(Ses \"4294967295\"),(Res \"success\")]))"
-

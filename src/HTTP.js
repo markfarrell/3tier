@@ -22,8 +22,8 @@ exports.messageURL = function(incomingMessage) {
   return incomingMessage.url;
 };
 
-exports.host = function(incomingMessage) {
-  return incomingMessage.socket.remoteAddress + ":" + incomingMessage.socket.remotePort;
+exports.socket = function(incomingMessage) {
+  return incomingMessage.socket;
 };
 
 exports.messageHeaders = function(incomingMessage) {

@@ -6,6 +6,12 @@ module Audit
   ) where
 
 import Prelude
+import Effect (Effect)
+
+import Date as Date
+import HTTP as HTTP
+import Socket as Socket
+import UUIDv3 as UUIDv3
 
 data EventType = Success | Failure
 
@@ -26,6 +32,13 @@ instance showEventID :: Show EventID where
 instance showEntry :: Show Entry where
   show (Entry eventType eventID msg) = "Entry " <> show eventType <> " " <> show eventID <> " " <> show msg
 
-entryQuery :: String -> String -> Entry -> String
-entryQuery uuid sourceHost (Entry eventType eventID msg) = "INSERT INTO Audit (UUID, SourceHost, EventType, EventID, Message) VALUES (" <> values <> ")"
-  where values   = "'" <> uuid <> "','" <> sourceHost <> "','" <> show eventType <> "','" <> show eventID  <> "','" <> msg <> "'"
+entryQuery :: Entry -> HTTP.IncomingMessage -> Effect String
+entryQuery (Entry eventType eventID msg) req = do
+  timestamp <- Date.now
+  pure $ query timestamp 
+  where
+    query timestamp  = "INSERT INTO Audit (UUID, Timestamp, RemoteAddress, RemotePort, EventType, EventID, Message) VALUES (" <> values timestamp <> ")"
+    values timestamp = "'" <> uuid <> "','" <> show timestamp <> "','" <> remoteAddress <> "','" <> show remotePort <> "','" <> show eventType <> "','" <> show eventID  <> "','" <> msg <> "'"
+    uuid = UUIDv3.url $ HTTP.messageURL req
+    remoteAddress = Socket.remoteAddress $ HTTP.socket req
+    remotePort = Socket.remotePort $ HTTP.socket req

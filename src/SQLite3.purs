@@ -2,6 +2,7 @@ module SQLite3
   ( Mode (..)
   , Database
   , Row
+  , Result
   , connect
   , close
   , all
@@ -12,7 +13,7 @@ import Prelude
 import Effect.Aff (Aff)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 
-import Foreign (Foreign)
+import Foreign as Foreign
 
 data Mode = OpenReadOnly | OpenCreate | OpenReadWrite
 
@@ -28,15 +29,15 @@ mode' OpenReadWrite = 2
 
 foreign import data Database :: Type
 
-type Row = Foreign
+type Row = Foreign.Foreign
+
+type Result a = Foreign.F a
 
 foreign import connectImpl :: String -> Int -> EffectFnAff Database
 
 foreign import closeImpl :: Database -> EffectFnAff Unit
 
 foreign import allImpl :: String -> Database -> EffectFnAff (Array Row)
-
-foreign import showRowImpl :: Row -> String
 
 connect :: String -> Mode -> Aff Database
 connect filename mode = fromEffectFnAff $ connectImpl filename (mode' mode)
