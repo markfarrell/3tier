@@ -1,0 +1,441 @@
+type=DAEMON_START msg=audit(1575912248.984:3695): op=start ver=2.8.5 format=raw kernel=3.10.0-1062.1.2.el7.x86_64 auid=4294967295 pid=705 uid=0 ses=4294967295 res=success
+type=CONFIG_CHANGE msg=audit(1575912249.110:4): audit_backlog_limit=8192 old=64 auid=4294967295 ses=4294967295 res=1
+type=CONFIG_CHANGE msg=audit(1575912249.110:5): audit_failure=1 old=1 auid=4294967295 ses=4294967295 res=1
+type=SERVICE_START msg=audit(1575912249.113:6): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=auditd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SYSTEM_BOOT msg=audit(1575912249.120:7): pid=730 uid=0 auid=4294967295 ses=4294967295 msg=' comm="systemd-update-utmp" exe="/usr/lib/systemd/systemd-update-utmp" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.121:8): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-update-utmp comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.186:9): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=dbus comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.189:10): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=vgauthd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.190:11): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=vmtoolsd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.212:12): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=irqbalance comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.295:13): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=alsa-state comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.344:14): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=libstoragemgmt comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.372:15): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=rngd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.396:16): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=abrtd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.419:17): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=abrt-oops comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.441:18): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=abrt-xorg comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.593:19): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=rhel-dmesg comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.593:20): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=ksm comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1575912249.621:21): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=irqbalance comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.622:22): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=gssproxy comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.639:23): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=sysstat comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.640:24): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=netcf-transaction comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.641:25): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=rpcbind comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.718:26): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=avahi-daemon comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.729:27): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=chronyd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.731:28): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=rtkit-daemon comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.745:29): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=smartd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.746:30): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=bluetooth comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.791:31): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=ModemManager comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.801:32): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-machined comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.802:33): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-logind comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.810:34): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=polkit comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1575912249.811:35): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=accounts-daemon comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087602.247:36): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=udisks2 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087602.262:37): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=abrt-ccpp comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087602.269:38): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=mcelog comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087602.298:39): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=ksmtuned comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087602.306:40): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-hostnamed comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087602.796:41): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=vdo comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087603.136:42): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=firewalld comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=NETFILTER_CFG msg=audit(1576087603.167:43): table=filter family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087603.167:43): table=filter family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087603.167:43): table=filter family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087603.167:43): table=filter family=2 entries=0
+type=SYSCALL msg=audit(1576087603.167:43): arch=c000003e syscall=175 success=yes exit=0 a0=2050420 a1=1db5 a2=41a94e a3=204c500 items=0 ppid=849 pid=850 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087603.167:43): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D0069707461626C655F66696C746572
+type=SERVICE_START msg=audit(1576087603.188:44): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=NetworkManager comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087603.242:45): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=NetworkManager-dispatcher comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=NETFILTER_CFG msg=audit(1576087603.269:46): table=filter family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087603.269:46): table=filter family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087603.269:46): table=filter family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087603.269:46): table=filter family=10 entries=0
+type=SYSCALL msg=audit(1576087603.269:46): arch=c000003e syscall=175 success=yes exit=0 a0=1fd94a0 a1=1d85 a2=41a94e a3=1fd5600 items=0 ppid=866 pid=867 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087603.269:46): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D006970367461626C655F66696C746572
+type=NETFILTER_CFG msg=audit(1576087604.119:47): table=raw family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.119:47): table=raw family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.119:47): table=raw family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.119:47): table=raw family=2 entries=0
+type=SYSCALL msg=audit(1576087604.119:47): arch=c000003e syscall=175 success=yes exit=0 a0=f59470 a1=1a75 a2=41a94e a3=f55500 items=0 ppid=960 pid=961 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087604.119:47): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D0069707461626C655F726177
+type=NETFILTER_CFG msg=audit(1576087604.138:48): table=security family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.138:48): table=security family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.138:48): table=security family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.138:48): table=security family=2 entries=0
+type=SYSCALL msg=audit(1576087604.138:48): arch=c000003e syscall=175 success=yes exit=0 a0=94b4f0 a1=1b3d a2=41a94e a3=947500 items=0 ppid=963 pid=964 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087604.138:48): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D0069707461626C655F7365637572697479
+type=NETFILTER_CFG msg=audit(1576087604.156:49): table=mangle family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.156:49): table=mangle family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.156:49): table=mangle family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.156:49): table=mangle family=2 entries=0
+type=SYSCALL msg=audit(1576087604.156:49): arch=c000003e syscall=175 success=yes exit=0 a0=dc8420 a1=1c75 a2=41a94e a3=dc4500 items=0 ppid=966 pid=967 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087604.156:49): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D0069707461626C655F6D616E676C65
+type=NETFILTER_CFG msg=audit(1576087604.193:50): table=nat family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.193:50): table=nat family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.193:50): table=nat family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.193:50): table=nat family=2 entries=0
+type=SYSCALL msg=audit(1576087604.193:50): arch=c000003e syscall=175 success=yes exit=0 a0=1c91bd0 a1=20ed a2=41a94e a3=1c8d500 items=0 ppid=969 pid=970 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087604.193:50): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D0069707461626C655F6E6174
+type=NETFILTER_CFG msg=audit(1576087604.219:51): table=raw family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.219:51): table=raw family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.219:51): table=raw family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.219:51): table=raw family=10 entries=0
+type=SYSCALL msg=audit(1576087604.219:51): arch=c000003e syscall=175 success=yes exit=0 a0=c014a0 a1=1a3d a2=41a94e a3=bfd600 items=0 ppid=975 pid=976 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087604.219:51): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D006970367461626C655F726177
+type=NETFILTER_CFG msg=audit(1576087604.237:52): table=security family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.237:52): table=security family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.237:52): table=security family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.237:52): table=security family=10 entries=0
+type=SYSCALL msg=audit(1576087604.237:52): arch=c000003e syscall=175 success=yes exit=0 a0=90c4f0 a1=1b0d a2=41a94e a3=908600 items=0 ppid=978 pid=979 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087604.237:52): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D006970367461626C655F7365637572697479
+type=NETFILTER_CFG msg=audit(1576087604.255:53): table=mangle family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.255:53): table=mangle family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.255:53): table=mangle family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.255:53): table=mangle family=10 entries=0
+type=SYSCALL msg=audit(1576087604.255:53): arch=c000003e syscall=175 success=yes exit=0 a0=1b504a0 a1=1d95 a2=41a94e a3=1b4c600 items=0 ppid=981 pid=982 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087604.255:53): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D006970367461626C655F6D616E676C65
+type=NETFILTER_CFG msg=audit(1576087604.287:54): table=nat family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.287:54): table=nat family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.287:54): table=nat family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087604.287:54): table=nat family=10 entries=0
+type=SYSCALL msg=audit(1576087604.287:54): arch=c000003e syscall=175 success=yes exit=0 a0=187ebd0 a1=20e5 a2=41a94e a3=187a600 items=0 ppid=984 pid=985 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="modprobe" exe="/usr/bin/kmod" key=(null)
+type=PROCTITLE msg=audit(1576087604.287:54): proctitle=2F7362696E2F6D6F6470726F6265002D71002D2D006970367461626C655F6E6174
+type=NETFILTER_CFG msg=audit(1576087604.325:55): table=filter family=7 entries=0
+type=SYSCALL msg=audit(1576087604.325:55): arch=c000003e syscall=54 success=yes exit=0 a0=3 a1=0 a2=80 a3=1586c80 items=0 ppid=824 pid=992 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ebtables-restor" exe="/usr/sbin/ebtables-restore" key=(null)
+type=PROCTITLE msg=audit(1576087604.325:55): proctitle=2F7573722F7362696E2F65627461626C65732D726573746F7265002D2D6E6F666C757368
+type=NETFILTER_CFG msg=audit(1576087604.328:56): table=nat family=7 entries=0
+type=SYSCALL msg=audit(1576087604.328:56): arch=c000003e syscall=54 success=yes exit=0 a0=3 a1=0 a2=80 a3=1586c80 items=0 ppid=824 pid=992 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ebtables-restor" exe="/usr/sbin/ebtables-restore" key=(null)
+type=PROCTITLE msg=audit(1576087604.328:56): proctitle=2F7573722F7362696E2F65627461626C65732D726573746F7265002D2D6E6F666C757368
+type=NETFILTER_CFG msg=audit(1576087604.334:57): table=filter family=2 entries=4
+type=SYSCALL msg=audit(1576087604.334:57): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=1827670 items=0 ppid=824 pid=993 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.334:57): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.336:58): table=raw family=2 entries=3
+type=SYSCALL msg=audit(1576087604.336:58): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=1827180 items=0 ppid=824 pid=993 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.336:58): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.336:59): table=security family=2 entries=4
+type=SYSCALL msg=audit(1576087604.336:59): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=18279a0 items=0 ppid=824 pid=993 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.336:59): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.336:60): table=mangle family=2 entries=6
+type=SYSCALL msg=audit(1576087604.336:60): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=1827850 items=0 ppid=824 pid=993 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.336:60): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.338:61): table=nat family=2 entries=5
+type=SYSCALL msg=audit(1576087604.338:61): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=1827730 items=0 ppid=824 pid=993 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.338:61): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.346:62): table=filter family=10 entries=4
+type=SYSCALL msg=audit(1576087604.346:62): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=14d5720 items=0 ppid=824 pid=994 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.346:62): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.346:63): table=raw family=10 entries=3
+type=SYSCALL msg=audit(1576087604.346:63): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=14d57b0 items=0 ppid=824 pid=994 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.346:63): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.347:64): table=security family=10 entries=4
+type=SYSCALL msg=audit(1576087604.347:64): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=14d5b30 items=0 ppid=824 pid=994 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.347:64): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.347:65): table=mangle family=10 entries=6
+type=SYSCALL msg=audit(1576087604.347:65): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=14d59e0 items=0 ppid=824 pid=994 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.347:65): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.348:66): table=nat family=10 entries=5
+type=SYSCALL msg=audit(1576087604.348:66): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=14d5880 items=0 ppid=824 pid=994 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.348:66): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.375:67): table=filter family=7 entries=6
+type=SYSCALL msg=audit(1576087604.375:67): arch=c000003e syscall=54 success=yes exit=0 a0=3 a1=0 a2=80 a3=7e5670 items=0 ppid=824 pid=995 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ebtables-restor" exe="/usr/sbin/ebtables-restore" key=(null)
+type=PROCTITLE msg=audit(1576087604.375:67): proctitle=2F7573722F7362696E2F65627461626C65732D726573746F7265002D2D6E6F666C757368
+type=NETFILTER_CFG msg=audit(1576087604.375:68): table=nat family=7 entries=6
+type=SYSCALL msg=audit(1576087604.375:68): arch=c000003e syscall=54 success=yes exit=0 a0=3 a1=0 a2=80 a3=7e5670 items=0 ppid=824 pid=995 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ebtables-restor" exe="/usr/sbin/ebtables-restore" key=(null)
+type=PROCTITLE msg=audit(1576087604.375:68): proctitle=2F7573722F7362696E2F65627461626C65732D726573746F7265002D2D6E6F666C757368
+type=NETFILTER_CFG msg=audit(1576087604.403:69): table=filter family=2 entries=4
+type=SYSCALL msg=audit(1576087604.403:69): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f9a860 items=0 ppid=824 pid=996 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.403:69): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.414:70): table=raw family=2 entries=3
+type=SYSCALL msg=audit(1576087604.414:70): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f99440 items=0 ppid=824 pid=996 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.414:70): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.414:71): table=security family=2 entries=4
+type=SYSCALL msg=audit(1576087604.414:71): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f99440 items=0 ppid=824 pid=996 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.414:71): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.414:72): table=mangle family=2 entries=6
+type=SYSCALL msg=audit(1576087604.414:72): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f996a0 items=0 ppid=824 pid=996 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.414:72): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.415:73): table=nat family=2 entries=5
+type=SYSCALL msg=audit(1576087604.415:73): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f99520 items=0 ppid=824 pid=996 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.415:73): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.429:74): table=filter family=10 entries=4
+type=SYSCALL msg=audit(1576087604.429:74): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=1f1dd50 items=0 ppid=824 pid=1001 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.429:74): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.441:75): table=raw family=10 entries=3
+type=SYSCALL msg=audit(1576087604.441:75): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=1f1c640 items=0 ppid=824 pid=1001 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.441:75): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.441:76): table=security family=10 entries=4
+type=SYSCALL msg=audit(1576087604.441:76): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=1f1c640 items=0 ppid=824 pid=1001 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.441:76): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.441:77): table=mangle family=10 entries=6
+type=SYSCALL msg=audit(1576087604.441:77): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=1f1c9a0 items=0 ppid=824 pid=1001 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.441:77): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.442:78): table=nat family=10 entries=5
+type=SYSCALL msg=audit(1576087604.442:78): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=1f1ca80 items=0 ppid=824 pid=1001 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.442:78): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.452:79): table=raw family=10 entries=15
+type=SYSCALL msg=audit(1576087604.452:79): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=23c1760 items=0 ppid=824 pid=1004 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.452:79): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.474:80): table=filter family=2 entries=40
+type=SYSCALL msg=audit(1576087604.474:80): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=c77ae0 items=0 ppid=824 pid=1007 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.474:80): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.485:81): table=filter family=10 entries=40
+type=SYSCALL msg=audit(1576087604.485:81): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=13ad2c0 items=0 ppid=824 pid=1008 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.485:81): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.498:82): table=filter family=2 entries=63
+type=SYSCALL msg=audit(1576087604.498:82): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=20ab730 items=0 ppid=824 pid=1009 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.498:82): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.499:83): table=raw family=2 entries=15
+type=SYSCALL msg=audit(1576087604.499:83): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=20a5430 items=0 ppid=824 pid=1009 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.499:83): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.499:84): table=mangle family=2 entries=27
+type=SYSCALL msg=audit(1576087604.499:84): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=20a6760 items=0 ppid=824 pid=1009 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.499:84): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.500:85): table=nat family=2 entries=26
+type=SYSCALL msg=audit(1576087604.500:85): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=20a6c00 items=0 ppid=824 pid=1009 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.500:85): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.510:86): table=filter family=10 entries=64
+type=SYSCALL msg=audit(1576087604.510:86): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=16aa140 items=0 ppid=824 pid=1010 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.510:86): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.510:87): table=raw family=10 entries=18
+type=SYSCALL msg=audit(1576087604.510:87): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=16a2ed0 items=0 ppid=824 pid=1010 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.510:87): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.512:88): table=mangle family=10 entries=27
+type=SYSCALL msg=audit(1576087604.512:88): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=16a4010 items=0 ppid=824 pid=1010 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.512:88): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.513:89): table=nat family=10 entries=26
+type=SYSCALL msg=audit(1576087604.513:89): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=16a45c0 items=0 ppid=824 pid=1010 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.513:89): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.524:90): table=filter family=7 entries=6
+type=SYSCALL msg=audit(1576087604.524:90): arch=c000003e syscall=54 success=yes exit=0 a0=3 a1=0 a2=80 a3=6d9800 items=0 ppid=824 pid=1011 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ebtables-restor" exe="/usr/sbin/ebtables-restore" key=(null)
+type=PROCTITLE msg=audit(1576087604.524:90): proctitle=2F7573722F7362696E2F65627461626C65732D726573746F7265002D2D6E6F666C757368
+type=NETFILTER_CFG msg=audit(1576087604.524:91): table=nat family=7 entries=6
+type=SYSCALL msg=audit(1576087604.524:91): arch=c000003e syscall=54 success=yes exit=0 a0=3 a1=0 a2=80 a3=6dbbb0 items=0 ppid=824 pid=1011 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ebtables-restor" exe="/usr/sbin/ebtables-restore" key=(null)
+type=PROCTITLE msg=audit(1576087604.524:91): proctitle=2F7573722F7362696E2F65627461626C65732D726573746F7265002D2D6E6F666C757368
+type=NETFILTER_CFG msg=audit(1576087604.532:92): table=filter family=2 entries=79
+type=SYSCALL msg=audit(1576087604.532:92): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=912580 items=0 ppid=824 pid=1012 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.532:92): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.534:93): table=raw family=2 entries=27
+type=SYSCALL msg=audit(1576087604.534:93): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=90df50 items=0 ppid=824 pid=1012 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.534:93): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.534:94): table=security family=2 entries=13
+type=SYSCALL msg=audit(1576087604.534:94): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=90cff0 items=0 ppid=824 pid=1012 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.534:94): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.535:95): table=mangle family=2 entries=39
+type=SYSCALL msg=audit(1576087604.535:95): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=90ecc0 items=0 ppid=824 pid=1012 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.535:95): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.543:96): table=filter family=10 entries=80
+type=SYSCALL msg=audit(1576087604.543:96): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=13c12d0 items=0 ppid=824 pid=1013 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.543:96): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.545:97): table=raw family=10 entries=30
+type=SYSCALL msg=audit(1576087604.545:97): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=13bbe20 items=0 ppid=824 pid=1013 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.545:97): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.545:98): table=security family=10 entries=13
+type=SYSCALL msg=audit(1576087604.545:98): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=13ba3c0 items=0 ppid=824 pid=1013 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.545:98): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.546:99): table=mangle family=10 entries=39
+type=SYSCALL msg=audit(1576087604.546:99): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=13bc840 items=0 ppid=824 pid=1013 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.546:99): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.710:100): table=filter family=2 entries=79
+type=SYSCALL msg=audit(1576087604.710:100): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f720a0 items=0 ppid=824 pid=1015 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.710:100): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.711:101): table=raw family=2 entries=27
+type=SYSCALL msg=audit(1576087604.711:101): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f6cc20 items=0 ppid=824 pid=1015 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.711:101): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.712:102): table=mangle family=2 entries=39
+type=SYSCALL msg=audit(1576087604.712:102): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f6dfb0 items=0 ppid=824 pid=1015 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.712:102): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.712:103): table=nat family=2 entries=50
+type=SYSCALL msg=audit(1576087604.712:103): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f6ed40 items=0 ppid=824 pid=1015 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables-restor" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.712:103): proctitle=2F7573722F7362696E2F69707461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.724:104): table=filter family=10 entries=80
+type=SYSCALL msg=audit(1576087604.724:104): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=795ef0 items=0 ppid=824 pid=1016 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.724:104): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.724:105): table=raw family=10 entries=30
+type=SYSCALL msg=audit(1576087604.724:105): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=78f8f0 items=0 ppid=824 pid=1016 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.724:105): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.725:106): table=mangle family=10 entries=39
+type=SYSCALL msg=audit(1576087604.725:106): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=790b70 items=0 ppid=824 pid=1016 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.725:106): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=NETFILTER_CFG msg=audit(1576087604.725:107): table=nat family=10 entries=50
+type=SYSCALL msg=audit(1576087604.725:107): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=29 a2=40 a3=791cf0 items=0 ppid=824 pid=1016 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="ip6tables-resto" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087604.725:107): proctitle=2F7573722F7362696E2F6970367461626C65732D726573746F7265002D77002D6E
+type=SERVICE_START msg=audit(1576087604.773:108): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=NetworkManager-wait-online comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.436:109): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=network comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.440:110): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=cups comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.479:111): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=iscsi-shutdown comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.485:112): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=rpc-statd-notify comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087605.485:113): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=rpc-statd-notify comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.537:114): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-user-sessions comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.538:115): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=blk-availability comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.565:116): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=atd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.573:117): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=crond comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.594:118): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=sshd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087605.685:119): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=gdm comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087606.959:120): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=postfix comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087608.202:121): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=tuned comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=USER_AUTH msg=audit(1576087608.595:122): pid=1643 uid=0 auid=4294967295 ses=4294967295 msg='op=PAM:authentication grantors=pam_permit acct="gdm" exe="/usr/libexec/gdm-session-worker" hostname=isec2077-vm02 addr=? terminal=/dev/tty1 res=success'
+type=USER_ACCT msg=audit(1576087608.595:123): pid=1643 uid=0 auid=4294967295 ses=4294967295 msg='op=PAM:accounting grantors=pam_permit acct="gdm" exe="/usr/libexec/gdm-session-worker" hostname=isec2077-vm02 addr=? terminal=/dev/tty1 res=success'
+type=CRED_ACQ msg=audit(1576087608.598:124): pid=1643 uid=0 auid=4294967295 ses=4294967295 msg='op=PAM:setcred grantors=pam_permit acct="gdm" exe="/usr/libexec/gdm-session-worker" hostname=isec2077-vm02 addr=? terminal=/dev/tty1 res=success'
+type=USER_START msg=audit(1576087608.631:125): pid=1643 uid=0 auid=4294967295 ses=4294967295 msg='op=PAM:session_open grantors=pam_keyinit,pam_keyinit,pam_limits,pam_systemd,pam_unix acct="gdm" exe="/usr/libexec/gdm-session-worker" hostname=? addr=? terminal=:0 res=success'
+type=SERVICE_START msg=audit(1576087609.784:126): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=upower comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=filter family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=filter family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=raw family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=security family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=mangle family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=nat family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=raw family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=security family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=mangle family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087611.765:127): table=nat family=10 entries=0
+type=SYSCALL msg=audit(1576087611.765:127): arch=c000003e syscall=272 success=yes exit=0 a0=40000000 a1=7ffffceddae0 a2=40000040 a3=22 items=0 ppid=1 pid=3033 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="(-localed)" exe="/usr/lib/systemd/systemd" key=(null)
+type=PROCTITLE msg=audit(1576087611.765:127): proctitle="(-localed)"
+type=SERVICE_START msg=audit(1576087611.803:128): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-localed comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087613.185:129): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=bolt comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087613.212:130): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=wpa_supplicant comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087613.226:131): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=geoclue comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087613.253:132): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=packagekit comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087614.145:133): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=colord comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=filter family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=filter family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=raw family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=security family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=mangle family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=nat family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=raw family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=security family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=mangle family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087614.309:134): table=nat family=10 entries=0
+type=SYSCALL msg=audit(1576087614.309:134): arch=c000003e syscall=272 success=yes exit=0 a0=40000000 a1=7ffffceddae0 a2=40000040 a3=22 items=0 ppid=1 pid=3352 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="(fprintd)" exe="/usr/lib/systemd/systemd" key=(null)
+type=PROCTITLE msg=audit(1576087614.309:134): proctitle="(fprintd)"
+type=SERVICE_START msg=audit(1576087614.337:135): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=fprintd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087614.555:136): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=realmd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087614.990:137): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=NetworkManager-dispatcher comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087616.396:138): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=plymouth-start comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087616.396:139): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=plymouth-start comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087617.986:140): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=geoclue comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087633.608:141): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=rsyslog comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087634.286:142): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=libvirtd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=ANOM_PROMISCUOUS msg=audit(1576087634.885:143): dev=virbr0-nic prom=256 old_prom=0 auid=4294967295 uid=0 gid=0 ses=4294967295
+type=SYSCALL msg=audit(1576087634.885:143): arch=c000003e syscall=16 success=yes exit=0 a0=17 a1=89a2 a2=7f94d6d82a20 a3=2 items=0 ppid=1 pid=1210 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="libvirtd" exe="/usr/sbin/libvirtd" key=(null)
+type=PROCTITLE msg=audit(1576087634.885:143): proctitle="/usr/sbin/libvirtd"
+type=NETFILTER_CFG msg=audit(1576087634.973:144): table=filter family=2 entries=82
+type=SYSCALL msg=audit(1576087634.973:144): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=696150 items=0 ppid=824 pid=10243 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087634.973:144): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E7365727400494E505554002D2D696E2D696E7465726661636500766972627230002D2D70726F746F636F6C00746370002D2D64657374696E6174696F6E2D706F7274003637002D2D6A756D70004143434550
+type=NETFILTER_CFG msg=audit(1576087634.992:145): table=filter family=2 entries=83
+type=SYSCALL msg=audit(1576087634.992:145): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=10f4410 items=0 ppid=824 pid=10244 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087634.992:145): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E7365727400494E505554002D2D696E2D696E7465726661636500766972627230002D2D70726F746F636F6C00756470002D2D64657374696E6174696F6E2D706F7274003637002D2D6A756D70004143434550
+type=NETFILTER_CFG msg=audit(1576087635.040:146): table=filter family=2 entries=84
+type=SYSCALL msg=audit(1576087635.040:146): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=19c65f0 items=0 ppid=824 pid=10246 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.040:146): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E73657274004F5554505554002D2D6F75742D696E7465726661636500766972627230002D2D70726F746F636F6C00756470002D2D64657374696E6174696F6E2D706F7274003638002D2D6A756D7000414343
+type=NETFILTER_CFG msg=audit(1576087635.056:147): table=filter family=2 entries=85
+type=SYSCALL msg=audit(1576087635.056:147): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=1a946d0 items=0 ppid=824 pid=10247 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.056:147): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E7365727400494E505554002D2D696E2D696E7465726661636500766972627230002D2D70726F746F636F6C00746370002D2D64657374696E6174696F6E2D706F7274003533002D2D6A756D70004143434550
+type=NETFILTER_CFG msg=audit(1576087635.074:148): table=filter family=2 entries=86
+type=SYSCALL msg=audit(1576087635.074:148): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=84e9a0 items=0 ppid=824 pid=10248 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.074:148): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E7365727400494E505554002D2D696E2D696E7465726661636500766972627230002D2D70726F746F636F6C00756470002D2D64657374696E6174696F6E2D706F7274003533002D2D6A756D70004143434550
+type=NETFILTER_CFG msg=audit(1576087635.090:149): table=filter family=2 entries=87
+type=SYSCALL msg=audit(1576087635.090:149): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=1747fb0 items=0 ppid=824 pid=10249 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.090:149): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E7365727400464F5257415244002D2D696E2D696E7465726661636500766972627230002D2D6A756D700052454A454354
+type=NETFILTER_CFG msg=audit(1576087635.107:150): table=filter family=2 entries=88
+type=SYSCALL msg=audit(1576087635.107:150): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=1add130 items=0 ppid=824 pid=10250 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.107:150): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E7365727400464F5257415244002D2D6F75742D696E7465726661636500766972627230002D2D6A756D700052454A454354
+type=NETFILTER_CFG msg=audit(1576087635.124:151): table=filter family=2 entries=89
+type=SYSCALL msg=audit(1576087635.124:151): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f2ed90 items=0 ppid=824 pid=10251 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.124:151): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E7365727400464F5257415244002D2D696E2D696E7465726661636500766972627230002D2D6F75742D696E7465726661636500766972627230002D2D6A756D7000414343455054
+type=NETFILTER_CFG msg=audit(1576087635.141:152): table=filter family=2 entries=90
+type=SYSCALL msg=audit(1576087635.141:152): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=104ff10 items=0 ppid=824 pid=10252 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.141:152): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E7365727400464F5257415244002D2D736F75726365003139322E3136382E3132322E302F3234002D2D696E2D696E7465726661636500766972627230002D2D6A756D7000414343455054
+type=NETFILTER_CFG msg=audit(1576087635.153:153): table=filter family=2 entries=91
+type=SYSCALL msg=audit(1576087635.153:153): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=1aa5020 items=0 ppid=824 pid=10253 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.153:153): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C650066696C746572002D2D696E7365727400464F5257415244002D2D64657374696E6174696F6E003139322E3136382E3132322E302F3234002D2D6F75742D696E7465726661636500766972627230002D2D6D6174636800636F6E6E747261
+type=NETFILTER_CFG msg=audit(1576087635.180:154): table=nat family=2 entries=52
+type=SYSCALL msg=audit(1576087635.180:154): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=16998a0 items=0 ppid=824 pid=10254 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.180:154): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C65006E6174002D2D696E7365727400504F5354524F5554494E47002D2D736F75726365003139322E3136382E3132322E302F32340000002D2D64657374696E6174696F6E003139322E3136382E3132322E302F3234002D2D6A756D70004D41
+type=NETFILTER_CFG msg=audit(1576087635.246:155): table=nat family=2 entries=53
+type=SYSCALL msg=audit(1576087635.246:155): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=2651df0 items=0 ppid=824 pid=10257 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.246:155): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C65006E6174002D2D696E7365727400504F5354524F5554494E47002D2D736F75726365003139322E3136382E3132322E302F3234002D70007564700000002D2D64657374696E6174696F6E003139322E3136382E3132322E302F3234002D2D
+type=NETFILTER_CFG msg=audit(1576087635.263:156): table=nat family=2 entries=54
+type=SYSCALL msg=audit(1576087635.263:156): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=12e3f80 items=0 ppid=824 pid=10258 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.263:156): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C65006E6174002D2D696E7365727400504F5354524F5554494E47002D2D736F75726365003139322E3136382E3132322E302F3234002D70007463700000002D2D64657374696E6174696F6E003139322E3136382E3132322E302F3234002D2D
+type=NETFILTER_CFG msg=audit(1576087635.280:157): table=nat family=2 entries=55
+type=SYSCALL msg=audit(1576087635.280:157): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=f10810 items=0 ppid=824 pid=10259 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.280:157): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C65006E6174002D2D696E7365727400504F5354524F5554494E47002D2D736F75726365003139322E3136382E3132322E302F3234002D2D64657374696E6174696F6E003235352E3235352E3235352E3235352F3332002D2D6A756D70005245
+type=NETFILTER_CFG msg=audit(1576087635.297:158): table=nat family=2 entries=56
+type=SYSCALL msg=audit(1576087635.297:158): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=1d14980 items=0 ppid=824 pid=10260 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.297:158): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C65006E6174002D2D696E7365727400504F5354524F5554494E47002D2D736F75726365003139322E3136382E3132322E302F3234002D2D64657374696E6174696F6E003232342E302E302E302F3234002D2D6A756D700052455455524E
+type=NETFILTER_CFG msg=audit(1576087635.325:159): table=mangle family=2 entries=40
+type=SYSCALL msg=audit(1576087635.325:159): arch=c000003e syscall=54 success=yes exit=0 a0=4 a1=0 a2=40 a3=b2e660 items=0 ppid=824 pid=10261 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/usr/sbin/xtables-multi" key=(null)
+type=PROCTITLE msg=audit(1576087635.325:159): proctitle=2F7573722F7362696E2F69707461626C6573002D773130002D77002D2D7461626C65006D616E676C65002D2D696E7365727400504F5354524F5554494E47002D2D6F75742D696E7465726661636500766972627230002D2D70726F746F636F6C00756470002D2D64657374696E6174696F6E2D706F7274003638002D2D6A756D
+type=SERVICE_START msg=audit(1576087635.477:160): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=NetworkManager-dispatcher comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087641.252:161): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=kdump comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SYSTEM_RUNLEVEL msg=audit(1576087641.264:162): pid=11664 uid=0 auid=4294967295 ses=4294967295 msg='old-level=N new-level=5 comm="systemd-update-utmp" exe="/usr/lib/systemd/systemd-update-utmp" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087641.267:163): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-update-utmp-runlevel comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087641.267:164): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-update-utmp-runlevel comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087644.003:165): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-localed comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087644.663:166): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-hostnamed comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087644.980:167): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=fprintd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087645.990:168): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=NetworkManager-dispatcher comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=filter family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=filter family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=raw family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=security family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=mangle family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=nat family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=raw family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=security family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=mangle family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087658.343:169): table=nat family=10 entries=0
+type=SYSCALL msg=audit(1576087658.343:169): arch=c000003e syscall=272 success=yes exit=0 a0=40000000 a1=7ffffceddae0 a2=fffffffffffffff5 a3=22 items=0 ppid=1 pid=11673 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="(fprintd)" exe="/usr/lib/systemd/systemd" key=(null)
+type=PROCTITLE msg=audit(1576087658.343:169): proctitle="(fprintd)"
+type=SERVICE_START msg=audit(1576087658.359:170): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=fprintd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=USER_AUTH msg=audit(1576087660.668:171): pid=11675 uid=0 auid=4294967295 ses=4294967295 msg='op=PAM:authentication grantors=pam_unix,pam_gnome_keyring acct="W0421081" exe="/usr/libexec/gdm-session-worker" hostname=isec2077-vm02 addr=? terminal=/dev/tty1 res=success'
+type=USER_ACCT msg=audit(1576087660.674:172): pid=11675 uid=0 auid=4294967295 ses=4294967295 msg='op=PAM:accounting grantors=pam_unix,pam_localuser acct="W0421081" exe="/usr/libexec/gdm-session-worker" hostname=isec2077-vm02 addr=? terminal=/dev/tty1 res=success'
+type=CRED_ACQ msg=audit(1576087660.675:173): pid=11675 uid=0 auid=4294967295 ses=4294967295 msg='op=PAM:setcred grantors=pam_unix,pam_gnome_keyring acct="W0421081" exe="/usr/libexec/gdm-session-worker" hostname=isec2077-vm02 addr=? terminal=/dev/tty1 res=success'
+type=LOGIN msg=audit(1576087660.680:174): pid=11675 uid=0 old-auid=4294967295 auid=1000 tty=(none) old-ses=4294967295 ses=1 res=1
+type=USER_START msg=audit(1576087660.774:175): pid=11675 uid=0 auid=1000 ses=1 msg='op=PAM:session_open grantors=pam_selinux,pam_loginuid,pam_selinux,pam_keyinit,pam_namespace,pam_keyinit,pam_limits,pam_systemd,pam_unix,pam_gnome_keyring acct="W0421081" exe="/usr/libexec/gdm-session-worker" hostname=? addr=? terminal=:0 res=success'
+type=USER_LOGIN msg=audit(1576087660.774:176): pid=11675 uid=0 auid=1000 ses=1 msg='uid=1000 exe="/usr/libexec/gdm-session-worker" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087665.186:177): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=geoclue comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=filter family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=filter family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=raw family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=security family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=mangle family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=nat family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=raw family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=security family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=mangle family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087666.306:178): table=nat family=10 entries=0
+type=SYSCALL msg=audit(1576087666.306:178): arch=c000003e syscall=272 success=yes exit=0 a0=40000000 a1=7ffffceddae0 a2=fffffffffffffff5 a3=22 items=0 ppid=1 pid=12089 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="(ostnamed)" exe="/usr/lib/systemd/systemd" key=(null)
+type=PROCTITLE msg=audit(1576087666.306:178): proctitle="(ostnamed)"
+type=SERVICE_START msg=audit(1576087666.340:179): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-hostnamed comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=filter family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=filter family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=raw family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=security family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=mangle family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=nat family=2 entries=0
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=raw family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=security family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=mangle family=10 entries=0
+type=NETFILTER_CFG msg=audit(1576087667.522:180): table=nat family=10 entries=0
+type=SYSCALL msg=audit(1576087667.522:180): arch=c000003e syscall=272 success=yes exit=0 a0=40000000 a1=7ffffceddae0 a2=fffffffffffffff5 a3=22 items=0 ppid=1 pid=12172 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="(-localed)" exe="/usr/lib/systemd/systemd" key=(null)
+type=PROCTITLE msg=audit(1576087667.522:180): proctitle="(-localed)"
+type=SERVICE_START msg=audit(1576087667.614:181): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-localed comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_START msg=audit(1576087673.154:182): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=fwupd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087676.038:183): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=realmd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087688.985:184): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=fprintd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087699.562:185): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-localed comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=SERVICE_STOP msg=audit(1576087700.404:186): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-hostnamed comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=USER_AUTH msg=audit(1576087719.252:187): pid=12566 uid=1000 auid=1000 ses=1 msg='op=PAM:authentication grantors=pam_unix acct="W0421081" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/0 res=success'
+type=USER_ACCT msg=audit(1576087719.252:188): pid=12566 uid=1000 auid=1000 ses=1 msg='op=PAM:accounting grantors=pam_unix,pam_localuser acct="W0421081" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/0 res=success'
+type=USER_CMD msg=audit(1576087719.252:189): pid=12566 uid=1000 auid=1000 ses=1 msg='cwd="/home/W0421081" cmd=746172202D637A7666202F7661722F6C6F672F6175646974206C696E75782D61756469742D73616D706C652E7461722E677A202E terminal=pts/0 res=success'
+type=CRED_REFR msg=audit(1576087719.252:190): pid=12566 uid=0 auid=1000 ses=1 msg='op=PAM:setcred grantors=pam_unix acct="root" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/0 res=success'
+type=USER_START msg=audit(1576087719.255:191): pid=12566 uid=0 auid=1000 ses=1 msg='op=PAM:session_open grantors=pam_keyinit,pam_limits,pam_keyinit,pam_limits,pam_systemd,pam_unix acct="root" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/0 res=success'
+type=USER_END msg=audit(1576087719.268:192): pid=12566 uid=0 auid=1000 ses=1 msg='op=PAM:session_close grantors=pam_keyinit,pam_limits,pam_keyinit,pam_limits,pam_systemd,pam_unix acct="root" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/0 res=success'
+type=CRED_DISP msg=audit(1576087719.268:193): pid=12566 uid=0 auid=1000 ses=1 msg='op=PAM:setcred grantors=pam_unix acct="root" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/0 res=success'
+type=SERVICE_STOP msg=audit(1576087730.439:194): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-machined comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+type=USER_ACCT msg=audit(1576087750.386:195): pid=12609 uid=1000 auid=1000 ses=1 msg='op=PAM:accounting grantors=pam_unix,pam_localuser acct="W0421081" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/0 res=success'
+type=USER_CMD msg=audit(1576087750.386:196): pid=12609 uid=1000 auid=1000 ses=1 msg='cwd="/home/W0421081" cmd=746172202D637A7666206C696E75782D61756469742D73616D706C652E7461722E677A202F7661722F6C6F672F6175646974 terminal=pts/0 res=success'
+type=CRED_REFR msg=audit(1576087750.386:197): pid=12609 uid=0 auid=1000 ses=1 msg='op=PAM:setcred grantors=pam_env,pam_unix acct="root" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/0 res=success'
+type=USER_START msg=audit(1576087750.390:198): pid=12609 uid=0 auid=1000 ses=1 msg='op=PAM:session_open grantors=pam_keyinit,pam_limits,pam_keyinit,pam_limits,pam_systemd,pam_unix acct="root" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/0 res=success'
