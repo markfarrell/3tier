@@ -1,7 +1,13 @@
 module Date
-  ( now
+  ( Date 
+  , current
+  , toISOString
   ) where
 
 import Effect (Effect)
 
-foreign import now :: Effect Number
+foreign import data Date :: Type
+
+foreign import current :: Effect Date
+
+foreign import toISOString :: Date -> String

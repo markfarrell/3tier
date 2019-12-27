@@ -12,6 +12,8 @@ import Control.Monad.Trans.Class (lift)
 import Effect (Effect)
 import Effect.Class (liftEffect)
 
+import Data.Foldable(foldl)
+
 import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
 import Data.List(many)
@@ -26,7 +28,7 @@ import Date as Date
 import DB as DB
 import HTTP as HTTP
 import Socket as Socket
-import UUIDv3 as UUIDv3
+import Strings as Strings
 
 newtype Entry = Entry
   { eventID :: String
@@ -107,15 +109,16 @@ parseEntry = do
   
 entryQuery :: Entry -> HTTP.IncomingMessage -> Effect String
 entryQuery (Entry entry) req = do
-  timestamp <- Date.now
+  timestamp <- Date.toISOString <$> Date.current
   pure $ query timestamp
   where
-    query timestamp = "INSERT INTO Windows (UUID, Timestamp, RemoteAddress, RemotePort, EventID, MachineName, EntryData, EntryIndex, Category, CategoryNumber, EntryType, Message, Source, ReplacementStrings, InstanceID, TimeGenerated, TimeWritten, UserName, Site, Container)" <> " " <> "VALUES" <> " " <> "(" <> values timestamp <> ")"
-    values timestamp = "'" <> uuid <> "','" <> show timestamp <> "','" <> remoteAddress <> "','" <> show remotePort <> "','"  <> entry.eventID <> "','" <> entry.machineName <> "','" <> entry.entryData <> "','" <> entry.category <> "','" <> entry.categoryNumber <> "','" <> entry.entryType <> "','" <> entry.message <> "','" <> entry.source <> "','" <> entry.replacementStrings <> "','" <> entry.instanceID <> "','" <> entry.timeGenerated <> "','" <> entry.timeWritten <> "','" <> entry.userName <> "','"
-          <> entry.userName <> "','" <>  entry.site <> "','" <> entry.container <> "'"
-    uuid = UUIDv3.url $ HTTP.messageURL req
+    query timestamp = "INSERT INTO Windows (Timestamp, RemoteAddress, RemotePort, URL, EventID) VALUES ('" <> values timestamp <> "')"
+    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $ [remoteAddress, remotePort', url', eventID]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
+    remotePort' = show remotePort
+    url' = Strings.encodeBase64 $ HTTP.messageURL req
+    eventID = entry.eventID
 
 insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert entry = \req -> do

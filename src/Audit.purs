@@ -3,20 +3,27 @@ module Audit
   , EventID(..)
   , Entry(..)
   , insert
+  , audit
   ) where
 
 import Prelude
 
+import Control.Monad.Error.Class (try)
 import Control.Monad.Trans.Class (lift)
 
+import Data.Either(Either(..))
+import Data.Foldable (foldl)
+
 import Effect (Effect)
+import Effect.Aff (Aff)
+import Effect.Console (log) as Console
 import Effect.Class (liftEffect)
 
 import DB as DB
 import Date as Date
 import HTTP as HTTP
 import Socket as Socket
-import UUIDv3 as UUIDv3
+import Strings as Strings
 
 data EventType = Success | Failure
 
@@ -39,17 +46,34 @@ instance showEntry :: Show Entry where
 
 entryQuery :: Entry -> HTTP.IncomingMessage -> Effect String
 entryQuery (Entry eventType eventID msg) req = do
-  timestamp <- Date.now
+  timestamp <- Date.toISOString <$> Date.current
   pure $ query timestamp 
   where
-    query timestamp  = "INSERT INTO Audit (UUID, Timestamp, RemoteAddress, RemotePort, EventType, EventID, Message) VALUES (" <> values timestamp <> ")"
-    values timestamp = "'" <> uuid <> "','" <> show timestamp <> "','" <> remoteAddress <> "','" <> show remotePort <> "','" <> show eventType <> "','" <> show eventID  <> "','" <> msg <> "'"
-    uuid = UUIDv3.url $ HTTP.messageURL req
+    query timestamp  = "INSERT INTO Audit (Timestamp, RemoteAddress, RemotePort, URL, EventType, EventID, Message) VALUES ('" <> values timestamp <> "')"
+    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $ [remoteAddress, remotePort', url', eventType', eventID', message] 
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
+    remotePort' = show remotePort
+    url' = Strings.encodeBase64 $ HTTP.messageURL req
+    eventType' = show eventType
+    eventID' = show eventID
+    message = Strings.encodeBase64 msg
 
 insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert entry = \req -> do
   query <- lift $ liftEffect $ entryQuery entry req
   DB.insert filename query
   where filename = "audit.db"
+
+log :: String -> Aff Unit
+log = liftEffect <<< Console.log
+
+audit :: Entry -> HTTP.IncomingMessage -> Aff Unit
+audit entry req = do
+  result <- try $ DB.runRequest (insert entry $ req)
+  case result of
+    (Left error) -> log $ show result
+    (Right _)    -> do
+      case entry of
+        (Entry Failure _ _) -> log $ show entry
+        _                   -> pure unit

@@ -17,6 +17,7 @@ import Effect.Class (liftEffect)
 import Effect.Console (log)
 
 import Data.Array (fromFoldable) as Array
+import Data.Foldable(foldl)
 
 import Foreign (readString) as Foreign
 import Foreign.Index ((!))
@@ -29,7 +30,6 @@ import DB as DB
 import HTTP as HTTP
 import Socket as Socket
 import Strings as Strings
-import UUIDv3 as UUIDv3
 
 import Linux.Fields as Fields
 
@@ -166,24 +166,20 @@ messageType (Login) = "LOGIN"
 message :: Message -> String
 message (Message msg) = msg
 
-insert' :: HTTP.IncomingMessage -> MessageType -> Message -> Field -> DB.Request Unit
-insert' req ty msg field = do
-  timestamp <- lift $ liftEffect $ Date.now
+insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert (Entry ty msg _) req = do
+  timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
   DB.insert filename $ query timestamp
   where
-    query timestamp  = "INSERT INTO Linux (UUID, Timestamp, RemoteAddress, RemotePort, MessageType, Message, FieldName, FieldValue) VALUES (" <> values timestamp <> ")"
-    values timestamp = "'" <> uuid <> "','" <> show timestamp <> "','" <> remoteAddress <> "','" <> show remotePort <> "','" <> messageType' <> "','" <> message' <> "','" <> fieldName <> "','" <> fieldValue <> "'" 
-    uuid = UUIDv3.url $ HTTP.messageURL req
+    query timestamp  = "INSERT INTO Linux (Timestamp, RemoteAddress, RemotePort, URL, MessageType, Message) VALUES ('" <> values timestamp <> "')"
+    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $ [remoteAddress, remotePort', url', messageType', message']
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
+    remotePort' = show remotePort
+    url' = Strings.encodeBase64 $ HTTP.messageURL req
     messageType' = messageType ty
     message' = message msg
-    fieldName = Fields.fieldName field
-    fieldValue = Strings.escape $ Fields.fieldValue field
     filename = "logs.db"
-
-insert :: Entry -> HTTP.IncomingMessage -> Array (DB.Request Unit)
-insert (Entry ty msg fields) req = insert' req ty msg <$> fields
 
 summary :: DB.Request (Array (Array String))
 summary = DB.select filename query readResult

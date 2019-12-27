@@ -14,12 +14,9 @@ import Data.Either (Either(..))
 
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
-import Effect.Console (log) as Console
 import Effect.Class (liftEffect)
 
-import Data.Foldable (fold)
-import Data.Traversable(sequence)
-import Data.Tuple (Tuple(..), snd)
+import Data.Tuple (Tuple(..))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
@@ -29,23 +26,11 @@ import Strings as Strings
 import DB as DB
 import HTTP as HTTP
 
+import Audit (audit)
 import Audit as Audit
+
 import Windows as Windows
 import Linux as Linux
-
-log :: String -> Aff Unit
-log = liftEffect <<< Console.log
-
-audit :: Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
-audit (Audit.Entry eventType eventID msg) = \req -> do
-  result <- try $ DB.runRequest (Audit.insert entry $ req)
-  case result of
-    (Left error) -> log $ show result
-    (Right _)    -> do 
-      case entry of
-        (Audit.Entry Audit.Failure _ _) -> log $ show entry
-        _                               -> pure unit
-  where entry = (Audit.Entry eventType eventID (Strings.encodeBase64 msg))
 
 data Route = InsertLinux Linux.Entry | InsertWindows Windows.Entry | SummaryWindows | SummaryLinux
 
@@ -128,13 +113,12 @@ runRoute req  = do
            pure $ Ok (TextJSON (show resultSet))
     (Right (InsertLinux entry)) -> do
       _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (InsertLinux entry))) $ req
-      result' <- sequence <$> sequence (DB.runRequest <$> (Linux.insert entry $ req))
+      result' <- DB.runRequest $ Linux.insert entry $ req
       case result' of
         (Left error)             -> do 
            _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
            pure $ InternalServerError ""
-        (Right result'') -> do
-           steps <- pure $ fold (snd <$> result'')
+        (Right (Tuple row steps)) -> do
            _     <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
            pure $ Ok (TextHTML "")
     (Right (SummaryLinux)) -> do

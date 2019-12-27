@@ -1,6 +1,10 @@
 "use strict";
 
-exports.now = function() {
+exports.current = function() {
   var date = new Date();
-  return date.getTime();
+  return date;
+};
+
+exports.toISOString = function(date) {
+  return date.toISOString();
 };
