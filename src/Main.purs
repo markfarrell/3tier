@@ -71,12 +71,11 @@ parseSummaryLinux = do
 parseRoute :: Parser String Route
 parseRoute = parseInsertWindows <|> parseSummaryWindows <|> parseInsertLinux <|> parseSummaryLinux
 
-data ContentType a = TextHTML a | TextJSON a
+data ContentType a = TextJSON a
 
 data ResponseType a = Ok (ContentType a) | InternalServerError a | BadRequest String
 
 instance showContentType :: (Show a) => Show (ContentType a) where
-  show (TextHTML x) = "TextHTML (" <> show x <> ")"
   show (TextJSON x) = "TextJSON (" <> show x <> ")"
 
 instance showResponseType :: (Show a) => Show (ResponseType a) where
@@ -121,12 +120,6 @@ runRoute req  = do
     (Right (SummaryLinux))        -> (runDBRoute $ const Linux.summary)   (SummaryLinux)        $ req
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
-respondResource (Ok (TextHTML body)) = \res -> liftEffect $ do
-  _ <- HTTP.setHeader "Content-Type" "text/html" $ res
-  _ <- HTTP.writeHead 200 $ res
-  _ <- HTTP.write body $ res
-  _ <- HTTP.end $ res
-  pure unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
   _ <- HTTP.setHeader "Content-Type" "text/json" $ res
   _ <- HTTP.writeHead 200 $ res
