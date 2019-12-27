@@ -18,13 +18,11 @@ import Effect.Console (log) as Console
 import Effect.Class (liftEffect)
 
 import Data.Foldable (fold)
-import Data.Traversable(foldMap, sequence)
+import Data.Traversable(sequence)
 import Data.Tuple (Tuple(..), snd)
-import Data.List (many)
-import Data.String.CodeUnits (singleton)
 
 import Text.Parsing.Parser (Parser, runParser)
-import Text.Parsing.Parser.String (string, anyChar)
+import Text.Parsing.Parser.String (string)
 
 import DB as DB
 import HTTP as HTTP
@@ -60,12 +58,6 @@ instance showRoute :: Show Route where
   show (InsertWindows entry) = "(InsertWindows " <> show entry <> ")"
   show (SummaryWindows) = "(SummaryWindows)"
   show (SummaryLinux) = "(SummaryLinux)"
-
-parseEntryString :: Parser String String
-parseEntryString = do
-  _ <- string "entry"
-  _ <- string "="
-  foldMap singleton <$> many anyChar
 
 parseInsertWindows :: Parser String Route
 parseInsertWindows = do
