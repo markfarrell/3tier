@@ -26,7 +26,6 @@ import Strings as Strings
 import DB as DB
 import HTTP as HTTP
 
-import Audit (audit)
 import Audit as Audit
 
 import Windows as Windows
@@ -97,14 +96,14 @@ instance contentJSONArray  :: ContentJSON a => ContentJSON (Array a) where
 
 runDBRoute :: forall a. ContentJSON a => (HTTP.IncomingMessage -> DB.Request a) -> Route -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runDBRoute request route req = do
-  _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
+  _       <- Audit.audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
   result' <- DB.runRequest $ request req
   case result' of
     (Left error)             -> do 
-     _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
+     _ <- Audit.audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
      pure $ InternalServerError ""
     (Right (Tuple result'' steps)) -> do
-     _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
+     _ <- Audit.audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
      pure $ Ok (TextJSON (showJSON result''))
 
 runRoute :: HTTP.IncomingMessage -> Aff (ResponseType String)
@@ -112,7 +111,7 @@ runRoute req  = do
   result <-  pure $ flip runParser parseRoute (Strings.decodeURIComponent $ HTTP.messageURL req) 
   case result of
     (Left error) -> do 
-        _ <- audit (Audit.Entry Audit.Failure Audit.RoutingRequest (show $ Tuple (Strings.decodeURIComponent $ HTTP.messageURL req) error)) $ req
+        _ <- Audit.audit (Audit.Entry Audit.Failure Audit.RoutingRequest (show $ Tuple (Strings.decodeURIComponent $ HTTP.messageURL req) error)) $ req
         pure $ BadRequest (HTTP.messageURL req)
     (Right (InsertWindows entry)) -> (runDBRoute $ Windows.insert entry)  (InsertWindows entry) $ req
     (Right (SummaryWindows))      -> (runDBRoute $ const Windows.summary) (SummaryWindows)      $ req 
@@ -146,15 +145,15 @@ consumer = forever $ do
     (HTTP.Request req res) -> do
       routeResult <- lift $ try (runRoute req)
       case routeResult of
-        (Left  error)        -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceRequest (show error)) $ req
+        (Left  error)        -> lift $ Audit.audit (Audit.Entry Audit.Failure Audit.ResourceRequest (show error)) $ req
         (Right responseType) -> do
            _ <- case responseType of
-                  (Ok _) -> lift $ audit (Audit.Entry Audit.Success Audit.ResourceRequest (HTTP.messageURL req)) $ req
-                  _      -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceRequest (HTTP.messageURL req)) $ req
+                  (Ok _) -> lift $ Audit.audit (Audit.Entry Audit.Success Audit.ResourceRequest (HTTP.messageURL req)) $ req
+                  _      -> lift $ Audit.audit (Audit.Entry Audit.Failure Audit.ResourceRequest (HTTP.messageURL req)) $ req
            responseResult <- lift $ try (respondResource responseType res)
            case responseResult of
-             (Left error')   -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceResponse (show error')) $ req
-             (Right _)       -> lift $ audit (Audit.Entry Audit.Success Audit.ResourceResponse (show responseType)) $ req 
+             (Left error')   -> lift $ Audit.audit (Audit.Entry Audit.Failure Audit.ResourceResponse (show error')) $ req
+             (Right _)       -> lift $ Audit.audit (Audit.Entry Audit.Success Audit.ResourceResponse (show responseType)) $ req 
 
 process :: HTTP.Server -> Process Aff Unit
 process server = pullFrom consumer $ producer server
