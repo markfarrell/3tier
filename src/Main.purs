@@ -24,18 +24,14 @@ import Data.Tuple (Tuple(..), snd)
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
 
+import Strings as Strings
+
 import DB as DB
 import HTTP as HTTP
 
 import Audit as Audit
 import Windows as Windows
 import Linux as Linux
-
-foreign import decodeURI :: String -> String
-
-foreign import decodeURIComponent :: String -> String
-
-foreign import encodeBase64 :: String -> String
 
 log :: String -> Aff Unit
 log = liftEffect <<< Console.log
@@ -49,7 +45,7 @@ audit (Audit.Entry eventType eventID msg) = \req -> do
       case entry of
         (Audit.Entry Audit.Failure _ _) -> log $ show entry
         _                               -> pure unit
-  where entry = (Audit.Entry eventType eventID (encodeBase64 msg))
+  where entry = (Audit.Entry eventType eventID (Strings.encodeBase64 msg))
 
 data Route = InsertLinux Linux.Entry | InsertWindows Windows.Entry | SummaryWindows | SummaryLinux
 
@@ -105,10 +101,10 @@ instance showResponseType :: (Show a) => Show (ResponseType a) where
 
 runRoute :: HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute req  = do
-  result <-  pure $ flip runParser parseRoute (decodeURIComponent $ HTTP.messageURL req) 
+  result <-  pure $ flip runParser parseRoute (Strings.decodeURIComponent $ HTTP.messageURL req) 
   case result of
     (Left error) -> do 
-        _ <- audit (Audit.Entry Audit.Failure Audit.RoutingRequest (show $ Tuple (decodeURIComponent $ HTTP.messageURL req) error)) $ req
+        _ <- audit (Audit.Entry Audit.Failure Audit.RoutingRequest (show $ Tuple (Strings.decodeURIComponent $ HTTP.messageURL req) error)) $ req
         pure $ BadRequest (HTTP.messageURL req)
     (Right (InsertWindows entry)) -> do
       _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (InsertWindows entry))) $ req

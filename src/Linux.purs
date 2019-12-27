@@ -33,9 +33,8 @@ import Date as Date
 import DB as DB
 import HTTP as HTTP
 import Socket as Socket
+import Strings as Strings
 import UUIDv3 as UUIDv3
-
-foreign import escapeString :: String -> String
 
 data Field =
     A0 String
@@ -782,13 +781,16 @@ messageType (Login) = "LOGIN"
 message :: Message -> String
 message (Message msg) = msg
 
+fieldValue' :: Field -> String
+fieldValue' field = Strings.escape $ fieldValue field
+
 insert' :: HTTP.IncomingMessage -> MessageType -> Message -> Field -> DB.Request Unit
 insert' req ty msg field = do
   timestamp <- lift $ liftEffect $ Date.now
   DB.insert filename $ query timestamp
   where
     query timestamp  = "INSERT INTO Linux (UUID, Timestamp, RemoteAddress, RemotePort, MessageType, Message, FieldName, FieldValue) VALUES (" <> values timestamp <> ")"
-    values timestamp = "'" <> uuid <> "','" <> show timestamp <> "','" <> remoteAddress <> "','" <> show remotePort <> "','" <> (messageType ty) <> "','" <> (message msg) <> "','" <> (fieldName field) <> "','" <> (escapeString <<< fieldValue $ field) <> "'" 
+    values timestamp = "'" <> uuid <> "','" <> show timestamp <> "','" <> remoteAddress <> "','" <> show remotePort <> "','" <> (messageType ty) <> "','" <> (message msg) <> "','" <> (fieldName field) <> "','" <> (fieldValue' field) <> "'" 
     uuid = UUIDv3.url $ HTTP.messageURL req
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
