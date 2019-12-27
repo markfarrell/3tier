@@ -84,6 +84,30 @@ instance showResponseType :: (Show a) => Show (ResponseType a) where
   show (InternalServerError x) = "InternalServerError (" <> show x <> ")"
   show (BadRequest path)       = "BadRequest " <> path
 
+class ContentJSON a where
+  showJSON :: a -> String
+
+instance contentJSONUnit   :: ContentJSON Unit where
+  showJSON _ = ""
+
+instance contentJSONString :: ContentJSON String where
+  showJSON x = show x
+
+instance contentJSONArray  :: ContentJSON a => ContentJSON (Array a) where
+  showJSON x = showJSON x 
+
+runDBRoute :: forall a. ContentJSON a => (HTTP.IncomingMessage -> DB.Request a) -> Route -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runDBRoute request route req = do
+  _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
+  result' <- DB.runRequest $ request req
+  case result' of
+    (Left error)             -> do 
+     _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
+     pure $ InternalServerError ""
+    (Right (Tuple result'' steps)) -> do
+     _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
+     pure $ Ok (TextJSON (showJSON result''))
+
 runRoute :: HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute req  = do
   result <-  pure $ flip runParser parseRoute (Strings.decodeURIComponent $ HTTP.messageURL req) 
@@ -91,47 +115,11 @@ runRoute req  = do
     (Left error) -> do 
         _ <- audit (Audit.Entry Audit.Failure Audit.RoutingRequest (show $ Tuple (Strings.decodeURIComponent $ HTTP.messageURL req) error)) $ req
         pure $ BadRequest (HTTP.messageURL req)
-    (Right (InsertWindows entry)) -> do
-      _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (InsertWindows entry))) $ req
-      result' <- DB.runRequest $ Windows.insert entry $ req
-      case result' of
-        (Left error)             -> do 
-           _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
-           pure $ InternalServerError ""
-        (Right (Tuple rows steps)) -> do
-           _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
-           pure $ Ok (TextHTML "")
-    (Right (SummaryWindows)) -> do
-      _ <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (SummaryWindows))) $ req
-      result' <- DB.runRequest $ Windows.summary
-      case result' of
-        (Left error)             -> do 
-           _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
-           pure $ InternalServerError ""
-        (Right (Tuple resultSet steps)) -> do
-           _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
-           pure $ Ok (TextJSON (show resultSet))
-    (Right (InsertLinux entry)) -> do
-      _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (InsertLinux entry))) $ req
-      result' <- DB.runRequest $ Linux.insert entry $ req
-      case result' of
-        (Left error)             -> do 
-           _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req 
-           pure $ InternalServerError ""
-        (Right (Tuple row steps)) -> do
-           _     <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
-           pure $ Ok (TextHTML "")
-    (Right (SummaryLinux)) -> do
-      _ <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show (SummaryLinux))) $ req
-      result' <- DB.runRequest $ Linux.summary
-      case result' of
-        (Left error)             -> do
-           _ <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error)) $ req
-           pure $ InternalServerError ""
-        (Right (Tuple resultSet steps)) -> do
-           _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req
-           pure $ Ok (TextJSON (show resultSet))
- 
+    (Right (InsertWindows entry)) -> (runDBRoute $ Windows.insert entry)  (InsertWindows entry) $ req
+    (Right (SummaryWindows))      -> (runDBRoute $ const Windows.summary) (SummaryWindows)      $ req 
+    (Right (InsertLinux entry))   -> (runDBRoute $ Linux.insert entry)    (InsertLinux entry)   $ req 
+    (Right (SummaryLinux))        -> (runDBRoute $ const Linux.summary)   (SummaryLinux)        $ req
+
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextHTML body)) = \res -> liftEffect $ do
   _ <- HTTP.setHeader "Content-Type" "text/html" $ res
