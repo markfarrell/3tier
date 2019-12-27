@@ -1,5 +1,5 @@
 module HTTP
-  ( Request(..)
+  ( IncomingRequest(..)
   , Server
   , IncomingMessage
   , ServerResponse
@@ -52,7 +52,7 @@ foreign import onRequest :: (IncomingMessage -> ServerResponse -> Effect Unit) -
 
 foreign import write :: String -> ServerResponse -> Effect Unit
 
-data Request = Request IncomingMessage ServerResponse
+data IncomingRequest = IncomingRequest IncomingMessage ServerResponse
 
 instance showMessageHeaders :: Show MessageHeaders where
   show = showMessageHeadersImpl

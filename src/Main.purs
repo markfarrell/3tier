@@ -131,15 +131,15 @@ respondResource (InternalServerError _) = \res -> liftEffect $ do
   _ <- HTTP.end $ res
   pure unit
 
-producer :: HTTP.Server -> Producer HTTP.Request Aff Unit
+producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
 producer server = produce \emitter -> do
-  HTTP.onRequest (\req res -> emit emitter $ HTTP.Request req res) $ server
+  HTTP.onRequest (\req res -> emit emitter $ HTTP.IncomingRequest req res) $ server
 
-consumer :: Consumer HTTP.Request Aff Unit
+consumer :: Consumer HTTP.IncomingRequest Aff Unit
 consumer = forever $ do
   request <- await
   case request of
-    (HTTP.Request req res) -> do
+    (HTTP.IncomingRequest req res) -> do
       routeResult <- lift $ try (runRoute req)
       case routeResult of
         (Left  error)        -> lift $ Audit.audit (Audit.Entry Audit.Failure Audit.ResourceRequest (show error)) $ req
