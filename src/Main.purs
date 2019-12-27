@@ -85,14 +85,11 @@ instance showResponseType :: (Show a) => Show (ResponseType a) where
 class ContentJSON a where
   showJSON :: a -> String
 
-instance contentJSONUnit   :: ContentJSON Unit where
+instance contentJSONUnit :: ContentJSON Unit where
   showJSON _ = ""
 
-instance contentJSONString :: ContentJSON String where
+instance contentJSONSummary :: ContentJSON (Array (Array String)) where
   showJSON x = show x
-
-instance contentJSONArray  :: ContentJSON a => ContentJSON (Array a) where
-  showJSON x = showJSON x 
 
 runDBRoute :: forall a. ContentJSON a => (HTTP.IncomingMessage -> DB.Request a) -> Route -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runDBRoute request route req = do

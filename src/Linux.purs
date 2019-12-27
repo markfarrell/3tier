@@ -188,7 +188,7 @@ summary = DB.select filename query readResult
        ty          <- row ! "MessageType" >>= Foreign.readString
        entries     <- row ! "Entries"     >>= Foreign.readString
        pure $ [ty, entries]
-    query = "SELECT MessageType AS 'MessageType', COUNT(DISTINCT UUID) AS 'Entries' FROM Linux GROUP BY MessageType ORDER BY Entries DESC"
+    query = "SELECT MessageType AS 'MessageType', CAST(COUNT(DISTINCT URL) AS TEXT) AS 'Entries' FROM Linux GROUP BY MessageType ORDER BY Entries DESC"
     filename = "logs.db"
 
 test :: Effect Unit
