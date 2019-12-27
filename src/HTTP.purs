@@ -15,11 +15,15 @@ module HTTP
   , setHeader
   , onRequest
   , write
+  , Method(..)
+  , request
   ) where
 
 import Prelude
 
 import Effect (Effect)
+import Effect.Aff (Aff)
+import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 
 import Socket (Socket)
 
@@ -51,6 +55,14 @@ foreign import setHeader :: String -> String -> ServerResponse -> Effect Unit
 foreign import onRequest :: (IncomingMessage -> ServerResponse -> Effect Unit) -> Server -> Effect Unit
 
 foreign import write :: String -> ServerResponse -> Effect Unit
+
+foreign import requestImpl :: String -> String -> EffectFnAff String
+
+data Method = Get | Post
+
+request :: Method -> String -> Aff String
+request Get  = fromEffectFnAff <<< requestImpl "GET"
+request Post = fromEffectFnAff <<< requestImpl "POST"
 
 data IncomingRequest = IncomingRequest IncomingMessage ServerResponse
 

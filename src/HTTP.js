@@ -1,6 +1,7 @@
 "use strict";
 
 var http = require("http");
+var url = require("url");
 
 exports.createServer = function() {
   return http.createServer();
@@ -72,6 +73,37 @@ exports.write = function(chunk) {
   return function(serverResponse) {
     return function() {
       serverResponse.write(chunk);
+    };
+  };
+};
+
+exports.requestImpl = function(method) {
+  return function(requestURL) {
+    return function(onError, onSuccess) {
+      var result = "";
+      var req = http.request(requestURL, function(res) {
+        res.setEncoding("utf8");
+        res.on("data", function(data) {
+          result += data;
+        });
+        res.on("end", function() {
+          onSuccess(result);
+        });
+      });
+      req.on("error", function(error) {
+        onError(error);
+      });
+      req.method = method;
+      req.end();
+      return function(cancelError, cancelerError, cancelerSuccess) {
+        req.on("error", function() {
+          cancelerError(cancelError);
+        });
+        req.on("close", function() {
+          cancelerSuccess();
+        });
+        req.abort();
+      };
     };
   };
 };
