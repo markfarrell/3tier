@@ -9,3 +9,4 @@
 /.psa*
 /bin/
 /*.db
+/*.db-journal
