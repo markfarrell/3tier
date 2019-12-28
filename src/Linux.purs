@@ -36,7 +36,7 @@ import Linux.Fields as Fields
 type Field = Fields.Field
 
 delimiter :: Char
-delimiter = '+'
+delimiter = ' '
 
 parseMessageType :: Parser String MessageType
 parseMessageType = do

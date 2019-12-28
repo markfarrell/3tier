@@ -631,7 +631,7 @@ fieldValue (Ver v) = v
 fieldValue (Msg v) = v
   
 delimiter :: Char
-delimiter = '+'
+delimiter = ' '
 
 eol :: Char
 eol = '\n'

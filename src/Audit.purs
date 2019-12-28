@@ -84,6 +84,7 @@ debug = \entry -> do
 
 audit :: Entry -> HTTP.IncomingMessage -> Aff Unit
 audit entry req = do
+  _      <- debug entry
   result <- try $ DB.runRequest (insert entry $ req)
   msg    <- pure (show { entry : entry, result : result })
   case result of 
