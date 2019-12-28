@@ -16,6 +16,7 @@ module HTTP
   , onRequest
   , write
   , Method(..)
+  , IncomingResponse(..)
   , request
   ) where
 
@@ -56,15 +57,23 @@ foreign import onRequest :: (IncomingMessage -> ServerResponse -> Effect Unit) -
 
 foreign import write :: String -> ServerResponse -> Effect Unit
 
-foreign import requestImpl :: String -> String -> EffectFnAff String
+foreign import requestImpl :: (String -> ServerResponse -> IncomingResponse) -> String -> String -> EffectFnAff IncomingResponse
 
 data Method = Get | Post
 
-request :: Method -> String -> Aff String
-request Get  = fromEffectFnAff <<< requestImpl "GET"
-request Post = fromEffectFnAff <<< requestImpl "POST"
-
 data IncomingRequest = IncomingRequest IncomingMessage ServerResponse
+
+data IncomingResponse = IncomingResponse String ServerResponse
+
+incomingResponse :: String -> ServerResponse -> IncomingResponse
+incomingResponse body res = IncomingResponse body res
+
+requestImpl' :: String -> String -> EffectFnAff IncomingResponse
+requestImpl' = requestImpl incomingResponse
+
+request :: Method -> String -> Aff IncomingResponse
+request Get  = fromEffectFnAff <<< requestImpl' "GET"
+request Post = fromEffectFnAff <<< requestImpl' "POST"
 
 instance showMessageHeaders :: Show MessageHeaders where
   show = showMessageHeadersImpl

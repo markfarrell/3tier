@@ -77,32 +77,34 @@ exports.write = function(chunk) {
   };
 };
 
-exports.requestImpl = function(method) {
-  return function(requestURL) {
-    return function(onError, onSuccess) {
-      var result = "";
-      var req = http.request(requestURL, function(res) {
-        res.setEncoding("utf8");
-        res.on("data", function(data) {
-          result += data;
+exports.requestImpl = function(incomingResponse) {
+  return function(method) {
+    return function(requestURL) {
+      return function(onError, onSuccess) {
+        var result = "";
+        var req = http.request(requestURL, function(res) {
+          res.setEncoding("utf8");
+          res.on("data", function(data) {
+            result += data;
+          });
+          res.on("end", function() {
+            onSuccess(incomingResponse(result)(res));
+          });
         });
-        res.on("end", function() {
-          onSuccess(result);
+        req.on("error", function(error) {
+          onError(error);
         });
-      });
-      req.on("error", function(error) {
-        onError(error);
-      });
-      req.method = method;
-      req.end();
-      return function(cancelError, cancelerError, cancelerSuccess) {
-        req.on("error", function() {
-          cancelerError(cancelError);
-        });
-        req.on("close", function() {
-          cancelerSuccess();
-        });
-        req.abort();
+        req.method = method;
+        req.end();
+        return function(cancelError, cancelerError, cancelerSuccess) {
+          req.on("error", function() {
+            cancelerError(cancelError);
+          });
+          req.on("close", function() {
+            cancelerSuccess();
+          });
+          req.abort();
+        };
       };
     };
   };

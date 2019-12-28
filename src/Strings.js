@@ -1,4 +1,4 @@
-"use string";
+"use strict";
 
 exports.decodeURI = function(uri) {
   try {
@@ -25,5 +25,21 @@ exports.escapeImpl = function(msg) {
     return escape(msg);
   } catch (error) {
     return msg;
+  }
+};
+
+exports.encodeURIComponent = function(uriComponent) {
+  try {
+    return encodeURIComponent(uriComponent);
+  } catch (error) {
+    return uriComponent;
+  }
+};
+
+exports.encodeURI = function(uri) {
+  try {
+    return encodeURI(uri);
+  } catch (error) {
+    return uri;
   }
 };

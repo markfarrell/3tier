@@ -4,6 +4,7 @@ module Audit
   , Entry(..)
   , insert
   , audit
+  , log
   ) where
 
 import Prelude
@@ -27,7 +28,7 @@ import Strings as Strings
 
 data EventType = Success | Failure
 
-data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest
+data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | ClientRequest | AuditRequest
 
 data Entry = Entry EventType EventID String
 
@@ -37,12 +38,14 @@ instance showEventType :: Show EventType where
 
 instance showEventID :: Show EventID where
   show DatabaseRequest = "DATABASE-REQUEST"
-  show ResourceRequest    = "RESOURCE-REQUEST"
-  show ResourceResponse   = "RESOURCE-RESPONSE"
-  show RoutingRequest      = "ROUTING-REQUEST"
+  show ResourceRequest = "RESOURCE-REQUEST"
+  show ResourceResponse = "RESOURCE-RESPONSE"
+  show RoutingRequest = "ROUTING-REQUEST"
+  show ClientRequest = "CLIENT-REQUEST"
+  show AuditRequest = "AUDIT-REQUEST"
 
 instance showEntry :: Show Entry where
-  show (Entry eventType eventID msg) = "Entry " <> show eventType <> " " <> show eventID <> " " <> show msg
+  show (Entry eventType eventID msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show msg <> ")"
 
 entryQuery :: Entry -> HTTP.IncomingMessage -> Effect String
 entryQuery (Entry eventType eventID msg) req = do
@@ -65,15 +68,18 @@ insert entry = \req -> do
   DB.insert filename query
   where filename = "audit.db"
 
-log :: String -> Aff Unit
-log = liftEffect <<< Console.log
+log' :: String -> Aff Unit
+log' = liftEffect <<< Console.log
+
+log :: Entry -> Aff Unit
+log (Entry ty id msg) = do
+ timestamp <- liftEffect $ Date.toISOString <$> Date.current
+ log' $ show [timestamp, show ty, show id, msg]
 
 audit :: Entry -> HTTP.IncomingMessage -> Aff Unit
 audit entry req = do
   result <- try $ DB.runRequest (insert entry $ req)
-  case result of
-    (Left error) -> log $ show result
-    (Right _)    -> do
-      case entry of
-        (Entry Failure _ _) -> log $ show entry
-        _                   -> pure unit
+  msg    <- pure (show { entry : entry, result : result })
+  case result of 
+    (Left  _)  -> log  $ Entry Failure AuditRequest msg
+    (Right _)  -> log  $ Entry Success AuditRequest msg
