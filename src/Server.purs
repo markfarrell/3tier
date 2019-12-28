@@ -30,36 +30,36 @@ import Audit as Audit
 import Windows as Windows
 import Linux as Linux
 
-data Route = InsertLinux Linux.Entry | InsertWindows Windows.Entry | SummaryWindows | SummaryLinux
+data Route = ForwardLinux Linux.Entry | ForwardWindows Windows.Entry | SummaryWindows | SummaryLinux
 
 instance showRoute :: Show Route where
-  show (InsertLinux entry) = "(InsertLinux " <> show entry <> ")"
-  show (InsertWindows entry) = "(InsertWindows " <> show entry <> ")"
+  show (ForwardLinux entry) = "(ForwardLinux " <> show entry <> ")"
+  show (ForwardWindows entry) = "(ForwardWindows " <> show entry <> ")"
   show (SummaryWindows) = "(SummaryWindows)"
   show (SummaryLinux) = "(SummaryLinux)"
 
-parseInsertWindows :: Parser String Route
-parseInsertWindows = do
-  _ <- string "/insert/windows"
+parseForwardWindows :: Parser String Route
+parseForwardWindows = do
+  _ <- string "/forward/windows"
   _ <- string "?"
   _ <- string "entry"
   _ <- string "="
   entry <- Windows.parseEntry
-  pure (InsertWindows entry)
+  pure (ForwardWindows entry)
 
 parseSummaryWindows :: Parser String Route
 parseSummaryWindows = do
   _ <- string "/summary/windows"
   pure (SummaryWindows)
 
-parseInsertLinux :: Parser String Route
-parseInsertLinux = do
-  _ <- string "/insert/linux"
+parseForwardLinux :: Parser String Route
+parseForwardLinux = do
+  _ <- string "/forward/linux"
   _ <- string "?"
   _ <- string "entry"
   _ <- string "="
   entry <- Linux.parseEntry
-  pure (InsertLinux entry)
+  pure (ForwardLinux entry)
 
 parseSummaryLinux :: Parser String Route
 parseSummaryLinux = do
@@ -67,7 +67,7 @@ parseSummaryLinux = do
   pure (SummaryLinux)
 
 parseRoute :: Parser String Route
-parseRoute = parseInsertWindows <|> parseSummaryWindows <|> parseInsertLinux <|> parseSummaryLinux
+parseRoute = parseForwardWindows <|> parseSummaryWindows <|> parseForwardLinux <|> parseSummaryLinux
 
 data ContentType a = TextJSON a
 
@@ -109,10 +109,10 @@ runRoute req  = do
     (Left error) -> do 
         _ <- Audit.audit (Audit.Entry Audit.Failure Audit.RoutingRequest (show $ Tuple (Strings.decodeURIComponent $ HTTP.messageURL req) error)) $ req
         pure $ BadRequest (HTTP.messageURL req)
-    (Right (InsertWindows entry)) -> (runDBRoute $ Windows.insert entry)  (InsertWindows entry) $ req
-    (Right (SummaryWindows))      -> (runDBRoute $ const Windows.summary) (SummaryWindows)      $ req 
-    (Right (InsertLinux entry))   -> (runDBRoute $ Linux.insert entry)    (InsertLinux entry)   $ req 
-    (Right (SummaryLinux))        -> (runDBRoute $ const Linux.summary)   (SummaryLinux)        $ req
+    (Right (ForwardWindows entry)) -> (runDBRoute $ Windows.insert entry)  (ForwardWindows entry) $ req
+    (Right (SummaryWindows))       -> (runDBRoute $ const Windows.summary) (SummaryWindows)       $ req 
+    (Right (ForwardLinux entry))   -> (runDBRoute $ Linux.insert entry)    (ForwardLinux entry)   $ req 
+    (Right (SummaryLinux))         -> (runDBRoute $ const Linux.summary)   (SummaryLinux)         $ req
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do

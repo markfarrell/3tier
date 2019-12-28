@@ -76,10 +76,16 @@ log (Entry ty id msg) = do
  timestamp <- liftEffect $ Date.toISOString <$> Date.current
  log' $ show [timestamp, show ty, show id, msg]
 
+debug :: Entry -> Aff Unit
+debug = \entry -> do
+  case entry of
+    (Entry Failure _ _) -> log entry
+    (Entry Success _ _) -> pure unit
+
 audit :: Entry -> HTTP.IncomingMessage -> Aff Unit
 audit entry req = do
   result <- try $ DB.runRequest (insert entry $ req)
   msg    <- pure (show { entry : entry, result : result })
   case result of 
-    (Left  _)  -> log  $ Entry Failure AuditRequest msg
-    (Right _)  -> log  $ Entry Success AuditRequest msg
+    (Left  _)  -> debug $ Entry Failure AuditRequest msg
+    (Right _)  -> debug $ Entry Success AuditRequest msg

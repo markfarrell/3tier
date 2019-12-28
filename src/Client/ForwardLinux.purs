@@ -1,4 +1,4 @@
-module Client.InsertWindows
+module Client.ForwardLinux
   where
 
 import Prelude
@@ -14,4 +14,4 @@ main :: Effect Unit
 main = do
   interface <- Readline.createInterface Process.stdin Process.stdout false
   Client.launchProcess url' interface
-  where url' = "http://0.0.0.0:3000/insert/windows?entry="
+  where url' = "http://0.0.0.0:3000/forward/linux?entry="
