@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/markfarrell/purescipt-siem#readme",
   "dependencies": {
+    "csv-reader": "^1.0.3",
     "sqlite3": "^4.1.1",
     "uuid": "^3.3.3"
   }
