@@ -1,6 +1,5 @@
-module Client
-  ( launchProcess
-  ) where
+module SIEM.Logging.LineForwarder
+  where
 
 import Prelude
 
@@ -10,6 +9,7 @@ import Control.Monad.Error.Class (try)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
 
+import Data.Array (drop) as Array
 import Data.Either (Either (..))
 
 import Effect (Effect)
@@ -19,19 +19,20 @@ import Effect.Aff (Aff, launchAff)
 
 import HTTP as HTTP
 import Readline as Readline
+import Process as Process
 import Strings as Strings
 
 import Audit as Audit
 
-producer :: Readline.Interface -> Producer String Aff Unit
-producer interface = produce \emitter -> do
+lines :: Readline.Interface -> Producer String Aff Unit
+lines interface = produce \emitter -> do
   Readline.onLine (\line -> emit emitter $ line) $ interface
 
 log :: String -> Aff Unit
 log = liftEffect <<< Console.log
 
-consumer :: String -> Consumer String Aff Unit
-consumer url' = forever $ do
+forwarder :: String -> Consumer String Aff Unit
+forwarder url' = forever $ do
   line      <- await
   result    <- lift $ try $ post (url line)
   lift $ log' line result
@@ -43,9 +44,19 @@ consumer url' = forever $ do
          (Left error)                           -> Audit.log $ Audit.Entry Audit.Failure Audit.ClientRequest (show [url line, show error])
          (Right (HTTP.IncomingResponse body _)) -> Audit.log $ Audit.Entry Audit.Success Audit.ClientRequest (show [url line, body])
 
-process :: String -> Readline.Interface -> Process Aff Unit
-process url' interface = pullFrom (consumer url') (producer interface)
+lineForwarder :: Readline.Interface -> String -> Process Aff Unit
+lineForwarder interface = \url' -> pullFrom (forwarder url') (lines interface)
 
-launchProcess :: String -> Readline.Interface -> Effect Unit
-launchProcess url' interface = void $ launchAff $ do 
-  runProcess $ process url' interface
+runLineForwarder :: Readline.Interface -> String -> Effect Unit
+runLineForwarder interface = \url' -> void $ launchAff $ do 
+  runProcess $ lineForwarder interface $ url'
+
+main :: Effect Unit
+main = do
+  case argv' of
+    [url'] -> do
+       interface <- Readline.createInterface Process.stdin Process.stdout false
+       runLineForwarder interface $ url'
+    _      -> pure unit
+    where argv'  = Array.drop 2 Process.argv
+

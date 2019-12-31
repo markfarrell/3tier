@@ -9,12 +9,12 @@ function attempt () {
 }
 output_directory='bin'
 echo "Building project to '$output_directory' ..."
-attempt "rm -rf $output_directory && mkdir $output_directory" "Initialize '$output_directory' directory"
-attempt "pulp build -m Server --to bin/centralized-logging-server.js" "Compile centralized logging server" 
-attempt "pulp build -m Client.Forwarder --to bin/centralized-logging-forwarder.js" "Compile centralized logging forwarder client"
-cd bin
-attempt "pkg centralized-logging-server.js -t node10-linux-x64,node10-macos-x64,node10-windows-x64" "Package binary executable(s) for centralized logging server"
-attempt "pkg centralized-logging-forwarder.js -t node10-linux-x64,node10-macos-x64,node10-windows-x64" "Package binary executable(s) for centralized logging forwarder client" 
+attempt "rm -rf $output_directory && mkdir -p $output_directory" "Initialize '$output_directory' directory"
+attempt "pulp build -m SIEM.Logging.Server --to bin/siem-logging-server.js" "Compile SIEM logging server" 
+attempt "pulp build -m SIEM.Logging.LineForwarder --to bin/siem-logging-line-forwarder.js" "Compile SIEM logging line-forwarder"
+cd $output_directory
+attempt "pkg siem-logging-server.js -t node10-linux-x64,node10-macos-x64,node10-windows-x64" "Package binary executable(s) for SIEM logging server"
+attempt "pkg siem-logging-line-forwarder.js -t node10-linux-x64,node10-macos-x64,node10-windows-x64" "Package binary executable(s) for SIEM logging line-forwarder" 
 attempt "rm -f *.js" "Clean up '$output_directory'"
 cd ..
 echo "Done."
