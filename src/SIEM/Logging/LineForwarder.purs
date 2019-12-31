@@ -17,8 +17,9 @@ import Effect.Class (liftEffect)
 import Effect.Console (log) as Console
 import Effect.Aff (Aff, launchAff)
 
-import HTTP as HTTP
 import Readline as Readline
+
+import HTTP as HTTP
 import Process as Process
 import Strings as Strings
 
@@ -53,10 +54,9 @@ runLineForwarder interface = \url' -> void $ launchAff $ do
 
 main :: Effect Unit
 main = do
+  interface <- Readline.createInterface Process.stdin Process.stdout false
   case argv' of
-    [url'] -> do
-       interface <- Readline.createInterface Process.stdin Process.stdout false
-       runLineForwarder interface $ url'
-    _      -> pure unit
-    where argv'  = Array.drop 2 Process.argv
+    [url'] -> runLineForwarder interface $ url'
+    _                 -> pure unit
+  where argv'  = Array.drop 2 Process.argv
 
