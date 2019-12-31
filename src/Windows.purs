@@ -3,6 +3,7 @@ module Windows
   , parseEntry
   , insert
   , summary
+  , readForeign
   ) where
 
 import Prelude
@@ -18,7 +19,8 @@ import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
 import Data.List(many)
 
-import Foreign (readString) as Foreign
+import Foreign (Foreign)
+import Foreign (F, readString) as Foreign
 import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser)
@@ -137,3 +139,40 @@ summary = DB.select filename query readResult
       <> " (SELECT EventID, COUNT (DISTINCT URL) as 'Entries' FROM Windows GROUP BY EventID) AS y"
       <> " ON y.EventID=x.EventID GROUP BY x.TaskCategory ORDER BY x.TaskCategory,y.Entries DESC;"
     filename = "logs.db"
+
+readForeign :: Foreign -> Foreign.F Entry
+readForeign row = do
+  eventID            <- row ! "eventID"            >>= Foreign.readString
+  machineName        <- row ! "machineName"        >>= Foreign.readString
+  entryData          <- row ! "entryData"          >>= Foreign.readString
+  entryIndex         <- row ! "entryIndex"         >>= Foreign.readString
+  category           <- row ! "category"           >>= Foreign.readString
+  categoryNumber     <- row ! "categoryNumber"     >>= Foreign.readString
+  entryType          <- row ! "entryType"          >>= Foreign.readString
+  message            <- row ! "message"            >>= Foreign.readString
+  source             <- row ! "source"             >>= Foreign.readString
+  replacementStrings <- row ! "replacementStrings" >>= Foreign.readString
+  instanceID         <- row ! "instanceID"         >>= Foreign.readString
+  timeGenerated      <- row ! "timeGenerated"      >>= Foreign.readString
+  timeWritten        <- row ! "timeWritten"        >>= Foreign.readString
+  userName           <- row ! "userName"           >>= Foreign.readString
+  site               <- row ! "site"               >>= Foreign.readString
+  container          <- row ! "container"          >>= Foreign.readString
+  pure $ Entry
+    { eventID : eventID
+    , machineName : machineName
+    , entryData : entryData
+    , entryIndex : entryIndex
+    , category : category
+    , categoryNumber : categoryNumber
+    , entryType : entryType
+    , message : message
+    , source : source
+    , replacementStrings : replacementStrings
+    , instanceID : instanceID
+    , timeGenerated : timeGenerated
+    , timeWritten : timeWritten
+    , userName : userName
+    , site : site
+    , container : container
+    }
