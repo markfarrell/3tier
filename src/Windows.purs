@@ -4,6 +4,7 @@ module Windows
   , insert
   , summary
   , createReader
+  , writeEntry
   ) where
 
 import Prelude
@@ -15,6 +16,14 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 
+import Effect.Exception (Error)
+import Effect.Exception (error) as Exception
+
+import Data.Either (Either(..))
+
+import Data.Identity (Identity)
+import Data.Newtype (unwrap)
+
 import Data.Foldable(foldl)
 
 import Data.Traversable(foldMap)
@@ -25,7 +34,7 @@ import Foreign (Foreign)
 import Foreign (F, readString) as Foreign
 import Foreign.Index ((!))
 
-import Text.Parsing.Parser (Parser)
+import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string, satisfy)
 
 import CSVParser as CSVParser
@@ -36,6 +45,8 @@ import DB as DB
 import HTTP as HTTP
 import Socket as Socket
 import Strings as Strings
+
+import Audit as Audit
 
 newtype Entry = Entry
   { eventID :: String
@@ -58,6 +69,9 @@ newtype Entry = Entry
 
 instance showEntry :: Show Entry where
   show (Entry entry) = "(Entry " <> show entry <> ")"
+
+instance eqEntry :: Eq Entry where
+  eq (Entry entry) (Entry entry') = eq entry entry'
 
 parseValue :: Parser String String
 parseValue = foldMap singleton <$> many (satisfy $ not <<< eq ',')
@@ -206,8 +220,8 @@ createReader readable = createReader' readable $
   }
   where createReader' = CSVParser.createReader readEntry
 
-writeEntry :: Entry -> String
-writeEntry (Entry entry) = foldl (\x y -> x <> "," <> y) (show entry.eventID) $
+writeEntry'' :: Entry -> String
+writeEntry'' (Entry entry) = foldl (\x y -> x <> "," <> y) (show entry.eventID) $
   [ show entry.machineName
   , show entry.entryData
   , show entry.entryIndex
@@ -225,3 +239,22 @@ writeEntry (Entry entry) = foldl (\x y -> x <> "," <> y) (show entry.eventID) $
   , show entry.container
   ]
 
+writeEntry' :: Entry -> Identity (Either Error String)
+writeEntry' entry = do
+  expect     <- pure $ writeEntry'' entry
+  result'    <- pure $ flip runParser parseEntry $ (writeEntry'' entry)
+  case result' of
+    (Left error) -> do
+      let result'' = { error : error, expect : expect, entry : entry }
+      pure $ Left (Exception.error $ show result'') 
+    (Right entry')    -> do
+      check <- pure $ writeEntry'' entry'
+      let result'' = { check  : check, expect : expect, entry : entry }
+      case check == expect of
+        true -> do
+          pure $ Right expect
+        false -> do
+          pure $ Left (Exception.error $ show result'')
+
+writeEntry :: Entry -> Either Error String
+writeEntry entry = unwrap $ writeEntry' entry

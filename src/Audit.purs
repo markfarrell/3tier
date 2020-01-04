@@ -28,7 +28,7 @@ import Strings as Strings
 
 data EventType = Success | Failure
 
-data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | ClientRequest | DeserializationRequest | AuditRequest
+data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | ClientRequest | DeserializationRequest | SerializationRequest | AuditRequest
 
 data Entry = Entry EventType EventID String
 
@@ -43,6 +43,7 @@ instance showEventID :: Show EventID where
   show RoutingRequest = "ROUTING-REQUEST"
   show ClientRequest = "CLIENT-REQUEST"
   show DeserializationRequest = "DESERIALIZATION-REQUEST"
+  show SerializationRequest = "SERIALIZATION-REQUEST"
   show AuditRequest = "AUDIT-REQUEST"
 
 instance showEntry :: Show Entry where
