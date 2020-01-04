@@ -35,7 +35,8 @@ import Foreign (F, readString) as Foreign
 import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
-import Text.Parsing.Parser.String (string, satisfy)
+import Text.Parsing.Parser.String (char, string, satisfy)
+import Text.Parsing.Parser.Combinators (between)
 
 import CSVParser as CSVParser
 import Stream as Stream
@@ -73,8 +74,11 @@ instance showEntry :: Show Entry where
 instance eqEntry :: Eq Entry where
   eq (Entry entry) (Entry entry') = eq entry entry'
 
+parseValue' :: Parser String String
+parseValue' = foldMap singleton <$> many (satisfy $ not <<< eq '"')
+
 parseValue :: Parser String String
-parseValue = foldMap singleton <$> many (satisfy $ not <<< eq ',')
+parseValue = between (char '"') (char '"') parseValue'
 
 parseEntry :: Parser String Entry
 parseEntry = do
@@ -221,23 +225,24 @@ createReader readable = createReader' readable $
   where createReader' = CSVParser.createReader readEntry
 
 writeEntry'' :: Entry -> String
-writeEntry'' (Entry entry) = foldl (\x y -> x <> "," <> y) (show entry.eventID) $
-  [ show entry.machineName
-  , show entry.entryData
-  , show entry.entryIndex
-  , show entry.category      
-  , show entry.categoryNumber
-  , show entry.entryType
-  , show entry.message
-  , show entry.source
-  , show entry.replacementStrings
-  , show entry.instanceID
-  , show entry.timeGenerated
-  , show entry.timeWritten
-  , show entry.userName
-  , show entry.site
-  , show entry.container
+writeEntry'' (Entry entry) = foldl (\x y -> x <> "," <> y) (quote entry.eventID) $
+  [ quote entry.machineName
+  , quote entry.entryData
+  , quote entry.entryIndex
+  , quote entry.category      
+  , quote entry.categoryNumber
+  , quote entry.entryType
+  , quote entry.message
+  , quote entry.source
+  , quote entry.replacementStrings
+  , quote entry.instanceID
+  , quote entry.timeGenerated
+  , quote entry.timeWritten
+  , quote entry.userName
+  , quote entry.site
+  , quote entry.container
   ]
+  where quote value = "\"" <> value <> "\""
 
 writeEntry' :: Entry -> Identity (Either Error String)
 writeEntry' entry = do

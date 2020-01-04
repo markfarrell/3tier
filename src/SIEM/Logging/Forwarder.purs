@@ -64,7 +64,7 @@ main = do
   case argv' of
     ["--windows", host] -> do
        producer <- Windows.createReader Process.stdin
-       consumer <- pure $ forwarder Windows.writeEntry $ "http://" <> host <> "/forward/windows/?entry="
+       consumer <- pure $ forwarder Windows.writeEntry $ "http://" <> host <> "/forward/windows?entry="
        void $ launchAff $ runProcess $ pullFrom consumer producer
     _                   -> pure unit
   where argv'  = Array.drop 2 Process.argv
