@@ -42,8 +42,8 @@ forwarder url' = forever $ do
     post       =  HTTP.request HTTP.Post
     log' line = \result -> do
        case result of
-         (Left error)                           -> Audit.log $ Audit.Entry Audit.Failure Audit.ClientRequest (show [url line, show error])
-         (Right (HTTP.IncomingResponse body _)) -> Audit.log $ Audit.Entry Audit.Success Audit.ClientRequest (show [url line, body])
+         (Left error)                           -> Audit.debug $ Audit.Entry Audit.Failure Audit.ClientRequest (show [url line, show error])
+         (Right (HTTP.IncomingResponse body _)) -> Audit.debug $ Audit.Entry Audit.Success Audit.ClientRequest (show [url line, body])
 
 lineForwarder :: Readline.Interface -> String -> Process Aff Unit
 lineForwarder interface = \url' -> pullFrom (forwarder url') (lines interface)

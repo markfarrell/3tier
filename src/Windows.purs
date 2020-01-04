@@ -3,14 +3,16 @@ module Windows
   , parseEntry
   , insert
   , summary
-  , readForeign
+  , createReader
   ) where
 
 import Prelude
 
+import Control.Coroutine (Producer)
 import Control.Monad.Trans.Class (lift)
 
 import Effect (Effect)
+import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 
 import Data.Foldable(foldl)
@@ -25,6 +27,9 @@ import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.String (string, satisfy)
+
+import CSVParser as CSVParser
+import Stream as Stream
 
 import Date as Date
 import DB as DB
@@ -140,8 +145,8 @@ summary = DB.select filename query readResult
       <> " ON y.EventID=x.EventID GROUP BY x.TaskCategory ORDER BY x.TaskCategory,y.Entries DESC;"
     filename = "logs.db"
 
-readForeign :: Foreign -> Foreign.F Entry
-readForeign row = do
+readEntry :: Foreign -> Foreign.F Entry
+readEntry row = do
   eventID            <- row ! "eventID"            >>= Foreign.readString
   machineName        <- row ! "machineName"        >>= Foreign.readString
   entryData          <- row ! "entryData"          >>= Foreign.readString
@@ -176,3 +181,47 @@ readForeign row = do
     , site : site
     , container : container
     }
+
+createReader :: Stream.Readable -> Effect (Producer Entry Aff Unit)
+createReader readable = createReader' readable $
+  { separator : ","
+  , headers :
+      [ "eventID"
+      , "machineName"
+      , "entryData"
+      , "entryIndex"
+      , "category"
+      , "categoryNumber"
+      , "entryType"
+      , "message"
+      , "source"
+      , "replacementStrings"
+      , "instanceID"
+      , "timeGenerated"
+      , "timeWritten"
+      , "userName"
+      , "site"
+      , "container"
+      ]
+  }
+  where createReader' = CSVParser.createReader readEntry
+
+writeEntry :: Entry -> String
+writeEntry (Entry entry) = foldl (\x y -> x <> "," <> y) (show entry.eventID) $
+  [ show entry.machineName
+  , show entry.entryData
+  , show entry.entryIndex
+  , show entry.category      
+  , show entry.categoryNumber
+  , show entry.entryType
+  , show entry.message
+  , show entry.source
+  , show entry.replacementStrings
+  , show entry.instanceID
+  , show entry.timeGenerated
+  , show entry.timeWritten
+  , show entry.userName
+  , show entry.site
+  , show entry.container
+  ]
+

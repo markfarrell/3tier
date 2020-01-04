@@ -4,7 +4,7 @@ module Audit
   , Entry(..)
   , insert
   , audit
-  , log
+  , debug
   ) where
 
 import Prelude
@@ -28,7 +28,7 @@ import Strings as Strings
 
 data EventType = Success | Failure
 
-data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | ClientRequest | AuditRequest
+data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | ClientRequest | DeserializationRequest | AuditRequest
 
 data Entry = Entry EventType EventID String
 
@@ -42,6 +42,7 @@ instance showEventID :: Show EventID where
   show ResourceResponse = "RESOURCE-RESPONSE"
   show RoutingRequest = "ROUTING-REQUEST"
   show ClientRequest = "CLIENT-REQUEST"
+  show DeserializationRequest = "DESERIALIZATION-REQUEST"
   show AuditRequest = "AUDIT-REQUEST"
 
 instance showEntry :: Show Entry where
@@ -68,13 +69,11 @@ insert entry = \req -> do
   DB.insert filename query
   where filename = "audit.db"
 
-log' :: String -> Aff Unit
-log' = liftEffect <<< Console.log
-
 log :: Entry -> Aff Unit
 log (Entry ty id msg) = do
  timestamp <- liftEffect $ Date.toISOString <$> Date.current
  log' $ show [timestamp, show ty, show id, msg]
+ where log' = liftEffect <<< Console.log
 
 debug :: Entry -> Aff Unit
 debug = \entry -> do
