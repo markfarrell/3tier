@@ -27,14 +27,16 @@ import HTTP as HTTP
 
 import Audit as Audit
 
-import Windows as Windows
 import Linux as Linux
+import Sensor as Sensor
+import Windows as Windows
 
-data Route = ForwardLinux Linux.Entry | ForwardWindows Windows.Entry | SummaryWindows | SummaryLinux
+data Route = ForwardLinux Linux.Entry | ForwardWindows Windows.Entry | ForwardSensor Sensor.Entry | SummaryWindows | SummaryLinux
 
 instance showRoute :: Show Route where
   show (ForwardLinux entry) = "(ForwardLinux " <> show entry <> ")"
   show (ForwardWindows entry) = "(ForwardWindows " <> show entry <> ")"
+  show (ForwardSensor entry) = "(ForwardSensor " <> show entry <> ")"
   show (SummaryWindows) = "(SummaryWindows)"
   show (SummaryLinux) = "(SummaryLinux)"
 
@@ -66,8 +68,17 @@ parseSummaryLinux = do
   _ <- string "/summary/linux"
   pure (SummaryLinux)
 
+parseForwardSensor :: Parser String Route
+parseForwardSensor = do
+  _ <- string "/forward/sensor"
+  _ <- string "?"
+  _ <- string "entry"
+  _ <- string "="
+  entry <- Sensor.parseEntry
+  pure (ForwardSensor entry)
+
 parseRoute :: Parser String Route
-parseRoute = parseForwardWindows <|> parseSummaryWindows <|> parseForwardLinux <|> parseSummaryLinux
+parseRoute = parseForwardWindows <|> parseSummaryWindows <|> parseForwardLinux <|> parseSummaryLinux <|> parseForwardSensor
 
 data ContentType a = TextJSON a
 
@@ -113,6 +124,7 @@ runRoute req  = do
     (Right (SummaryWindows))       -> (runDBRoute $ const Windows.summary) (SummaryWindows)       $ req 
     (Right (ForwardLinux entry))   -> (runDBRoute $ Linux.insert entry)    (ForwardLinux entry)   $ req 
     (Right (SummaryLinux))         -> (runDBRoute $ const Linux.summary)   (SummaryLinux)         $ req
+    (Right (ForwardSensor entry))  -> (runDBRoute $ Sensor.insert entry)   (ForwardSensor entry)  $ req
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
