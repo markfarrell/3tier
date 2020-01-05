@@ -7,9 +7,13 @@ module Sensor
 
 import Prelude
 
+import Control.Coroutine (Producer)
+import Control.Coroutine.Aff (produce, emit)
+
 import Control.Monad.Trans.Class (lift)
 
 import Effect (Effect)
+import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
@@ -32,6 +36,9 @@ import Date as Date
 import HTTP as HTTP
 import Socket as Socket
 import Strings as Strings
+import Stream as Stream
+import Process as Process
+import Readline as Readline
 
 import DB as DB
 
@@ -185,3 +192,18 @@ writeEntry' entry = do
 
 writeEntry :: Entry -> Either Error String
 writeEntry entry = unwrap $ writeEntry' entry
+
+createReader' :: Readline.Interface -> Producer Entry Aff Unit
+createReader' interface = produce \emitter -> do
+  Readline.onLine (\line -> emit' emitter $ line) $ interface
+  where
+    emit' emitter = \line -> do
+      result <- pure $ flip runParser parseEntry $ line
+      case result of
+        (Left _)      -> pure unit
+        (Right entry) -> emit emitter $ entry
+
+createReader :: Stream.Readable -> Effect (Producer Entry Aff Unit)
+createReader readable = do
+  interface <- Readline.createInterface readable Process.stdout false 
+  pure $ createReader' interface
