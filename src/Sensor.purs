@@ -3,6 +3,7 @@ module Sensor
   , parseEntry
   , writeEntry
   , insert
+  , createReader
   ) where
 
 import Prelude
@@ -13,7 +14,7 @@ import Control.Coroutine.Aff (produce, emit)
 import Control.Monad.Trans.Class (lift)
 
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
@@ -40,6 +41,7 @@ import Stream as Stream
 import Process as Process
 import Readline as Readline
 
+import Audit as Audit
 import DB as DB
 
 newtype Entry = Entry
@@ -200,8 +202,15 @@ createReader' interface = produce \emitter -> do
     emit' emitter = \line -> do
       result <- pure $ flip runParser parseEntry $ line
       case result of
-        (Left _)      -> pure unit
-        (Right entry) -> emit emitter $ entry
+        (Left error)  -> do
+           let result' = { line : line, error : error }
+           _ <- debug $ Audit.Entry Audit.Failure Audit.DeserializationRequest (show result') 
+           pure unit
+        (Right entry) -> do
+           let result' = { line : line, entry : entry }
+           _ <- debug $ Audit.Entry Audit.Failure Audit.DeserializationRequest (show result') 
+           emit emitter $ entry
+    debug entry = void $ launchAff $ Audit.debug entry
 
 createReader :: Stream.Readable -> Effect (Producer Entry Aff Unit)
 createReader readable = do
