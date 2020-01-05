@@ -27,6 +27,7 @@ import Strings as Strings
 import Audit as Audit
 
 import Windows as Windows
+import Sensor as Sensor
 
 lines :: Readline.Interface -> Producer String Aff Unit
 lines interface = produce \emitter -> do
@@ -63,8 +64,12 @@ main = do
   interface <- Readline.createInterface Process.stdin Process.stdout false
   case argv' of
     ["--windows", host] -> do
-       producer <- Windows.createReader Process.stdin
-       consumer <- pure $ forwarder Windows.writeEntry $ "http://" <> host <> "/forward/windows?entry="
-       void $ launchAff $ runProcess $ pullFrom consumer producer
+      producer <- Windows.createReader Process.stdin
+      consumer <- pure $ forwarder Windows.writeEntry $ "http://" <> host <> "/forward/windows?entry="
+      void $ launchAff $ runProcess $ pullFrom consumer producer
+    ["--sensor", host] -> do
+      producer <- Sensor.createReader Process.stdin
+      consumer <- pure $ forwarder Sensor.writeEntry $ "http://" <> host <> "/forward/sensor?entry="
+      void $ launchAff $ runProcess $ pullFrom consumer producer
     _                   -> pure unit
   where argv'  = Array.drop 2 Process.argv
