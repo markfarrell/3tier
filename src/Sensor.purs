@@ -208,7 +208,7 @@ createReader' interface = produce \emitter -> do
            pure unit
         (Right entry) -> do
            let result' = { line : line, entry : entry }
-           _ <- debug $ Audit.Entry Audit.Failure Audit.DeserializationRequest (show result') 
+           _ <- debug $ Audit.Entry Audit.Success Audit.DeserializationRequest (show result') 
            emit emitter $ entry
     debug entry = void $ launchAff $ Audit.debug entry
 
