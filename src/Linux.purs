@@ -14,14 +14,23 @@ import Control.Monad.Trans.Class (lift)
 
 import Effect.Class (liftEffect)
 
+import Effect.Exception (Error)
+import Effect.Exception (error) as Exception
+
+import Data.Either (Either(..))
+
+import Data.Identity (Identity)
+import Data.Newtype (unwrap)
+
 import Data.Array (fromFoldable) as Array
 import Data.Foldable(foldl)
 import Data.Traversable (sequence)
+import Data.String.CodeUnits (singleton)
 
 import Foreign (readString) as Foreign
 import Foreign.Index ((!))
 
-import Text.Parsing.Parser (Parser)
+import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (char, string)
 
 import Date as Date
@@ -211,3 +220,32 @@ summary = DB.select filename query readResult
        pure $ [ty, entries]
     query = "SELECT RemoteAddress as 'RemoteAddress', MessageType AS 'MessageType', CAST(COUNT(DISTINCT URL) AS TEXT) AS 'Entries' FROM Linux GROUP BY RemoteAddress, MessageType ORDER BY Entries DESC"
     filename = "logs.db"
+
+writeEntry'' :: Entry -> String
+writeEntry'' (Entry ty msg fields) = foldl (\x y -> x <> delimiter' <> y) (ty') $ [msg'] <> fields'
+  where 
+    delimiter'   = singleton delimiter
+    ty'          = (\t -> "type" <> "=" <> messageType t) $ ty
+    msg'         = (\(Message v) -> "msg" <> "=" <> v) $ msg
+    fields'      = (\field -> Fields.fieldName field <> "=" <> Fields.fieldValue field) <$> fields
+
+writeEntry' :: Entry -> Identity (Either Error String)
+writeEntry' entry = do
+  expect     <- pure $ writeEntry'' entry
+  result'    <- pure $ flip runParser parseEntry $ (writeEntry'' entry)
+  case result' of
+    (Left error) -> do
+      let result'' = { error : error, expect : expect, entry : entry }
+      pure $ Left (Exception.error $ show result'')
+    (Right entry')    -> do
+      check <- pure $ writeEntry'' entry'
+      let result'' = { check  : check, expect : expect, entry : entry }
+      case check == expect of
+        true -> do
+          pure $ Right expect
+        false -> do
+          pure $ Left (Exception.error $ show result'')
+
+writeEntry :: Entry -> Either Error String
+writeEntry entry = unwrap $ writeEntry' entry
+
