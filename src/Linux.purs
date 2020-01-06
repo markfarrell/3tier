@@ -12,17 +12,16 @@ import Prelude
 import Control.Alternative ((<|>))
 import Control.Monad.Trans.Class (lift)
 
-import Effect (Effect)
 import Effect.Class (liftEffect)
-import Effect.Console (log)
 
 import Data.Array (fromFoldable) as Array
 import Data.Foldable(foldl)
+import Data.Traversable (sequence)
 
 import Foreign (readString) as Foreign
 import Foreign.Index ((!))
 
-import Text.Parsing.Parser (Parser, runParser)
+import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.String (char, string)
 
 import Date as Date
@@ -166,13 +165,30 @@ messageType (Login) = "LOGIN"
 message :: Message -> String
 message (Message msg) = msg
 
-insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insert (Entry ty msg _) req = do
+insert' :: Entry -> HTTP.IncomingMessage -> Array (DB.Request Unit)
+insert' (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  DB.insert filename $ query timestamp
+  DB.insert filename $ query timestamp field
   where
-    query timestamp  = "INSERT INTO Linux (Timestamp, RemoteAddress, RemotePort, URL, MessageType, Message) VALUES ('" <> values timestamp <> "')"
-    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $ [remoteAddress, remotePort', url', messageType', message']
+    query timestamp field = "INSERT INTO Linux (" <> columns <> ") VALUES ('" <> values timestamp field <> "')"
+    columns = foldl (\x y -> x <> "," <> y) "Timestamp" $
+      [ "RemoteAddress"
+      , "RemotePort"
+      , "URL"
+      , "MessageType"
+      , "Message"
+      , "FieldName"
+      , "FieldValue"
+      ]
+    values timestamp field = foldl (\x y -> x <> "','" <> y) timestamp $ 
+      [ remoteAddress
+      , remotePort'
+      , url'
+      , messageType'
+      , message'
+      , Fields.fieldName field
+      , Fields.fieldValue field
+      ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
@@ -181,6 +197,11 @@ insert (Entry ty msg _) req = do
     message' = message msg
     filename = "logs.db"
 
+insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert entry req = do
+  _ <- sequence $ insert' entry req
+  lift $ pure unit
+
 summary :: DB.Request (Array (Array String))
 summary = DB.select filename query readResult
   where
@@ -188,13 +209,5 @@ summary = DB.select filename query readResult
        ty          <- row ! "MessageType" >>= Foreign.readString
        entries     <- row ! "Entries"     >>= Foreign.readString
        pure $ [ty, entries]
-    query = "SELECT MessageType AS 'MessageType', CAST(COUNT(DISTINCT URL) AS TEXT) AS 'Entries' FROM Linux GROUP BY MessageType ORDER BY Entries DESC"
+    query = "SELECT RemoteAddress as 'RemoteAddress', MessageType AS 'MessageType', CAST(COUNT(DISTINCT URL) AS TEXT) AS 'Entries' FROM Linux GROUP BY RemoteAddress, MessageType ORDER BY Entries DESC"
     filename = "logs.db"
-
-test :: Effect Unit
-test = do
-  check <- pure $ runParser entry parseEntry
-  log $ show $ (show check) == expect
-  where 
-    entry="type=DAEMON_START msg=audit(1575912248.984:3695): op=start ver=2.8.5 format=raw kernel=3.10.0-1062.1.2.el7.x86_64 auid=4294967295 pid=705 uid=0 ses=4294967295 res=success"
-    expect="(Right (Entry (DaemonStart) (Message \"audit(1575912248.984:3695):\") [(Op \"start\"),(Ver \"2.8.5\"),(Format \"raw\"),(Kernel \"3.10.0-1062.1.2.el7.x86_64\"),(Auid \"4294967295\"),(Pid \"705\"),(Uid \"0\"),(Ses \"4294967295\"),(Res \"success\")]))"

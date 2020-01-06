@@ -199,9 +199,9 @@ summary = DB.select filename query readResult
        taskCategory <- row ! "TaskCategory" >>= Foreign.readString
        entries      <- row ! "Entries"      >>= Foreign.readString
        pure $ [taskCategory, entries]
-    query = "SELECT x.TaskCategory AS 'TaskCategory', CAST(SUM(y.Entries) AS TEXT) AS 'Entries' FROM TaskCategories as x INNER JOIN"
+    query = "SELECT y.RemoteAddress as 'RemoteAddress', x.TaskCategory AS 'TaskCategory', CAST(SUM(y.Entries) AS TEXT) AS 'Entries' FROM TaskCategories as x INNER JOIN"
       <> " (SELECT EventID, COUNT (DISTINCT URL) as 'Entries' FROM Windows GROUP BY EventID) AS y"
-      <> " ON y.EventID=x.EventID GROUP BY x.TaskCategory ORDER BY x.TaskCategory,y.Entries DESC;"
+      <> " ON y.EventID=x.EventID GROUP BY y.RemoteAddress, x.TaskCategory ORDER BY y.Entries DESC;"
     filename = "logs.db"
 
 readEntry :: Foreign -> Foreign.F Entry
