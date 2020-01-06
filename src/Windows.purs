@@ -36,7 +36,7 @@ import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (char, string, satisfy)
-import Text.Parsing.Parser.Combinators (between)
+import Text.Parsing.Parser.Combinators (between) as Combinators
 
 import CSVParser as CSVParser
 import Stream as Stream
@@ -46,8 +46,6 @@ import DB as DB
 import HTTP as HTTP
 import Socket as Socket
 import Strings as Strings
-
-import Audit as Audit
 
 newtype Entry = Entry
   { eventID :: String
@@ -78,7 +76,7 @@ parseValue' :: Parser String String
 parseValue' = foldMap singleton <$> many (satisfy $ not <<< eq '"')
 
 parseValue :: Parser String String
-parseValue = between (char '"') (char '"') parseValue'
+parseValue = Combinators.between (char '"') (char '"') parseValue'
 
 parseEntry :: Parser String Entry
 parseEntry = do

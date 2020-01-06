@@ -30,13 +30,16 @@ import Effect.Aff (Aff)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 import Effect.Class (liftEffect)
 
+import Foreign (Foreign)
+
 import Socket (Socket)
 
 foreign import data Server :: Type
 foreign import data IncomingMessage :: Type
 foreign import data ServerResponse :: Type
-foreign import data MessageHeaders :: Type
 foreign import data ClientRequest :: Type
+
+type MessageHeaders = Foreign
 
 foreign import createServer :: Effect Server
 
@@ -49,8 +52,6 @@ foreign import messageURL :: IncomingMessage -> String
 foreign import socket :: IncomingMessage -> Socket
 
 foreign import messageHeaders :: IncomingMessage -> MessageHeaders
-
-foreign import showMessageHeadersImpl :: MessageHeaders -> String
 
 foreign import end :: ServerResponse -> Effect Unit
 
@@ -86,6 +87,3 @@ setRequestHeader headerName headerValue req = liftEffect $ setRequestHeaderImpl 
 
 endRequest :: ClientRequest -> Aff IncomingResponse
 endRequest client = fromEffectFnAff $ endRequestImpl incomingResponse client
-
-instance showMessageHeaders :: Show MessageHeaders where
-  show = showMessageHeadersImpl

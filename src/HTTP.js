@@ -31,10 +31,6 @@ exports.messageHeaders = function(incomingMessage) {
   return incomingMessage.headers;
 };
 
-exports.showMessageHeadersImpl = function(messageHeaders) {
-  return JSON.stringify(messageHeaders, null, 2);
-};
-
 exports.end = function(serverResponse) {
   return function() {
     serverResponse.end();
