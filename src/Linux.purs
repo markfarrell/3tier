@@ -44,7 +44,6 @@ import Date as Date
 import DB as DB
 import HTTP as HTTP
 import Socket as Socket
-import Strings as Strings
 
 import Readline as Readline
 import Stream as Stream

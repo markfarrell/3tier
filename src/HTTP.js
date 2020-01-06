@@ -77,34 +77,49 @@ exports.write = function(chunk) {
   };
 };
 
-exports.requestImpl = function(incomingResponse) {
-  return function(method) {
-    return function(requestURL) {
-      return function(onError, onSuccess) {
-        var result = "";
-        var req = http.request(requestURL, function(res) {
-          res.setEncoding("utf8");
-          res.on("data", function(data) {
-            result += data;
-          });
-          res.on("end", function() {
-            onSuccess(incomingResponse(result)(res));
-          });
+exports.createRequestImpl = function(method) {
+  return function(requestURL) {
+    return function() {
+      return http.request(requestURL);
+    };
+  };
+};
+
+exports.setRequestHeaderImpl = function(headerName) {
+  return function(headerValue) {
+    return function(req) {
+      return function() {
+        req.setHeader(headerName, headerValue);
+      };
+    };
+  };
+};
+
+exports.endRequestImpl = function(respond) {
+  return function(req) {
+    return function(onError, onSuccess) {
+      var result = "";
+      req.on("response", function(res) {
+        res.setEncoding("utf8");
+        res.on("data", function(data) {
+          result += data;
         });
-        req.on("error", function(error) {
-          onError(error);
+        res.on("end", function() {
+          onSuccess(respond(result)(res));
         });
-        req.method = method;
-        req.end();
-        return function(cancelError, cancelerError, cancelerSuccess) {
-          req.on("error", function() {
-            cancelerError(cancelError);
-          });
-          req.on("close", function() {
-            cancelerSuccess();
-          });
-          req.abort();
-        };
+      });
+      req.on("error", function(error) {
+        onError(error);
+      });
+      req.end();
+      return function(cancelError, cancelerError, cancelerSuccess) {
+        req.on("error", function() {
+          cancelerError(cancelError);
+        });
+        req.on("close", function() {
+          cancelerSuccess();
+        });
+        req.abort();
       };
     };
   };
