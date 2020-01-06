@@ -5,13 +5,20 @@ module Linux
  , parseEntry
  , insert
  , summary
+ , writeEntry
+ , createReader
  )  where
 
 import Prelude
 
+import Control.Coroutine (Producer)
+import Control.Coroutine.Aff (produce, emit)
+
 import Control.Alternative ((<|>))
 import Control.Monad.Trans.Class (lift)
 
+import Effect (Effect)
+import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
@@ -38,6 +45,12 @@ import DB as DB
 import HTTP as HTTP
 import Socket as Socket
 import Strings as Strings
+
+import Readline as Readline
+import Stream as Stream
+import Process as Process
+
+import Audit as Audit
 
 import Linux.Fields as Fields
 
@@ -249,3 +262,24 @@ writeEntry' entry = do
 writeEntry :: Entry -> Either Error String
 writeEntry entry = unwrap $ writeEntry' entry
 
+createReader' :: Readline.Interface -> Producer Entry Aff Unit
+createReader' interface = produce \emitter -> do
+  Readline.onLine (\line -> emit' emitter $ line) $ interface
+  where
+    emit' emitter = \line -> do
+      result <- pure $ flip runParser parseEntry $ line
+      case result of
+        (Left error)  -> do
+           let result' = { line : line, error : error }
+           _ <- debug $ Audit.Entry Audit.Failure Audit.DeserializationRequest (show result') 
+           pure unit
+        (Right entry) -> do
+           let result' = { line : line, entry : entry }
+           _ <- debug $ Audit.Entry Audit.Success Audit.DeserializationRequest (show result') 
+           emit emitter $ entry
+    debug entry = void $ launchAff $ Audit.debug entry
+
+createReader :: Stream.Readable -> Effect (Producer Entry Aff Unit)
+createReader readable = do
+  interface <- Readline.createInterface readable Process.stdout false 
+  pure $ createReader' interface
