@@ -15,8 +15,6 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
 import Effect.Exception (Error)
 
-import Readline as Readline
-
 import HTTP as HTTP
 import Process as Process
 import Strings as Strings
@@ -51,7 +49,6 @@ forwarder write url' = forever $ do
 
 main :: Effect Unit
 main = do
-  interface <- Readline.createInterface Process.stdin Process.stdout false
   case argv' of
     ["--windows", host] -> do
       producer <- Windows.createReader Process.stdin
