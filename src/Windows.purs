@@ -132,13 +132,54 @@ parseEntry = do
     , container : container
     }
   
-entryQuery :: Entry -> HTTP.IncomingMessage -> Effect String
-entryQuery (Entry entry) req = do
+insertQuery :: Entry -> HTTP.IncomingMessage -> Effect String
+insertQuery (Entry entry) req = do
   timestamp <- Date.toISOString <$> Date.current
   pure $ query timestamp
   where
-    query timestamp = "INSERT INTO Windows (Timestamp, RemoteAddress, RemotePort, URL, EventID) VALUES ('" <> values timestamp <> "')"
-    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $ [remoteAddress, remotePort', url', eventID]
+    query timestamp = "INSERT INTO Windows (" <> columns <> ") VALUES ('" <> values timestamp <> "')"
+    columns = foldl (\x y -> x <> "," <> y) "Timestamp" $
+      [ "RemoteAddress"
+      , "RemotePort"
+      , "URL"
+      , "EventID"
+      , "MachineName"
+      , "EntryData"
+      , "EntryIndex"
+      , "Category"
+      , "CategoryNumber"
+      , "EntryType"
+      , "Message"
+      , "Source"
+      , "ReplacementStrings"
+      , "InstanceID"
+      , "TimeGenerated"
+      , "TimeWritten"
+      , "UserName"
+      , "Site"
+      , "Container"
+      ]
+    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $
+      [ remoteAddress
+      , remotePort'
+      , url'
+      , entry.eventID
+      , entry.machineName
+      , entry.entryData
+      , entry.entryIndex
+      , entry.category
+      , entry.categoryNumber
+      , entry.entryType
+      , entry.message
+      , entry.source
+      , entry.replacementStrings
+      , entry.instanceID
+      , entry.timeGenerated
+      , entry.timeWritten
+      , entry.userName
+      , entry.site
+      , entry.container
+      ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
@@ -147,7 +188,7 @@ entryQuery (Entry entry) req = do
 
 insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert entry = \req -> do
-  query <- lift $ liftEffect $ entryQuery entry req
+  query <- lift $ liftEffect $ insertQuery entry req
   DB.insert filename query
   where filename = "logs.db"
 
