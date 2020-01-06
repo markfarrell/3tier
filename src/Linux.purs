@@ -48,6 +48,8 @@ import Strings as Strings
 
 import Readline as Readline
 import Stream as Stream
+import Strings as Strings
+
 import Process as Process
 
 import Audit as Audit
@@ -209,7 +211,7 @@ insert' (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
       , messageType'
       , message'
       , Fields.fieldName field
-      , Fields.fieldValue field
+      , Strings.encodeBase64 $ Fields.fieldValue field
       ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req

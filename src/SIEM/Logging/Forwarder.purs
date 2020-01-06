@@ -23,6 +23,7 @@ import Audit as Audit
 
 import Windows as Windows
 import Sensor as Sensor
+import Linux as Linux
 
 forwarder :: forall a. Show a => (a -> Either Error String) -> String -> Consumer a Aff Unit
 forwarder write url' = forever $ do
@@ -54,9 +55,13 @@ main = do
       producer <- Windows.createReader Process.stdin
       consumer <- pure $ forwarder Windows.writeEntry $ "http://" <> host <> "/forward/windows?entry="
       void $ launchAff $ runProcess $ pullFrom consumer producer
-    ["--sensor", host] -> do
+    ["--sensor", host]  -> do
       producer <- Sensor.createReader Process.stdin
       consumer <- pure $ forwarder Sensor.writeEntry $ "http://" <> host <> "/forward/sensor?entry="
+      void $ launchAff $ runProcess $ pullFrom consumer producer
+    ["--linux", host]   -> do
+      producer <- Linux.createReader Process.stdin
+      consumer <- pure $ forwarder Linux.writeEntry $ "http://" <> host <> "/forward/linux?entry="
       void $ launchAff $ runProcess $ pullFrom consumer producer
     _                   -> pure unit
   where argv'  = Array.drop 2 Process.argv
