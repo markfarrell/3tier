@@ -13,12 +13,14 @@ import Control.Coroutine.Aff (produce, emit)
 
 import Control.Monad.Trans.Class (lift)
 
+import Control.Monad.Except (runExcept)
+
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
-import Effect.Exception (error) as Exception
+import Effect.Exception (error, throw) as Exception
 
 import Data.Either (Either(..))
 
@@ -29,6 +31,9 @@ import Data.Foldable (foldl)
 import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
 import Data.List(many)
+
+import Foreign (readString) as Foreign
+import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (char, satisfy)
@@ -111,13 +116,15 @@ parseEntry = do
 insertQuery :: Entry -> HTTP.IncomingMessage -> Effect String
 insertQuery (Entry entry) req = do
   timestamp <- Date.toISOString <$> Date.current
-  pure $ query timestamp
+  logID     <- createLogID
+  pure $ query timestamp logID
   where
-    query timestamp = "INSERT INTO Sensor (" <> columns <> ") VALUES ('" <> values timestamp <> "')"
+    query timestamp logID = "INSERT INTO Sensor (" <> columns <> ") VALUES ('" <> values timestamp logID <> "')"
     columns = foldl (\x y -> x <> "," <> y) "Timestamp" $
       [ "RemoteAddress"
       , "RemotePort"
-      , "URL"
+      , "LogID"
+      , "EntryID"
       , "SIP"
       , "DIP"
       , "SPort"
@@ -131,10 +138,11 @@ insertQuery (Entry entry) req = do
       , "ETime"
       , "Sensor"
       ]
-    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $
+    values timestamp logID = foldl (\x y -> x <> "','" <> y) timestamp $
       [ remoteAddress
       , remotePort'
-      , url'
+      , logID
+      , entryID
       , entry.sIP
       , entry.dIP
       , entry.sPort
@@ -151,7 +159,15 @@ insertQuery (Entry entry) req = do
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
-    url' = Strings.encodeBase64 $ HTTP.messageURL req
+    entryID = Strings.encodeBase64 $ HTTP.messageURL req
+    createLogID' headers = runExcept $ do
+      result <- headers ! "log-id" >>= Foreign.readString
+      pure result
+    createLogID = do
+       result <- pure (createLogID' $ HTTP.messageHeaders req)
+       case result of
+         (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
+         (Right logID) -> pure $ logID
 
 insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert entry = \req -> do

@@ -28,14 +28,14 @@ import Linux as Linux
 import UUIDv1 as UUIDv1
 
 forward :: String -> String -> Aff HTTP.IncomingResponse
-forward bearer requestURL = do
+forward logID requestURL = do
   req <- HTTP.createRequest HTTP.Post requestURL
-  _   <- HTTP.setRequestHeader "Authorization" ("Bearer " <> bearer) $ req
+  _   <- HTTP.setRequestHeader "Log-ID" logID $ req
   res <- HTTP.endRequest req
   pure res
 
 forwarder :: forall a. Show a => (a -> Either Error String) -> String -> String -> Consumer a Aff Unit
-forwarder write bearer url' = forever $ do
+forwarder write logID url' = forever $ do
   entry       <- await
   result      <- lift $ pure $ write entry
   case result of
@@ -45,7 +45,7 @@ forwarder write bearer url' = forever $ do
     (Right entry') -> do
        let result' = { url' : url', entry : entry, entry' : entry' }
        _ <- lift $ Audit.debug $ Audit.Entry Audit.Success Audit.SerializationRequest (show result')
-       result'' <- lift $ try $ forward bearer (url entry')
+       result'' <- lift $ try $ forward logID (url entry')
        case result'' of
          (Left error)                           -> do
             let result''' = { url : url entry', entry : entry, error : error }
@@ -60,19 +60,19 @@ main :: Effect Unit
 main = do
   case argv' of
     [host, "windows"] -> do
-      bearer     <- UUIDv1.createUUID
+      logID     <- UUIDv1.createUUID
       producer   <- Windows.createReader Process.stdin
-      consumer   <- pure $ forwarder Windows.writeEntry bearer $ "http://" <> host <> "/forward/windows?entry="
+      consumer   <- pure $ forwarder Windows.writeEntry logID $ "http://" <> host <> "/forward/windows?entry="
       void $ launchAff $ runProcess $ pullFrom consumer producer
     [host, "sensor"]  -> do
-      bearer     <- UUIDv1.createUUID
+      logID     <- UUIDv1.createUUID
       producer <- Sensor.createReader Process.stdin
-      consumer <- pure $ forwarder Sensor.writeEntry bearer $ "http://" <> host <> "/forward/sensor?entry="
+      consumer <- pure $ forwarder Sensor.writeEntry logID $ "http://" <> host <> "/forward/sensor?entry="
       void $ launchAff $ runProcess $ pullFrom consumer producer
     [host, "linux"]   -> do
-      bearer     <- UUIDv1.createUUID
+      logID     <- UUIDv1.createUUID
       producer   <- Linux.createReader Process.stdin
-      consumer   <- pure $ forwarder Linux.writeEntry bearer $ "http://" <> host <> "/forward/linux?entry="
+      consumer   <- pure $ forwarder Linux.writeEntry logID $ "http://" <> host <> "/forward/linux?entry="
       void $ launchAff $ runProcess $ pullFrom consumer producer
     _                   -> pure unit
   where argv'  = Array.drop 2 Process.argv

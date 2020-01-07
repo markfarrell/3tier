@@ -1,8 +1,9 @@
 #!/bin/bash
-forward_linux='http://0.0.0.0:3000/forward/linux/?entry='
 rm -f *.db
 cp templates/*.db .
-./bin/centralized-logging-server-linux &
+./bin/siem-logging-server-linux &
 sleep 15s
-cat ./data/linux/sample.log | ./bin/centralized-logging-forwarder-linux $forward_linux
+cat ./data/linux/sample.log | ./bin/siem-logging-forwarder-linux 0.0.0.0:3000 linux
+cat ./data/sensor/sample.csv | ./bin/siem-logging-forwarder-linux 0.0.0.0:3000 sensor
+cat ./data/windows/sample.csv | ./bin/siem-logging-forwarder-linux 0.0.0.0:3000 windows
 kill %1

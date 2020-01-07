@@ -11,13 +11,14 @@ import Prelude
 
 import Control.Coroutine (Producer)
 import Control.Monad.Trans.Class (lift)
+import Control.Monad.Except (runExcept)
 
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
-import Effect.Exception (error) as Exception
+import Effect.Exception (error, throw) as Exception
 
 import Data.Either (Either(..))
 
@@ -133,13 +134,15 @@ parseEntry = do
 insertQuery :: Entry -> HTTP.IncomingMessage -> Effect String
 insertQuery (Entry entry) req = do
   timestamp <- Date.toISOString <$> Date.current
-  pure $ query timestamp
+  logID     <- createLogID
+  pure $ query timestamp logID
   where
-    query timestamp = "INSERT INTO Windows (" <> columns <> ") VALUES ('" <> values timestamp <> "')"
+    query timestamp logID = "INSERT INTO Windows (" <> columns <> ") VALUES ('" <> values timestamp logID <> "')"
     columns = foldl (\x y -> x <> "," <> y) "Timestamp" $
       [ "RemoteAddress"
       , "RemotePort"
-      , "URL"
+      , "LogID"
+      , "EntryID"
       , "EventID"
       , "MachineName"
       , "EntryData"
@@ -157,10 +160,11 @@ insertQuery (Entry entry) req = do
       , "Site"
       , "Container"
       ]
-    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $
+    values timestamp logID = foldl (\x y -> x <> "','" <> y) timestamp $
       [ remoteAddress
       , remotePort'
-      , url'
+      , logID
+      , entryID
       , entry.eventID
       , entry.machineName
       , entry.entryData
@@ -181,8 +185,15 @@ insertQuery (Entry entry) req = do
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
-    url' = Strings.encodeBase64 $ HTTP.messageURL req
-    eventID = entry.eventID
+    entryID = Strings.encodeBase64 $ HTTP.messageURL req
+    createLogID' headers = runExcept $ do
+      result <- headers ! "log-id" >>= Foreign.readString
+      pure result
+    createLogID = do
+       result <- pure (createLogID' $ HTTP.messageHeaders req)
+       case result of
+         (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
+         (Right logID) -> pure $ logID 
 
 insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert entry = \req -> do

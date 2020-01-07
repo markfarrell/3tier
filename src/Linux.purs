@@ -17,12 +17,14 @@ import Control.Coroutine.Aff (produce, emit)
 import Control.Alternative ((<|>))
 import Control.Monad.Trans.Class (lift)
 
+import Control.Monad.Except (runExcept)
+
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
-import Effect.Exception (error) as Exception
+import Effect.Exception (error, throw) as Exception
 
 import Data.Either (Either(..))
 
@@ -191,22 +193,25 @@ message (Message msg) = msg
 insert' :: Entry -> HTTP.IncomingMessage -> Array (DB.Request Unit)
 insert' (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  DB.insert filename $ query timestamp field
+  logID     <- lift $ liftEffect (createLogID)
+  DB.insert filename $ query timestamp logID field
   where
-    query timestamp field = "INSERT INTO Linux (" <> columns <> ") VALUES ('" <> values timestamp field <> "')"
+    query timestamp logID field = "INSERT INTO Linux (" <> columns <> ") VALUES ('" <> values timestamp logID field <> "')"
     columns = foldl (\x y -> x <> "," <> y) "Timestamp" $
       [ "RemoteAddress"
       , "RemotePort"
-      , "URL"
+      , "LogID"
+      , "EntryID"
       , "MessageType"
       , "Message"
       , "FieldName"
       , "FieldValue"
       ]
-    values timestamp field = foldl (\x y -> x <> "','" <> y) timestamp $ 
+    values timestamp logID field = foldl (\x y -> x <> "','" <> y) timestamp $ 
       [ remoteAddress
       , remotePort'
-      , url'
+      , logID
+      , entryID
       , messageType'
       , message'
       , Fields.fieldName field
@@ -215,7 +220,15 @@ insert' (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
-    url' = Strings.encodeBase64 $ HTTP.messageURL req
+    entryID = Strings.encodeBase64 $ HTTP.messageURL req
+    createLogID' headers = runExcept $ do
+      result <- headers ! "log-id" >>= Foreign.readString
+      pure result
+    createLogID = do
+       result <- pure (createLogID' $ HTTP.messageHeaders req)
+       case result of
+         (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
+         (Right logID) -> pure $ logID 
     messageType' = messageType ty
     message' = message msg
     filename = "logs.db"

@@ -26,6 +26,8 @@ import HTTP as HTTP
 import Socket as Socket
 import Strings as Strings
 
+import UUIDv1 as UUIDv1
+
 data EventType = Success | Failure
 
 data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | AuthorizationRequest | ClientRequest | DeserializationRequest | SerializationRequest | AuditRequest
@@ -55,12 +57,13 @@ entryQuery (Entry eventType eventID msg) req = do
   timestamp <- Date.toISOString <$> Date.current
   pure $ query timestamp 
   where
-    query timestamp  = "INSERT INTO Audit (Timestamp, RemoteAddress, RemotePort, URL, EventType, EventID, Message) VALUES ('" <> values timestamp <> "')"
-    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $ [remoteAddress, remotePort', url', eventType', eventID', message] 
+    query timestamp  = "INSERT INTO Audit (Timestamp, RemoteAddress, RemotePort, LogID, EntryID, EventType, EventID, Message) VALUES ('" <> values timestamp <> "')"
+    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $ [remoteAddress, remotePort', logID, entryID, eventType', eventID', message] 
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
-    url' = Strings.encodeBase64 $ HTTP.messageURL req
+    logID = UUIDv1.defaultUUID
+    entryID = Strings.encodeBase64 $ HTTP.messageURL req
     eventType' = show eventType
     eventID' = show eventID
     message = Strings.encodeBase64 msg
