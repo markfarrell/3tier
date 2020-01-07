@@ -5,7 +5,6 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Coroutine (Producer, Consumer, Process, pullFrom, await, runProcess)
 import Control.Coroutine.Aff (produce, emit)
-import Control.Monad.Except (runExcept)
 import Control.Monad.Error.Class (try)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
@@ -17,9 +16,6 @@ import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 
 import Data.Tuple (Tuple(..))
-
-import Foreign (readString) as Foreign
-import Foreign.Index((!))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
@@ -96,8 +92,8 @@ runRequest' request req = do
      _ <- Audit.audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
      pure $ Ok (TextJSON (showJSON result''))
 
-runRoute' :: HTTP.IncomingMessage -> Aff (ResponseType String)
-runRoute' req  = do
+runRoute :: HTTP.IncomingMessage -> Aff (ResponseType String)
+runRoute req  = do
   result <-  pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
   case result of
     (Left error) -> do 
@@ -109,22 +105,6 @@ runRoute' req  = do
         (ForwardWindows entry) -> (runRequest' $ Windows.insert entry) $ req
         (ForwardLinux entry)   -> (runRequest' $ Linux.insert entry)   $ req 
         (ForwardSensor entry)  -> (runRequest' $ Sensor.insert entry)  $ req
-
-runRoute :: HTTP.IncomingMessage -> Aff (ResponseType String)
-runRoute req = do
-  result <- pure (authorizationHeader $ HTTP.messageHeaders req)
-  case result of
-    (Left error)  -> do
-        _ <- Audit.audit (Audit.Entry Audit.Failure Audit.AuthorizationRequest (show error)) $ req
-        pure $ Forbidden Bearer ""
-    (Right bearer) -> do
-       _            <- Audit.audit (Audit.Entry Audit.Success Audit.AuthorizationRequest bearer) $ req
-       responseType <-runRoute' req
-       pure responseType
-  where
-    authorizationHeader headers = runExcept $ do
-       result <- headers ! "authorization" >>= Foreign.readString
-       pure result
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
