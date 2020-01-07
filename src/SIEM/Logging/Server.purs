@@ -42,15 +42,15 @@ parseRoute :: Parser String Route
 parseRoute = forwardLinux <|> forwardWindows <|> forwardSensor
   where
      forwardLinux = do
-      _     <- string "/forward?entry="
+      _     <- string "/forward/linux?entry="
       entry <- Linux.parseEntry
       pure (ForwardLinux entry)
      forwardWindows = do
-      _     <- string "/forward?entry="
+      _     <- string "/forward/windows?entry="
       entry <- Windows.parseEntry
       pure (ForwardWindows entry)
      forwardSensor = do
-      _     <- string "/forward?entry="
+      _     <- string "/forward/sensor?entry="
       entry <- Sensor.parseEntry
       pure (ForwardSensor entry)
 

@@ -59,17 +59,17 @@ forwarder write bearer url' = forever $ do
 main :: Effect Unit
 main = do
   case argv' of
-    ["--windows", host] -> do
+    [host, "windows"] -> do
       bearer     <- UUIDv1.createUUID
       producer   <- Windows.createReader Process.stdin
       consumer   <- pure $ forwarder Windows.writeEntry bearer $ "http://" <> host <> "/forward/windows?entry="
       void $ launchAff $ runProcess $ pullFrom consumer producer
-    ["--sensor", host]  -> do
+    [host, "sensor"]  -> do
       bearer     <- UUIDv1.createUUID
       producer <- Sensor.createReader Process.stdin
       consumer <- pure $ forwarder Sensor.writeEntry bearer $ "http://" <> host <> "/forward/sensor?entry="
       void $ launchAff $ runProcess $ pullFrom consumer producer
-    ["--linux", host]   -> do
+    [host, "linux"]   -> do
       bearer     <- UUIDv1.createUUID
       producer   <- Linux.createReader Process.stdin
       consumer   <- pure $ forwarder Linux.writeEntry bearer $ "http://" <> host <> "/forward/linux?entry="
