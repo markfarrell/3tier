@@ -17,7 +17,7 @@ import Data.Foldable (foldl)
 
 import Effect (Effect)
 import Effect.Aff (Aff)
-import Effect.Console (log) as Console
+import Effect.Console (error) as Console
 import Effect.Class (liftEffect)
 
 import DB as DB
@@ -74,16 +74,16 @@ insert entry = \req -> do
   DB.insert filename query
   where filename = "audit.db"
 
-log :: Entry -> Aff Unit
-log (Entry ty id msg) = do
+debug' :: Entry -> Aff Unit
+debug' (Entry ty id msg) = do
  timestamp <- liftEffect $ Date.toISOString <$> Date.current
- log' $ show [timestamp, show ty, show id, msg]
- where log' = liftEffect <<< Console.log
+ error' $ show [timestamp, show ty, show id, msg]
+ where error' = liftEffect <<< Console.error
 
 debug :: Entry -> Aff Unit
 debug = \entry -> do
   case entry of
-    (Entry Failure _ _) -> log entry
+    (Entry Failure _ _) -> debug' entry
     (Entry Success _ _) -> pure unit
 
 audit :: Entry -> HTTP.IncomingMessage -> Aff Unit

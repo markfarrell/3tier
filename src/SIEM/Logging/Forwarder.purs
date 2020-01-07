@@ -13,6 +13,10 @@ import Data.Either (Either (..))
 
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
+
+import Effect.Class (liftEffect)
+import Effect.Console (log) as Console
+
 import Effect.Exception (Error)
 
 import HTTP as HTTP
@@ -61,18 +65,21 @@ main = do
   case argv' of
     [host, "windows"] -> do
       logID     <- UUIDv1.createUUID
-      producer   <- Windows.createReader Process.stdin
-      consumer   <- pure $ forwarder Windows.writeEntry logID $ "http://" <> host <> "/forward/windows?entry="
+      producer  <- Windows.createReader Process.stdin
+      consumer  <- pure $ forwarder Windows.writeEntry logID $ "http://" <> host <> "/forward/windows?entry="
+      _         <- liftEffect $ Console.log logID
       void $ launchAff $ runProcess $ pullFrom consumer producer
     [host, "sensor"]  -> do
       logID     <- UUIDv1.createUUID
-      producer <- Sensor.createReader Process.stdin
-      consumer <- pure $ forwarder Sensor.writeEntry logID $ "http://" <> host <> "/forward/sensor?entry="
+      producer  <- Sensor.createReader Process.stdin
+      consumer  <- pure $ forwarder Sensor.writeEntry logID $ "http://" <> host <> "/forward/sensor?entry="
+      _         <- liftEffect $ Console.log logID
       void $ launchAff $ runProcess $ pullFrom consumer producer
     [host, "linux"]   -> do
       logID     <- UUIDv1.createUUID
-      producer   <- Linux.createReader Process.stdin
-      consumer   <- pure $ forwarder Linux.writeEntry logID $ "http://" <> host <> "/forward/linux?entry="
+      producer  <- Linux.createReader Process.stdin
+      consumer  <- pure $ forwarder Linux.writeEntry logID $ "http://" <> host <> "/forward/linux?entry="
+      _         <- liftEffect $ Console.log logID
       void $ launchAff $ runProcess $ pullFrom consumer producer
     _                   -> pure unit
   where argv'  = Array.drop 2 Process.argv
