@@ -35,55 +35,28 @@ import Linux as Linux
 import Sensor as Sensor
 import Windows as Windows
 
-
-data Route = ForwardLinux Linux.Entry | ForwardWindows Windows.Entry | ForwardSensor Sensor.Entry | SummaryWindows | SummaryLinux
+data Route = ForwardLinux Linux.Entry | ForwardWindows Windows.Entry | ForwardSensor Sensor.Entry
 
 instance showRoute :: Show Route where
   show (ForwardLinux entry) = "(ForwardLinux " <> show entry <> ")"
   show (ForwardWindows entry) = "(ForwardWindows " <> show entry <> ")"
   show (ForwardSensor entry) = "(ForwardSensor " <> show entry <> ")"
-  show (SummaryWindows) = "(SummaryWindows)"
-  show (SummaryLinux) = "(SummaryLinux)"
-
-parseForwardWindows :: Parser String Route
-parseForwardWindows = do
-  _ <- string "/forward/windows"
-  _ <- string "?"
-  _ <- string "entry"
-  _ <- string "="
-  entry <- Windows.parseEntry
-  pure (ForwardWindows entry)
-
-parseSummaryWindows :: Parser String Route
-parseSummaryWindows = do
-  _ <- string "/summary/windows"
-  pure (SummaryWindows)
-
-parseForwardLinux :: Parser String Route
-parseForwardLinux = do
-  _ <- string "/forward/linux"
-  _ <- string "?"
-  _ <- string "entry"
-  _ <- string "="
-  entry <- Linux.parseEntry
-  pure (ForwardLinux entry)
-
-parseSummaryLinux :: Parser String Route
-parseSummaryLinux = do
-  _ <- string "/summary/linux"
-  pure (SummaryLinux)
-
-parseForwardSensor :: Parser String Route
-parseForwardSensor = do
-  _ <- string "/forward/sensor"
-  _ <- string "?"
-  _ <- string "entry"
-  _ <- string "="
-  entry <- Sensor.parseEntry
-  pure (ForwardSensor entry)
 
 parseRoute :: Parser String Route
-parseRoute = parseForwardWindows <|> parseSummaryWindows <|> parseForwardLinux <|> parseSummaryLinux <|> parseForwardSensor
+parseRoute = forwardLinux <|> forwardWindows <|> forwardSensor
+  where
+     forwardLinux = do
+      _     <- string "/forward?entry="
+      entry <- Linux.parseEntry
+      pure (ForwardLinux entry)
+     forwardWindows = do
+      _     <- string "/forward?entry="
+      entry <- Windows.parseEntry
+      pure (ForwardWindows entry)
+     forwardSensor = do
+      _     <- string "/forward?entry="
+      entry <- Sensor.parseEntry
+      pure (ForwardSensor entry)
 
 data ContentType a = TextJSON a
 
@@ -112,9 +85,8 @@ instance contentJSONUnit :: ContentJSON Unit where
 instance contentJSONSummary :: ContentJSON (Array (Array String)) where
   showJSON x = show x
 
-runDBRoute :: forall a. ContentJSON a => (HTTP.IncomingMessage -> DB.Request a) -> Route -> HTTP.IncomingMessage -> Aff (ResponseType String)
-runDBRoute request route req = do
-  _       <- Audit.audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
+runRequest' :: forall a. ContentJSON a => (HTTP.IncomingMessage -> DB.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runRequest' request req = do
   result' <- DB.runRequest $ request req
   case result' of
     (Left error)             -> do 
@@ -126,16 +98,17 @@ runDBRoute request route req = do
 
 runRoute' :: HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute' req  = do
-  result <-  pure $ flip runParser parseRoute (Strings.decodeURIComponent $ HTTP.messageURL req) 
+  result <-  pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
   case result of
     (Left error) -> do 
-        _ <- Audit.audit (Audit.Entry Audit.Failure Audit.RoutingRequest (show $ Tuple (Strings.decodeURIComponent $ HTTP.messageURL req) error)) $ req
-        pure $ BadRequest (HTTP.messageURL req)
-    (Right (ForwardWindows entry)) -> (runDBRoute $ Windows.insert entry)  (ForwardWindows entry) $ req
-    (Right (SummaryWindows))       -> (runDBRoute $ const Windows.summary) (SummaryWindows)       $ req 
-    (Right (ForwardLinux entry))   -> (runDBRoute $ Linux.insert entry)    (ForwardLinux entry)   $ req 
-    (Right (SummaryLinux))         -> (runDBRoute $ const Linux.summary)   (SummaryLinux)         $ req
-    (Right (ForwardSensor entry))  -> (runDBRoute $ Sensor.insert entry)   (ForwardSensor entry)  $ req
+      _ <- Audit.audit (Audit.Entry Audit.Failure Audit.RoutingRequest (show error)) $ req
+      pure $ BadRequest (HTTP.messageURL req)
+    (Right route) -> do
+      _       <- Audit.audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
+      case route of 
+        (ForwardWindows entry) -> (runRequest' $ Windows.insert entry) $ req
+        (ForwardLinux entry)   -> (runRequest' $ Linux.insert entry)   $ req 
+        (ForwardSensor entry)  -> (runRequest' $ Sensor.insert entry)  $ req
 
 runRoute :: HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute req = do
