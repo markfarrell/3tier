@@ -53,6 +53,8 @@ import Strings as Strings
 
 import Process as Process
 
+import UUIDv3 as UUIDv3
+
 import Audit as Audit
 
 import Linux.Fields as Fields
@@ -211,7 +213,7 @@ insert' (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
       [ remoteAddress
       , remotePort'
       , logID
-      , entryID
+      , entryID logID
       , messageType'
       , message'
       , Fields.fieldName field
@@ -220,7 +222,7 @@ insert' (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
-    entryID = Strings.encodeBase64 $ HTTP.messageURL req
+    entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
     createLogID' headers = runExcept $ do
       result <- headers ! "log-id" >>= Foreign.readString
       pure result

@@ -41,10 +41,11 @@ import Text.Parsing.Parser.String (char, satisfy)
 import Date as Date
 import HTTP as HTTP
 import Socket as Socket
-import Strings as Strings
 import Stream as Stream
 import Process as Process
 import Readline as Readline
+
+import UUIDv3 as UUIDv3
 
 import Audit as Audit
 import DB as DB
@@ -142,7 +143,7 @@ insertQuery (Entry entry) req = do
       [ remoteAddress
       , remotePort'
       , logID
-      , entryID
+      , entryID logID
       , entry.sIP
       , entry.dIP
       , entry.sPort
@@ -159,7 +160,7 @@ insertQuery (Entry entry) req = do
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
-    entryID = Strings.encodeBase64 $ HTTP.messageURL req
+    entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
     createLogID' headers = runExcept $ do
       result <- headers ! "log-id" >>= Foreign.readString
       pure result

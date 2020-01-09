@@ -46,7 +46,8 @@ import Date as Date
 import DB as DB
 import HTTP as HTTP
 import Socket as Socket
-import Strings as Strings
+
+import UUIDv3 as UUIDv3
 
 newtype Entry = Entry
   { eventID :: String
@@ -164,7 +165,7 @@ insertQuery (Entry entry) req = do
       [ remoteAddress
       , remotePort'
       , logID
-      , entryID
+      , entryID logID
       , entry.eventID
       , entry.machineName
       , entry.entryData
@@ -185,7 +186,7 @@ insertQuery (Entry entry) req = do
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
-    entryID = Strings.encodeBase64 $ HTTP.messageURL req
+    entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
     createLogID' headers = runExcept $ do
       result <- headers ! "log-id" >>= Foreign.readString
       pure result

@@ -27,6 +27,7 @@ import Socket as Socket
 import Strings as Strings
 
 import UUIDv1 as UUIDv1
+import UUIDv3 as UUIDv3
 
 data EventType = Success | Failure
 
@@ -63,7 +64,7 @@ entryQuery (Entry eventType eventID msg) req = do
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
     logID = UUIDv1.defaultUUID
-    entryID = Strings.encodeBase64 $ HTTP.messageURL req
+    entryID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
     eventType' = show eventType
     eventID' = show eventID
     message = Strings.encodeBase64 msg
