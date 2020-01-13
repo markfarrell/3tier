@@ -1,4 +1,4 @@
-module Windows
+module SIEM.Logging.Windows
   ( Entry(..)
   , parseEntry
   , insert

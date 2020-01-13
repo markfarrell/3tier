@@ -1,4 +1,4 @@
-module Sensor
+module SIEM.Logging.Sensor
   ( Entry (..)
   , parseEntry
   , writeEntry

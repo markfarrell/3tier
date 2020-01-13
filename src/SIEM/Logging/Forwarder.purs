@@ -25,9 +25,9 @@ import Strings as Strings
 
 import Audit as Audit
 
-import Windows as Windows
-import Sensor as Sensor
-import Linux as Linux
+import SIEM.Logging.Windows as Windows
+import SIEM.Logging.Sensor as Sensor
+import SIEM.Logging.Linux as Linux
 
 import UUIDv1 as UUIDv1
 

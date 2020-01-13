@@ -27,9 +27,9 @@ import HTTP as HTTP
 
 import Audit as Audit
 
-import Linux as Linux
-import Sensor as Sensor
-import Windows as Windows
+import SIEM.Logging.Linux as Linux
+import SIEM.Logging.Sensor as Sensor
+import SIEM.Logging.Windows as Windows
 
 data Route = ForwardLinux Linux.Entry | ForwardWindows Windows.Entry | ForwardSensor Sensor.Entry
 

@@ -1,4 +1,4 @@
-module Linux.Fields
+module SIEM.Logging.Linux.Fields
   ( Field
   , fieldName
   , fieldValue

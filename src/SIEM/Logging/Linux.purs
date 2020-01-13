@@ -1,4 +1,4 @@
-module Linux
+module SIEM.Logging.Linux
  ( Entry
  , Message
  , MessageType
@@ -57,7 +57,7 @@ import UUIDv3 as UUIDv3
 
 import Audit as Audit
 
-import Linux.Fields as Fields
+import SIEM.Logging.Linux.Fields as Fields
 
 type Field = Fields.Field
 
