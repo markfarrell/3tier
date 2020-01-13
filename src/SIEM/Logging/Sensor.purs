@@ -170,11 +170,10 @@ insertQuery (Entry entry) req = do
          (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
          (Right logID) -> pure $ logID
 
-insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insert entry = \req -> do
+insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert filename entry req = do
   query <- lift $ liftEffect $ insertQuery entry req
   DB.insert filename query
-  where filename = "logs.db"
 
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $

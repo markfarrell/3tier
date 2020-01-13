@@ -102,9 +102,14 @@ runRoute req  = do
     (Right route) -> do
       _       <- Audit.audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
       case route of 
-        (ForwardWindows entry) -> (runRequest' $ Windows.insert entry) $ req
-        (ForwardLinux entry)   -> (runRequest' $ Linux.insert entry)   $ req 
-        (ForwardSensor entry)  -> (runRequest' $ Sensor.insert entry)  $ req
+        (ForwardWindows entry) -> (runRequest' $ insertWindows entry) $ req
+        (ForwardLinux entry)   -> (runRequest' $ insertLinux entry)   $ req 
+        (ForwardSensor entry)  -> (runRequest' $ insertSensor entry)  $ req
+  where
+    insertWindows = Windows.insert filename
+    insertLinux   = Linux.insert filename
+    insertSensor  = Sensor.insert filename
+    filename = "logs.db"
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do

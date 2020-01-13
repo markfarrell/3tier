@@ -192,8 +192,8 @@ messageType (Login) = "LOGIN"
 message :: Message -> String
 message (Message msg) = msg
 
-insert' :: Entry -> HTTP.IncomingMessage -> Array (DB.Request Unit)
-insert' (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
+insert' :: String -> Entry -> HTTP.IncomingMessage -> Array (DB.Request Unit)
+insert' filename (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
   logID     <- lift $ liftEffect (createLogID)
   DB.insert filename $ query timestamp logID field
@@ -233,11 +233,10 @@ insert' (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
          (Right logID) -> pure $ logID 
     messageType' = messageType ty
     message' = message msg
-    filename = "logs.db"
 
-insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insert entry req = do
-  _ <- sequence $ insert' entry req
+insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert filename entry req = do
+  _ <- sequence $ insert' filename entry req
   lift $ pure unit
 
 summary :: DB.Request (Array (Array String))
