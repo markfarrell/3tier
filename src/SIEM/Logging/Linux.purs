@@ -4,7 +4,6 @@ module SIEM.Logging.Linux
  , MessageType
  , parseEntry
  , insert
- , summary
  , writeEntry
  , createReader
  )  where
@@ -238,16 +237,6 @@ insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename entry req = do
   _ <- sequence $ insert' filename entry req
   lift $ pure unit
-
-summary :: DB.Request (Array (Array String))
-summary = DB.select filename query readResult
-  where
-    readResult row = do
-       ty          <- row ! "MessageType" >>= Foreign.readString
-       entries     <- row ! "Entries"     >>= Foreign.readString
-       pure $ [ty, entries]
-    query = "SELECT RemoteAddress as 'RemoteAddress', MessageType AS 'MessageType', CAST(COUNT(DISTINCT URL) AS TEXT) AS 'Entries' FROM Linux GROUP BY RemoteAddress, MessageType ORDER BY Entries DESC"
-    filename = "logs.db"
 
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry ty msg fields) = foldl (\x y -> x <> delimiter' <> y) (ty') $ [msg'] <> fields'

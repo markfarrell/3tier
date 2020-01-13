@@ -2,7 +2,6 @@ module SIEM.Logging.Windows
   ( Entry(..)
   , parseEntry
   , insert
-  , summary
   , createReader
   , writeEntry
   ) where
@@ -200,18 +199,6 @@ insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename entry req = do
   query <- lift $ liftEffect $ insertQuery entry req
   DB.insert filename query
-
-summary :: DB.Request (Array (Array String))
-summary = DB.select filename query readResult
-  where
-    readResult row = do
-       taskCategory <- row ! "TaskCategory" >>= Foreign.readString
-       entries      <- row ! "Entries"      >>= Foreign.readString
-       pure $ [taskCategory, entries]
-    query = "SELECT y.RemoteAddress as 'RemoteAddress', x.TaskCategory AS 'TaskCategory', CAST(SUM(y.Entries) AS TEXT) AS 'Entries' FROM TaskCategories as x INNER JOIN"
-      <> " (SELECT EventID, COUNT (DISTINCT URL) as 'Entries' FROM Windows GROUP BY EventID) AS y"
-      <> " ON y.EventID=x.EventID GROUP BY y.RemoteAddress, x.TaskCategory ORDER BY y.Entries DESC;"
-    filename = "logs.db"
 
 readEntry :: Foreign -> Foreign.F Entry
 readEntry row = do
