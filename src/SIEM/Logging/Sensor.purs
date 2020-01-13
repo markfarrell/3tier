@@ -23,6 +23,7 @@ import Effect.Exception (Error)
 import Effect.Exception (error, throw) as Exception
 
 import Data.Either (Either(..))
+import Data.Tuple (Tuple(..))
 
 import Data.Identity (Identity)
 import Data.Newtype (unwrap)
@@ -114,53 +115,36 @@ parseEntry = do
     , sensor   : sensor
     }
 
-insertQuery :: Entry -> HTTP.IncomingMessage -> Effect String
-insertQuery (Entry entry) req = do
-  timestamp <- Date.toISOString <$> Date.current
-  logID     <- createLogID
-  pure $ query timestamp logID
+insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert filename (Entry entry) req = do
+  timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
+  logID     <- lift $ liftEffect (createLogID)
+  DB.insert filename table $ params timestamp logID
   where
-    query timestamp logID = "INSERT INTO Sensor (" <> columns <> ") VALUES ('" <> values timestamp logID <> "')"
-    columns = foldl (\x y -> x <> "," <> y) "Timestamp" $
-      [ "RemoteAddress"
-      , "RemotePort"
-      , "LogID"
-      , "EntryID"
-      , "SIP"
-      , "DIP"
-      , "SPort"
-      , "DPort"
-      , "Protocol"
-      , "Packets"
-      , "Bytes"
-      , "Flags"
-      , "STime"
-      , "Duration"
-      , "ETime"
-      , "Sensor"
-      ]
-    values timestamp logID = foldl (\x y -> x <> "','" <> y) timestamp $
-      [ remoteAddress
-      , remotePort'
-      , logID
-      , entryID logID
-      , entry.sIP
-      , entry.dIP
-      , entry.sPort
-      , entry.dPort
-      , entry.protocol
-      , entry.packets
-      , entry.bytes
-      , entry.flags
-      , entry.sTime
-      , entry.duration
-      , entry.eTime
-      , entry.sensor
+    params timestamp logID = 
+      [ Tuple "Timestamp" timestamp
+      , Tuple "RemoteAddress" remoteAddress
+      , Tuple "RemotePort" remotePort'
+      , Tuple "LogID" logID
+      , Tuple "EntryID" (entryID logID)
+      , Tuple "SIP" entry.sIP
+      , Tuple "DIP" entry.dIP
+      , Tuple "SPort" entry.sPort
+      , Tuple "DPort" entry.dPort
+      , Tuple "Protocol" entry.protocol
+      , Tuple "Packets" entry.packets
+      , Tuple "Bytes" entry.bytes
+      , Tuple "Flags" entry.flags
+      , Tuple "STime" entry.sTime
+      , Tuple "Duration" entry.duration
+      , Tuple "ETime" entry.eTime
+      , Tuple "Sensor" entry.sensor
       ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
     entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
+    table = "Sensor"
     createLogID' headers = runExcept $ do
       result <- headers ! "log-id" >>= Foreign.readString
       pure result
@@ -169,11 +153,6 @@ insertQuery (Entry entry) req = do
        case result of
          (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
          (Right logID) -> pure $ logID
-
-insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insert filename entry req = do
-  query <- lift $ liftEffect $ insertQuery entry req
-  DB.insert filename query
 
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $

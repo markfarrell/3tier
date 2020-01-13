@@ -21,7 +21,11 @@ import Control.Monad.Writer.Trans (WriterT, runWriterT)
 
 import Data.Either (Either, either)
 import Data.Traversable (sequence)
-import Data.Tuple (Tuple)
+
+import Data.Array as Array
+import Data.Tuple (Tuple, fst, snd)
+import Data.Foldable (foldl)
+import Data.Maybe (Maybe(..))
 
 import Effect.Aff (Aff)
 import Effect.Exception (Error)
@@ -53,12 +57,22 @@ connect filename mode = liftFreeT $ (Connect filename mode identity)
 all :: String -> SQLite3.Database -> Request (Array SQLite3.Row)
 all query database = liftFreeT $ (All query database identity)
 
-insert :: String -> String -> Request Unit
-insert filename query = do
+insert :: String -> String -> Array (Tuple String String) -> Request Unit
+insert filename table params = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
   _        <- close database
   lift $ pure unit
+  where
+     query = "INSERT INTO " <> table <> " (" <> columns <> ") VALUES (" <> values <> ")"
+     columns  = "'" <> (join "','" columns') <> "'"
+     values   = "'" <> (join "','" values') <> "'"
+     columns' = fst <$> params
+     values'  = snd <$> params
+     join  separator array = join' separator (Array.head array) (Array.tail array)
+     join' separator (Just a) (Just b)   = foldl (\x y -> x <> separator <> y) a b
+     join' separator (Just a) (Nothing)  = a
+     join' separator (Nothing) _         = ""
 
 select :: forall a. String -> String -> (SQLite3.Row -> SQLite3.Result a) -> Request (Array a)
 select filename query readResult = do

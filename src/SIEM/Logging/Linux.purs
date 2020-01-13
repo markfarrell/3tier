@@ -26,6 +26,7 @@ import Effect.Exception (Error)
 import Effect.Exception (error, throw) as Exception
 
 import Data.Either (Either(..))
+import Data.Tuple (Tuple(..))
 
 import Data.Identity (Identity)
 import Data.Newtype (unwrap)
@@ -195,33 +196,26 @@ insert' :: String -> Entry -> HTTP.IncomingMessage -> Array (DB.Request Unit)
 insert' filename (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
   logID     <- lift $ liftEffect (createLogID)
-  DB.insert filename $ query timestamp logID field
+  DB.insert filename table $ params timestamp logID field
   where
-    query timestamp logID field = "INSERT INTO Linux (" <> columns <> ") VALUES ('" <> values timestamp logID field <> "')"
-    columns = foldl (\x y -> x <> "," <> y) "Timestamp" $
-      [ "RemoteAddress"
-      , "RemotePort"
-      , "LogID"
-      , "EntryID"
-      , "MessageType"
-      , "Message"
-      , "FieldName"
-      , "FieldValue"
-      ]
-    values timestamp logID field = foldl (\x y -> x <> "','" <> y) timestamp $ 
-      [ remoteAddress
-      , remotePort'
-      , logID
-      , entryID logID
-      , messageType'
-      , message'
-      , Fields.fieldName field
-      , Strings.encodeBase64 $ Fields.fieldValue field
+    params timestamp logID field =
+      [ Tuple "Timestamp" timestamp
+      , Tuple "RemoteAddress" remoteAddress
+      , Tuple "RemotePort" remotePort'
+      , Tuple "LogID" logID
+      , Tuple "EntryID" (entryID logID)
+      , Tuple "MessageType" messageType'
+      , Tuple "Message" message'
+      , Tuple "FieldName" (Fields.fieldName field)
+      , Tuple "FieldValue" (Strings.encodeBase64 $ Fields.fieldValue field)
       ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
     entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
+    messageType' = messageType ty
+    message' = message msg
+    table = "Linux"
     createLogID' headers = runExcept $ do
       result <- headers ! "log-id" >>= Foreign.readString
       pure result
@@ -230,8 +224,6 @@ insert' filename (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
        case result of
          (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
          (Right logID) -> pure $ logID 
-    messageType' = messageType ty
-    message' = message msg
 
 insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename entry req = do

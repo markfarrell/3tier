@@ -13,6 +13,7 @@ import Control.Monad.Error.Class (try)
 import Control.Monad.Trans.Class (lift)
 
 import Data.Either(Either(..))
+import Data.Tuple(Tuple(..))
 import Data.Foldable (foldl)
 
 import Effect (Effect)
@@ -53,13 +54,21 @@ instance showEventID :: Show EventID where
 instance showEntry :: Show Entry where
   show (Entry eventType eventID msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show msg <> ")"
 
-entryQuery :: Entry -> HTTP.IncomingMessage -> Effect String
-entryQuery (Entry eventType eventID msg) req = do
-  timestamp <- Date.toISOString <$> Date.current
-  pure $ query timestamp 
-  where
-    query timestamp  = "INSERT INTO Audit (Timestamp, RemoteAddress, RemotePort, LogID, EntryID, EventType, EventID, Message) VALUES ('" <> values timestamp <> "')"
-    values timestamp = foldl (\x y -> x <> "','" <> y) timestamp $ [remoteAddress, remotePort', logID, entryID, eventType', eventID', message] 
+insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert (Entry eventType eventID msg) req = do
+  timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
+  DB.insert filename table $ params timestamp
+  where 
+    params timestamp =
+      [ Tuple "Timestamp" timestamp 
+      , Tuple "RemoteAddress" remoteAddress
+      , Tuple "RemotePort" remotePort'
+      , Tuple "LogID" logID
+      , Tuple "EntryID" entryID
+      , Tuple "EventType" eventType'
+      , Tuple "EventID" eventID'
+      , Tuple "Message" message
+      ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
@@ -68,12 +77,8 @@ entryQuery (Entry eventType eventID msg) req = do
     eventType' = show eventType
     eventID' = show eventID
     message = Strings.encodeBase64 msg
-
-insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insert entry = \req -> do
-  query <- lift $ liftEffect $ entryQuery entry req
-  DB.insert filename query
-  where filename = "audit.db"
+    table = "Audit"
+    filename = "audit.db"
 
 debug' :: Entry -> Aff Unit
 debug' (Entry ty id msg) = do

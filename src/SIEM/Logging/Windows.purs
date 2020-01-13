@@ -20,6 +20,7 @@ import Effect.Exception (Error)
 import Effect.Exception (error, throw) as Exception
 
 import Data.Either (Either(..))
+import Data.Tuple (Tuple(..))
 
 import Data.Identity (Identity)
 import Data.Newtype (unwrap)
@@ -131,61 +132,40 @@ parseEntry = do
     , container : container
     }
   
-insertQuery :: Entry -> HTTP.IncomingMessage -> Effect String
-insertQuery (Entry entry) req = do
-  timestamp <- Date.toISOString <$> Date.current
-  logID     <- createLogID
-  pure $ query timestamp logID
+insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert filename (Entry entry) req = do
+  timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
+  logID     <- lift $ liftEffect (createLogID)
+  DB.insert filename table $ params timestamp logID
   where
-    query timestamp logID = "INSERT INTO Windows (" <> columns <> ") VALUES ('" <> values timestamp logID <> "')"
-    columns = foldl (\x y -> x <> "," <> y) "Timestamp" $
-      [ "RemoteAddress"
-      , "RemotePort"
-      , "LogID"
-      , "EntryID"
-      , "EventID"
-      , "MachineName"
-      , "EntryData"
-      , "EntryIndex"
-      , "Category"
-      , "CategoryNumber"
-      , "EntryType"
-      , "Message"
-      , "Source"
-      , "ReplacementStrings"
-      , "InstanceID"
-      , "TimeGenerated"
-      , "TimeWritten"
-      , "UserName"
-      , "Site"
-      , "Container"
-      ]
-    values timestamp logID = foldl (\x y -> x <> "','" <> y) timestamp $
-      [ remoteAddress
-      , remotePort'
-      , logID
-      , entryID logID
-      , entry.eventID
-      , entry.machineName
-      , entry.entryData
-      , entry.entryIndex
-      , entry.category
-      , entry.categoryNumber
-      , entry.entryType
-      , entry.message
-      , entry.source
-      , entry.replacementStrings
-      , entry.instanceID
-      , entry.timeGenerated
-      , entry.timeWritten
-      , entry.userName
-      , entry.site
-      , entry.container
+    params timestamp logID =
+      [ Tuple "Timestamp" timestamp
+      , Tuple "RemoteAddress" remoteAddress
+      , Tuple "RemotePort" remotePort'
+      , Tuple "LogID" logID
+      , Tuple "EntryID" (entryID logID)
+      , Tuple "EventID" entry.eventID
+      , Tuple "MachineName" entry.machineName
+      , Tuple "EntryData" entry.entryData
+      , Tuple "EntryIndex" entry.entryIndex
+      , Tuple "Category" entry.category
+      , Tuple "CategoryNumber" entry.categoryNumber
+      , Tuple "EntryType" entry.entryType
+      , Tuple "Message" entry.message
+      , Tuple "Source" entry.source
+      , Tuple "ReplacementStrings" entry.replacementStrings
+      , Tuple "InstanceID" entry.instanceID
+      , Tuple "TimeGenerated" entry.timeGenerated
+      , Tuple "TimeWritten" entry.timeWritten
+      , Tuple "UserName" entry.userName
+      , Tuple "Site" entry.site
+      , Tuple "Container" entry.container
       ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
     entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
+    table = "Windows"
     createLogID' headers = runExcept $ do
       result <- headers ! "log-id" >>= Foreign.readString
       pure result
@@ -194,11 +174,6 @@ insertQuery (Entry entry) req = do
        case result of
          (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
          (Right logID) -> pure $ logID 
-
-insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insert filename entry req = do
-  query <- lift $ liftEffect $ insertQuery entry req
-  DB.insert filename query
 
 readEntry :: Foreign -> Foreign.F Entry
 readEntry row = do
