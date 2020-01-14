@@ -2,6 +2,7 @@ module SIEM.Logging.Windows
   ( Entry(..)
   , parseEntry
   , insert
+  , schema
   , createReader
   , writeEntry
   ) where
@@ -174,6 +175,31 @@ insert filename (Entry entry) req = do
        case result of
          (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
          (Right logID) -> pure $ logID 
+
+schema :: String -> DB.Request Unit
+schema filename = DB.schema filename "Windows" $
+  [ Tuple "Timestamp" DB.TextNotNull
+  , Tuple "RemoteAddress" DB.TextNotNull
+  , Tuple "RemotePort" DB.TextNotNull
+  , Tuple "LogID" DB.TextNotNull
+  , Tuple "EntryID" DB.TextNotNull
+  , Tuple "EventID" DB.TextNotNull
+  , Tuple "MachineName" DB.TextNotNull 
+  , Tuple "EntryData" DB.TextNotNull
+  , Tuple "EntryIndex" DB.TextNotNull
+  , Tuple "Category" DB.TextNotNull
+  , Tuple "CategoryNumber" DB.TextNotNull
+  , Tuple "EntryType" DB.TextNotNull
+  , Tuple "Message" DB.TextNotNull
+  , Tuple "Source" DB.TextNotNull
+  , Tuple "ReplacementStrings" DB.TextNotNull
+  , Tuple "InstanceID" DB.TextNotNull
+  , Tuple "TimeGenerated" DB.TextNotNull
+  , Tuple "TimeWritten" DB.TextNotNull
+  , Tuple "UserName" DB.TextNotNull
+  , Tuple "Site" DB.TextNotNull
+  , Tuple "Container" DB.TextNotNull
+  ]
 
 readEntry :: Foreign -> Foreign.F Entry
 readEntry row = do
