@@ -3,7 +3,7 @@ module Audit
   , EventID(..)
   , Entry(..)
   , insert
-  , audit
+  , application
   , debug
   ) where
 
@@ -53,8 +53,8 @@ instance showEventID :: Show EventID where
 instance showEntry :: Show Entry where
   show (Entry eventType eventID msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show msg <> ")"
 
-insert :: Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insert (Entry eventType eventID msg) req = do
+insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert filename (Entry eventType eventID msg) req = do
   timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
   DB.insert filename table $ params timestamp
   where 
@@ -77,7 +77,6 @@ insert (Entry eventType eventID msg) req = do
     eventID' = show eventID
     message = Strings.encodeBase64 msg
     table = "Audit"
-    filename = "audit.db"
 
 debugFailure :: Entry -> Aff Unit
 debugFailure (Entry ty id msg) = do
@@ -91,10 +90,11 @@ debug = \entry -> do
     (Entry Failure _ _) -> debugFailure entry
     (Entry Success _ _) -> pure unit
 
-audit :: Entry -> HTTP.IncomingMessage -> Aff Unit
-audit entry req = do
+{-- Audit an application-layer event associated with an incoming HTTP request. --}
+application :: String -> Entry -> HTTP.IncomingMessage -> Aff Unit
+application filename entry req = do
   _      <- debug entry
-  result <- try $ DB.runRequest (insert entry $ req)
+  result <- try $ DB.runRequest (insert filename entry $ req)
   msg    <- pure (show { entry : entry, result : result })
   case result of 
     (Left  _)  -> debug $ Entry Failure AuditRequest msg
