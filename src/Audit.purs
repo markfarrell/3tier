@@ -3,6 +3,7 @@ module Audit
   , EventID(..)
   , Entry(..)
   , insert
+  , schema
   , application
   , debug
   ) where
@@ -77,6 +78,18 @@ insert filename (Entry eventType eventID msg) req = do
     eventID' = show eventID
     message = Strings.encodeBase64 msg
     table = "Audit"
+
+schema :: String -> DB.Request Unit
+schema filename = DB.schema filename "Audit" $
+  [ Tuple "Timestamp" DB.TextNotNull
+  , Tuple "RemoteAddress" DB.TextNotNull
+  , Tuple "RemotePort" DB.TextNotNull
+  , Tuple "LogID" DB.TextNotNull
+  , Tuple "EntryID" DB.TextNotNull
+  , Tuple "EventType" DB.TextNotNull
+  , Tuple "EventID" DB.TextNotNull
+  , Tuple "Message" DB.TextNotNull
+  ]
 
 debugFailure :: Entry -> Aff Unit
 debugFailure (Entry ty id msg) = do
