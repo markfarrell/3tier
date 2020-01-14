@@ -18,13 +18,13 @@ import Foreign as Foreign
 data Mode = OpenReadOnly | OpenCreate | OpenReadWrite
 
 instance showMode :: Show Mode where
-  show OpenReadOnly = "OPEN_READONLY"
-  show OpenCreate = "OPEN_CREATE"
+  show OpenReadOnly  = "OPEN_READONLY"
+  show OpenCreate    = "OPEN_CREATE | OPEN_READWRITE"
   show OpenReadWrite = "OPEN_READWRITE"
 
 mode' :: Mode -> Int
 mode' OpenReadOnly = 1
-mode' OpenCreate = 4
+mode' OpenCreate = 6
 mode' OpenReadWrite = 2 
 
 foreign import data Database :: Type

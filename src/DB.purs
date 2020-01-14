@@ -8,7 +8,8 @@ module DB
  , connect
  , insert 
  , select
- , table
+ , schema
+ , touch
  , runRequest
  ) where
 
@@ -83,8 +84,8 @@ select filename query readResult = do
 
 data ColumnType = TextNotNull
 
-table :: String -> String -> Array (Tuple String ColumnType) -> Request Unit
-table filename table' params = do
+schema :: String -> String -> Array (Tuple String ColumnType) -> Request Unit
+schema filename table' params = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
   _        <- close database
@@ -95,6 +96,12 @@ table filename table' params = do
      columns'               = column <$> params
      column param           = Arrays.join " " $ [fst param, columnType $ snd param]
      columnType TextNotNull = "TEXT NOT NULL"
+
+touch :: String -> Request Unit
+touch filename = do
+  database <- connect filename SQLite3.OpenCreate
+  _        <- close database
+  lift $ pure unit
 
 interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
 interpret (Close database next) = do 
