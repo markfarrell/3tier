@@ -15,6 +15,12 @@ exports.listen = function(port) {
   };
 };
 
+exports.close = function(server) {
+  return function() {
+    server.close();
+  };
+};
+
 exports.messageMethod = function(incomingMessage) {
   return incomingMessage.method;
 };

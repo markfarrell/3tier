@@ -1,4 +1,6 @@
-module SIEM.Logging.Server where 
+module SIEM.Logging.Server 
+  ( process
+  ) where 
   
 import Prelude
 

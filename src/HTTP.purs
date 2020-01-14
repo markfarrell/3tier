@@ -7,6 +7,7 @@ module HTTP
   , ClientRequest
   , createServer
   , listen
+  , close
   , messageMethod
   , messageURL
   , socket
@@ -44,6 +45,8 @@ type MessageHeaders = Foreign
 foreign import createServer :: Effect Server
 
 foreign import listen :: Int -> Server -> Effect Unit
+
+foreign import close :: Server -> Effect Unit
 
 foreign import messageMethod :: IncomingMessage -> String
 
