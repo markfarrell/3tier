@@ -8,3 +8,7 @@ exports.current = function() {
 exports.toISOString = function(date) {
   return date.toISOString();
 };
+
+exports.getMilliseconds = function(date) {
+  return date.getMilliseconds();
+};

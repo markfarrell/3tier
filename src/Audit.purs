@@ -30,7 +30,7 @@ import UUIDv3 as UUIDv3
 
 data EventType = Success | Failure
 
-data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | AuthorizationRequest | ClientRequest | DeserializationRequest | SerializationRequest | AuditRequest
+data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | AuthorizationRequest | ClientRequest | DeserializationRequest | SerializationRequest | AuditRequest | AssertRequest
 
 data Entry = Entry EventType EventID String
 
@@ -48,6 +48,7 @@ instance showEventID :: Show EventID where
   show DeserializationRequest = "DESERIALIZATION-REQUEST"
   show SerializationRequest = "SERIALIZATION-REQUEST"
   show AuditRequest = "AUDIT-REQUEST"
+  show AssertRequest = "ASSERT-REQUEST"
 
 instance showEntry :: Show Entry where
   show (Entry eventType eventID msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show msg <> ")"
@@ -78,8 +79,8 @@ insert (Entry eventType eventID msg) req = do
     table = "Audit"
     filename = "audit.db"
 
-debug' :: Entry -> Aff Unit
-debug' (Entry ty id msg) = do
+debugFailure :: Entry -> Aff Unit
+debugFailure (Entry ty id msg) = do
  timestamp <- liftEffect $ Date.toISOString <$> Date.current
  error' $ show [timestamp, show ty, show id, msg]
  where error' = liftEffect <<< Console.error
@@ -87,7 +88,7 @@ debug' (Entry ty id msg) = do
 debug :: Entry -> Aff Unit
 debug = \entry -> do
   case entry of
-    (Entry Failure _ _) -> debug' entry
+    (Entry Failure _ _) -> debugFailure entry
     (Entry Success _ _) -> pure unit
 
 audit :: Entry -> HTTP.IncomingMessage -> Aff Unit
