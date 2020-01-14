@@ -3,6 +3,7 @@ module SIEM.Logging.Sensor
   , parseEntry
   , writeEntry
   , insert
+  , schema
   , createReader
   ) where
 
@@ -153,6 +154,27 @@ insert filename (Entry entry) req = do
        case result of
          (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
          (Right logID) -> pure $ logID
+
+schema :: String -> DB.Request Unit
+schema filename = DB.schema filename "Sensor" $
+  [ Tuple "Timestamp" DB.TextNotNull
+  , Tuple "RemoteAddress" DB.TextNotNull
+  , Tuple "RemotePort" DB.TextNotNull
+  , Tuple "LogID" DB.TextNotNull
+  , Tuple "EntryID" DB.TextNotNull
+  , Tuple "SIP" DB.TextNotNull
+  , Tuple "DIP" DB.TextNotNull
+  , Tuple "SPort" DB.TextNotNull
+  , Tuple "DPort" DB.TextNotNull
+  , Tuple "Protocol" DB.TextNotNull
+  , Tuple "Packets" DB.TextNotNull
+  , Tuple "Bytes" DB.TextNotNull
+  , Tuple "Flags" DB.TextNotNull
+  , Tuple "STime" DB.TextNotNull
+  , Tuple "Duration" DB.TextNotNull
+  , Tuple "ETime" DB.TextNotNull
+  , Tuple "Sensor" DB.TextNotNull
+  ]
 
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $

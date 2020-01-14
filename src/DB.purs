@@ -3,7 +3,7 @@ module DB
  , Interpreter
  , Request
  , Result
- , ColumnType
+ , ColumnType(..)
  , close
  , connect
  , insert 
