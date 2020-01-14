@@ -14,9 +14,7 @@ import Control.Monad.Trans.Class (lift)
 
 import Data.Either(Either(..))
 import Data.Tuple(Tuple(..))
-import Data.Foldable (foldl)
 
-import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Console (error) as Console
 import Effect.Class (liftEffect)

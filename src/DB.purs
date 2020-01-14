@@ -3,10 +3,12 @@ module DB
  , Interpreter
  , Request
  , Result
+ , ColumnType
  , close
  , connect
  , insert 
  , select
+ , table
  , runRequest
  ) where
 
@@ -22,13 +24,12 @@ import Control.Monad.Writer.Trans (WriterT, runWriterT)
 import Data.Either (Either, either)
 import Data.Traversable (sequence)
 
-import Data.Array as Array
 import Data.Tuple (Tuple, fst, snd)
-import Data.Foldable (foldl)
-import Data.Maybe (Maybe(..))
 
 import Effect.Aff (Aff)
 import Effect.Exception (Error)
+
+import Arrays as Arrays
 
 import SQLite3 as SQLite3
 
@@ -58,31 +59,42 @@ all :: String -> SQLite3.Database -> Request (Array SQLite3.Row)
 all query database = liftFreeT $ (All query database identity)
 
 insert :: String -> String -> Array (Tuple String String) -> Request Unit
-insert filename table params = do
+insert filename table' params = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
   _        <- close database
   lift $ pure unit
   where
-     query = "INSERT INTO " <> table <> " (" <> columns <> ") VALUES (" <> values <> ")"
-     columns  = "'" <> (join "','" columns') <> "'"
-     values   = "'" <> (join "','" values') <> "'"
+     query = "INSERT INTO " <> table' <> " (" <> columns <> ") VALUES (" <> values <> ")"
+     columns  = "'" <> (Arrays.join "','" columns') <> "'"
+     values   = "'" <> (Arrays.join "','" values') <> "'"
      columns' = fst <$> params
      values'  = snd <$> params
-     join  separator array = join' separator (Array.head array) (Array.tail array)
-     join' separator (Just a) (Just b)   = foldl (\x y -> x <> separator <> y) a b
-     join' separator (Just a) (Nothing)  = a
-     join' separator (Nothing) _         = ""
 
 select :: forall a. String -> String -> (SQLite3.Row -> SQLite3.Result a) -> Request (Array a)
 select filename query readResult = do
-  database <- connect filename SQLite3.OpenReadWrite
+  database <- connect filename SQLite3.OpenReadOnly
   rows     <- all query $ database
   _        <- close database
   lift $ pure (resultSet rows)
   where
     resultSet  rows = either (const []) identity $ resultSet' rows
     resultSet' rows = sequence $ runExcept <$> readResult <$> rows
+
+data ColumnType = TextNotNull
+
+table :: String -> String -> Array (Tuple String ColumnType) -> Request Unit
+table filename table' params = do
+  database <- connect filename SQLite3.OpenReadWrite
+  _        <- all query $ database
+  _        <- close database
+  lift $ pure unit
+  where
+     query = "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> ")"
+     columns                = (Arrays.join "," columns')
+     columns'               = column <$> params
+     column param           = Arrays.join " " $ [fst param, columnType $ snd param]
+     columnType TextNotNull = "TEXT NOT NULL"
 
 interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
 interpret (Close database next) = do 
