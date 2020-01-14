@@ -37,6 +37,10 @@ exports.messageHeaders = function(incomingMessage) {
   return incomingMessage.headers;
 };
 
+exports.statusCode = function(incomingMessage) {
+  return incomingMessage.statusCode;
+};
+
 exports.end = function(serverResponse) {
   return function() {
     serverResponse.end();

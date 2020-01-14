@@ -12,6 +12,7 @@ module HTTP
   , messageURL
   , socket
   , messageHeaders
+  , statusCode
   , end
   , writeHead
   , setHeader
@@ -55,6 +56,8 @@ foreign import messageURL :: IncomingMessage -> String
 foreign import socket :: IncomingMessage -> Socket
 
 foreign import messageHeaders :: IncomingMessage -> MessageHeaders
+
+foreign import statusCode :: IncomingMessage -> Int
 
 foreign import end :: ServerResponse -> Effect Unit
 
