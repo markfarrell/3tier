@@ -4,6 +4,7 @@ module SIEM.Logging.Linux
  , MessageType
  , parseEntry
  , insert
+ , schema
  , writeEntry
  , createReader
  )  where
@@ -229,6 +230,18 @@ insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename entry req = do
   _ <- sequence $ insert' filename entry req
   lift $ pure unit
+
+schema :: String -> DB.Request Unit
+schema filename = DB.schema filename "Linux" $
+  [ Tuple "Timestamp" DB.TextNotNull
+  , Tuple "RemoteAddress" DB.TextNotNull
+  , Tuple "RemotePort" DB.TextNotNull
+  , Tuple "LogID" DB.TextNotNull
+  , Tuple "EntryID" DB.TextNotNull
+  , Tuple "MessageType" DB.TextNotNull
+  , Tuple "FieldName" DB.TextNotNull
+  , Tuple "FieldValue" DB.TextNotNull
+  ]
 
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry ty msg fields) = foldl (\x y -> x <> delimiter' <> y) (ty') $ [msg'] <> fields'
