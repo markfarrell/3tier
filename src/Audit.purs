@@ -31,7 +31,7 @@ import UUIDv3 as UUIDv3
 
 data EventType = Success | Failure
 
-data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | AuthorizationRequest | ClientRequest | DeserializationRequest | SerializationRequest | AuditRequest | AssertRequest
+data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | AuthorizationRequest | ForwardRequest | DeserializationRequest | SerializationRequest | AuditRequest | AssertRequest
 
 data Entry = Entry EventType EventID String
 
@@ -45,7 +45,7 @@ instance showEventID :: Show EventID where
   show ResourceResponse = "RESOURCE-RESPONSE"
   show RoutingRequest = "ROUTING-REQUEST"
   show AuthorizationRequest = "AUTHORIZATION-REQUEST"
-  show ClientRequest = "CLIENT-REQUEST"
+  show ForwardRequest = "FORWARD-REQUEST"
   show DeserializationRequest = "DESERIALIZATION-REQUEST"
   show SerializationRequest = "SERIALIZATION-REQUEST"
   show AuditRequest = "AUDIT-REQUEST"

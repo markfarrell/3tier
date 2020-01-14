@@ -1,5 +1,8 @@
 module SIEM.Logging.Forwarder
-  where
+  ( forwardWindows
+  , forwardSensor
+  , forwardLinux
+  ) where
 
 import Prelude
 
@@ -13,9 +16,6 @@ import Data.Either (Either (..))
 
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
-
-import Effect.Class (liftEffect)
-import Effect.Console (log) as Console
 
 import Effect.Exception (Error)
 
@@ -31,55 +31,71 @@ import SIEM.Logging.Linux as Linux
 
 import UUIDv1 as UUIDv1
 
-forward :: String -> String -> Aff HTTP.IncomingResponse
-forward logID requestURL = do
+data ForwardType = Windows | Sensor | Linux
+
+forwardType' :: ForwardType -> String
+forwardType' Windows = "windows"
+forwardType' Sensor = "sensor"
+forwardType' Linux = "linux"
+
+forward :: ForwardType -> String -> String ->  Aff HTTP.IncomingResponse
+forward forwardType host entry = do
   req <- HTTP.createRequest HTTP.Post requestURL
   _   <- HTTP.setRequestHeader "Log-ID" logID $ req
   res <- HTTP.endRequest req
   pure res
+  where
+    requestURL = "http://" <> host <> "/forward/" <> (forwardType' forwardType) <> "?entry=" <> entry'
+    entry' = Strings.encodeURIComponent entry
+    logID = UUIDv1.defaultUUID
 
-forwarder :: forall a. Show a => (a -> Either Error String) -> String -> String -> Consumer a Aff Unit
-forwarder write logID url' = forever $ do
+forwardWindows :: String -> String -> Aff HTTP.IncomingResponse
+forwardWindows = forward Windows
+
+forwardSensor :: String -> String -> Aff HTTP.IncomingResponse
+forwardSensor = forward Sensor
+
+forwardLinux :: String -> String -> Aff HTTP.IncomingResponse
+forwardLinux = forward Linux
+
+forwarder :: forall a. Show a => ForwardType -> (a -> Either Error String) -> String -> Consumer a Aff Unit
+forwarder forwardType write host = forever $ do
   entry       <- await
   result      <- lift $ pure $ write entry
   case result of
     (Left error) -> do
-       let result' = { url' : url', entry : entry, error : error }
+       let result' = { entry : entry, error : error }
        lift $ Audit.debug $ Audit.Entry Audit.Failure Audit.SerializationRequest (show result')
     (Right entry') -> do
-       let result' = { url' : url', entry : entry, entry' : entry' }
+       let result' = { entry : entry, entry' : entry' }
        _ <- lift $ Audit.debug $ Audit.Entry Audit.Success Audit.SerializationRequest (show result')
-       result'' <- lift $ try $ forward logID (url entry')
+       result'' <- lift $ try $ forward forwardType host entry'
        case result'' of
          (Left error)                           -> do
-            let result''' = { url : url entry', entry : entry, error : error }
-            lift $ Audit.debug $ Audit.Entry Audit.Failure Audit.ClientRequest (show result''')
+            let result''' = { entry : entry, error : error }
+            lift $ Audit.debug $ Audit.Entry Audit.Failure Audit.ForwardRequest (show result''')
          (Right (HTTP.IncomingResponse body _)) -> do
-            let result''' = { url : url entry', entry : entry, body : body }
-            lift $ Audit.debug $ Audit.Entry Audit.Success Audit.ClientRequest (show result''')
-  where 
-    url entry' =  url' <> (Strings.encodeURIComponent entry')
+            let result''' = { entry : entry, body : body }
+            lift $ Audit.debug $ Audit.Entry Audit.Success Audit.ForwardRequest (show result''')
 
 main :: Effect Unit
 main = do
   case argv' of
     [host, "windows"] -> do
-      logID     <- UUIDv1.createUUID
       producer  <- Windows.createReader Process.stdin
-      consumer  <- pure $ forwarder Windows.writeEntry logID $ "http://" <> host <> "/forward/windows?entry="
-      _         <- liftEffect $ Console.log logID
+      consumer  <- pure $ forwarderWindows host
       void $ launchAff $ runProcess $ pullFrom consumer producer
     [host, "sensor"]  -> do
-      logID     <- UUIDv1.createUUID
       producer  <- Sensor.createReader Process.stdin
-      consumer  <- pure $ forwarder Sensor.writeEntry logID $ "http://" <> host <> "/forward/sensor?entry="
-      _         <- liftEffect $ Console.log logID
+      consumer  <- pure $ forwarderSensor host
       void $ launchAff $ runProcess $ pullFrom consumer producer
     [host, "linux"]   -> do
-      logID     <- UUIDv1.createUUID
       producer  <- Linux.createReader Process.stdin
-      consumer  <- pure $ forwarder Linux.writeEntry logID $ "http://" <> host <> "/forward/linux?entry="
-      _         <- liftEffect $ Console.log logID
+      consumer  <- pure $ forwarderLinux host
       void $ launchAff $ runProcess $ pullFrom consumer producer
     _                   -> pure unit
-  where argv'  = Array.drop 2 Process.argv
+  where
+    forwarderWindows = forwarder Windows Windows.writeEntry
+    forwarderSensor  = forwarder Sensor Sensor.writeEntry
+    forwarderLinux   = forwarder Linux Linux.writeEntry
+    argv'  = Array.drop 2 Process.argv
