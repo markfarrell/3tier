@@ -5,6 +5,7 @@ import Prelude
 import Control.Monad.Error.Class (try, throwError)
 
 import Data.Either (Either(..), isRight)
+import Data.Tuple (Tuple(..))
 
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff, killFiber)
@@ -32,8 +33,13 @@ import Assert (assert)
 assert' :: forall a b. String -> Either a b -> Aff Unit
 assert' label result = assert label true $ isRight result
 
-testRequest :: forall a. String -> DB.Request a -> Aff Unit
-testRequest label request = assert' label =<< DB.runRequest request
+testRequest :: forall a. String -> DB.Request a -> Aff a
+testRequest label request = do
+  result <- DB.runRequest request
+  _      <- assert' label result
+  case result of
+    (Left error)            -> throwError error
+    (Right (Tuple x steps)) -> pure x
 
 testSchema :: String -> Aff Unit
 testSchema filename = assert' label =<< try do
@@ -106,16 +112,24 @@ testInsertSensor :: String -> Sensor.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertSensor filename entry req = testRequest label $ Sensor.insert filename entry req
   where label = "Test.SIEM.Logging.Sensor.insert"
 
+testTotalSensor :: String -> Aff Int
+testTotalSensor filename = testRequest label $ Sensor.total filename
+  where label = "Test.SIEM.Logging.Sensor.total (1)"
+
 testSensor :: String -> Aff Unit
 testSensor filename = assert' label  =<< try do
+  total   <- testTotalSensor filename
   entry'  <- testParseSensor entry
   entry'' <- testWriteSensor entry'
   req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardSensor entry''
   _       <- testInsertSensor filename entry' $ req
+  total'  <- testTotalSensor filename
+  _       <- assert label' (total + 1) $ total'
   pure unit
   where
-    entry = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
-    label = "Test.SIEM.Logging.Sensor"
+    entry  = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
+    label  = "Test.SIEM.Logging.Sensor"
+    label' = "Test.SIEM.Logging.Sensor.total (2)"
 
 main :: Effect Unit
 main = void $ launchAff $ do

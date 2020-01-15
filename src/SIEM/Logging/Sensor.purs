@@ -185,13 +185,13 @@ total filename = do
     [total'] -> pure total'
     _        -> lift $ lift (throwError error)
   where
-    runResult result = do
-      result' <- pure (runExcept $ result ! "Total" >>= Foreign.readInt)
+    runResult row = do
+      result' <- pure (runExcept $ row ! "Total" >>= Foreign.readInt)
       case result' of
         (Left _)       -> throwError error
         (Right total') -> pure total'
     error = Exception.error "Unexpected results."
-    query = "SELECT SUM(Entries) as Total FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM Sensor GROUP BY LogID)"
+    query = "SELECT SUM(Entries) AS Total FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM Sensor GROUP BY LogID)"
 
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
