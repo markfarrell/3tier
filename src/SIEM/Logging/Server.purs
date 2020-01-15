@@ -1,5 +1,6 @@
 module SIEM.Logging.Server 
-  ( process
+  ( start
+  , main
   ) where 
   
 import Prelude
@@ -13,9 +14,10 @@ import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
 
 import Data.Either (Either(..))
+import Data.Traversable (sequence)
 
 import Effect (Effect)
-import Effect.Aff (Aff, launchAff)
+import Effect.Aff (Aff, Fiber, launchAff, forkAff)
 import Effect.Class (liftEffect)
 
 import Data.Tuple (Tuple(..))
@@ -87,11 +89,8 @@ instance contentJSONUnit :: ContentJSON Unit where
 instance contentJSONSummary :: ContentJSON (Array (Array String)) where
   showJSON x = show x
 
-audit :: Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
-audit = Audit.application "audit.db"
-
-runRequest' :: forall a. ContentJSON a => (HTTP.IncomingMessage -> DB.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
-runRequest' request req = do
+runRequest' :: forall a. ContentJSON a => String -> (HTTP.IncomingMessage -> DB.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runRequest' filename request req = do
   result' <- DB.runRequest $ request req
   case result' of
     (Left error)             -> do 
@@ -100,9 +99,10 @@ runRequest' request req = do
     (Right (Tuple result'' steps)) -> do
      _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps)) $ req 
      pure $ Ok (TextJSON (showJSON result''))
+  where audit = Audit.application filename
 
-runRoute :: HTTP.IncomingMessage -> Aff (ResponseType String)
-runRoute req  = do
+runRoute :: String -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runRoute filename req  = do
   result <-  pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
   case result of
     (Left error) -> do 
@@ -111,14 +111,15 @@ runRoute req  = do
     (Right route) -> do
       _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
       case route of 
-        (ForwardWindows entry) -> (runRequest' $ insertWindows entry) $ req
-        (ForwardLinux entry)   -> (runRequest' $ insertLinux entry)   $ req 
-        (ForwardSensor entry)  -> (runRequest' $ insertSensor entry)  $ req
+        (ForwardWindows entry) -> (runRequest'' $ insertWindows entry) $ req
+        (ForwardLinux entry)   -> (runRequest'' $ insertLinux entry)   $ req 
+        (ForwardSensor entry)  -> (runRequest'' $ insertSensor entry)  $ req
   where
     insertWindows = Windows.insert filename
     insertLinux   = Linux.insert filename
     insertSensor  = Sensor.insert filename
-    filename = "logs.db"
+    runRequest''  = runRequest' filename
+    audit         = Audit.application filename
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
@@ -155,13 +156,13 @@ producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
 producer server = produce \emitter -> do
   HTTP.onRequest (\req res -> emit emitter $ HTTP.IncomingRequest req res) $ server
 
-consumer :: Consumer HTTP.IncomingRequest Aff Unit
-consumer = forever $ do
+consumer :: String -> Consumer HTTP.IncomingRequest Aff Unit
+consumer filename = forever $ do
   request <- await
   _       <- lift $ echoLogID request
   case request of
     (HTTP.IncomingRequest req res) -> do
-      routeResult <- lift $ try (runRoute req)
+      routeResult <- lift $ try (runRoute' req)
       case routeResult of
         (Left  error)        -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceRequest (show error)) $ req
         (Right responseType) -> do
@@ -172,21 +173,47 @@ consumer = forever $ do
            case responseResult of
              (Left error')   -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceResponse (show error')) $ req
              (Right _)       -> lift $ audit (Audit.Entry Audit.Success Audit.ResourceResponse (show responseType)) $ req 
+  where 
+    runRoute' = runRoute filename
+    audit     = Audit.application filename
 
-process :: HTTP.Server -> Process Aff Unit
-process server = pullFrom consumer $ producer server
+process :: String -> HTTP.Server -> Process Aff Unit
+process filename server = pullFrom (consumer filename) (producer server)
 
-launchProcess :: HTTP.Server -> Effect Unit
-launchProcess server = void $ launchAff $ do
-  runProcess $ process server
+initialize :: DB.Request String
+initialize = do
+  filename <- lift $ getFilename
+  _        <- DB.touch filename
+  _        <- sequence $ schemas filename
+  pure filename
+  where
+    schemas filename =
+      [ Audit.schema filename
+      , Windows.schema filename
+      , Sensor.schema filename
+      , Linux.schema filename
+      ]
+    getFilename = pure "logs.db"
 
-launchServer :: Int -> Effect Unit
-launchServer port = do
-  server <- HTTP.createServer
-  _ <- launchProcess $ server
-  _ <- HTTP.listen port $ server
-  pure unit
+start :: HTTP.Server -> Aff (Fiber Unit)
+start server = do
+  result <- DB.runRequest initialize
+  case result of
+    (Left error) -> do
+       _ <- audit' (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error))
+       forkAff $ pure unit
+    (Right (Tuple filename steps)) -> do
+       _ <- audit' (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps))
+       forkAff $ start' filename
+  where 
+    start' filename = do
+      runProcess $ process filename server
+    audit' = Audit.debug
 
 main :: Effect Unit
-main = void $ launchServer defaultPort
-  where defaultPort = 3000
+main = do
+  server <- HTTP.createServer
+  _ <- void $ launchAff $ start server
+  _ <- HTTP.listen port server
+  pure unit
+  where port = 3000

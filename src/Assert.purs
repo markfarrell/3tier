@@ -9,16 +9,12 @@ import Effect.Class (liftEffect)
 
 import Effect.Exception as Exception
 
-import Date as Date
-
 import Audit as Audit
   
-assert :: forall a. Show a => Eq a => a -> a -> Aff Unit
-assert expect check = do
-  startTime <- liftEffect (Date.getMilliseconds <$> Date.current)
+assert :: forall a. Show a => Eq a => String -> a -> a -> Aff Unit
+assert label expect check = do
   result    <- pure $ check == expect
-  endTime   <- liftEffect (Date.getMilliseconds <$> Date.current)
-  let entry = {  check : check, expect : expect, delta : (endTime - startTime) }
+  let entry = {  label : label, check : check, expect : expect }
   case result of
     true  -> do
       _ <- Audit.debug $ Audit.Entry Audit.Success Audit.AssertRequest (show entry)

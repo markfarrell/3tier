@@ -2,6 +2,7 @@ module SIEM.Logging.Forwarder
   ( forwardWindows
   , forwardSensor
   , forwardLinux
+  , main
   ) where
 
 import Prelude

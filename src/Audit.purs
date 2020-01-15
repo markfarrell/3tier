@@ -17,7 +17,7 @@ import Data.Either(Either(..))
 import Data.Tuple(Tuple(..))
 
 import Effect.Aff (Aff)
-import Effect.Console (error) as Console
+import Effect.Console (log, error) as Console
 import Effect.Class (liftEffect)
 
 import DB as DB
@@ -54,6 +54,9 @@ instance showEventID :: Show EventID where
 instance showEntry :: Show Entry where
   show (Entry eventType eventID msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show msg <> ")"
 
+table :: String
+table = "Audit"
+
 insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename (Entry eventType eventID msg) req = do
   timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
@@ -77,10 +80,9 @@ insert filename (Entry eventType eventID msg) req = do
     eventType' = show eventType
     eventID' = show eventID
     message = Strings.encodeBase64 msg
-    table = "Audit"
 
 schema :: String -> DB.Request Unit
-schema filename = DB.schema filename "Audit" $
+schema filename = DB.schema filename table $
   [ Tuple "Timestamp" DB.TextNotNull
   , Tuple "RemoteAddress" DB.TextNotNull
   , Tuple "RemotePort" DB.TextNotNull
@@ -97,11 +99,17 @@ debugFailure (Entry ty id msg) = do
  error' $ show [timestamp, show ty, show id, msg]
  where error' = liftEffect <<< Console.error
 
+debugSuccess :: Entry -> Aff Unit
+debugSuccess (Entry ty id msg) = do
+ timestamp <- liftEffect $ Date.toISOString <$> Date.current
+ error' $ show [timestamp, show ty, show id, msg]
+ where error' = liftEffect <<< Console.log
+
 debug :: Entry -> Aff Unit
 debug = \entry -> do
   case entry of
     (Entry Failure _ _) -> debugFailure entry
-    (Entry Success _ _) -> pure unit
+    (Entry Success _ _) -> debugSuccess entry
 
 {-- Audit an application-layer event associated with an incoming HTTP request. --}
 application :: String -> Entry -> HTTP.IncomingMessage -> Aff Unit
