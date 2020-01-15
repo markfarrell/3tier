@@ -7,6 +7,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Coroutine (Producer, Consumer, Process, pullFrom, await, runProcess)
 import Control.Coroutine.Aff (produce, emit)
+import Control.Monad.Except (runExcept)
 import Control.Monad.Error.Class (try)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
@@ -18,6 +19,9 @@ import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 
 import Data.Tuple (Tuple(..))
+
+import Foreign (readString) as Foreign
+import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
@@ -137,6 +141,16 @@ respondResource (InternalServerError _) = \res -> liftEffect $ do
   _ <- HTTP.end $ res
   pure unit
 
+echoLogID :: HTTP.IncomingRequest -> Aff Unit
+echoLogID (HTTP.IncomingRequest req res) = do
+  result <- pure $ runExcept $ headers ! header >>= Foreign.readString
+  case result of
+    (Left _)      -> pure unit
+    (Right logID) -> liftEffect $ HTTP.setHeader header logID $ res 
+  where
+    header = "log-id"
+    headers = HTTP.messageHeaders req
+
 producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
 producer server = produce \emitter -> do
   HTTP.onRequest (\req res -> emit emitter $ HTTP.IncomingRequest req res) $ server
@@ -144,6 +158,7 @@ producer server = produce \emitter -> do
 consumer :: Consumer HTTP.IncomingRequest Aff Unit
 consumer = forever $ do
   request <- await
+  _       <- lift $ echoLogID request
   case request of
     (HTTP.IncomingRequest req res) -> do
       routeResult <- lift $ try (runRoute req)
