@@ -3,15 +3,17 @@ module Test.Main where
 import Prelude
 
 import Control.Coroutine (runProcess)
-import Control.Monad.Error.Class (try)
+import Control.Monad.Error.Class (try, throwError)
 
-import Data.Either (Either, isRight)
+import Data.Either (Either(..), isRight)
 
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff, forkAff, killFiber)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (error)
+
+import Text.Parsing.Parser (runParser)
 
 import HTTP as HTTP
 
@@ -61,28 +63,50 @@ testServer = assert' =<< try do
   _      <- liftEffect (HTTP.close server)
   pure unit
   where port = 4000
-        
-testForwardSensor:: Aff Unit
-testForwardSensor = assert' =<< try do
+
+testParseSensor :: String -> Aff Sensor.Entry
+testParseSensor entry = do
+  result <- pure $ runParser entry Sensor.parseEntry
+  _      <- assert' result
+  case result of
+    (Left _)       -> throwError $ error "Unexpected behaviour."
+    (Right entry') -> pure entry'
+
+testWriteSensor :: Sensor.Entry -> Aff String
+testWriteSensor entry = do
+  result <- pure $ Sensor.writeEntry entry
+  _      <- assert' result
+  case result of
+    (Left _)       -> throwError $ error "Unexpected behaviour."
+    (Right entry') -> pure entry'
+
+testForwardSensor :: String -> Aff HTTP.IncomingResponse
+testForwardSensor entry = do
   server <- liftEffect (HTTP.createServer)
   fiber  <- forkAff $ runProcess (Server.process server)
   _      <- liftEffect (HTTP.listen port $ server)
-  result <- statusCode' <$> Forwarder.forwardSensor host entry
-  _      <- assert ok result
+  result <- Forwarder.forwardSensor host entry
+  _      <- assert ok $ statusCode' result
   _      <- flip killFiber fiber $ error "Expected behaviour."
   _      <- liftEffect (HTTP.close server)
-  pure unit
+  pure result
   where 
     ok   = 200
     port = 4000
     host = "127.0.0.1:4000"
-    entry = "0.0.0.0,0.0.0.1,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
     statusCode' (HTTP.IncomingResponse _ req) = HTTP.statusCode req
+
+testInsertSensor :: HTTP.IncomingMessage -> Aff Unit
+testInsertSensor req = do
+  pure unit
 
 main :: Effect Unit
 main = void $ launchAff $ do
-  _ <- testSchema
-  _ <- testServer'
-  _ <- testServer
-  _ <- testForwardSensor
+  _       <- testSchema
+  _       <- testServer'
+  _       <- testServer
+  entry'  <- testParseSensor entry
+  entry'' <- testWriteSensor entry'
+  _       <- testForwardSensor entry''
   pure unit
+  where entry = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
