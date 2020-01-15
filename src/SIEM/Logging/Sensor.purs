@@ -4,6 +4,7 @@ module SIEM.Logging.Sensor
   , writeEntry
   , insert
   , schema
+  , total
   , createReader
   ) where
 
@@ -12,6 +13,7 @@ import Prelude
 import Control.Coroutine (Producer)
 import Control.Coroutine.Aff (produce, emit)
 
+import Control.Monad.Error.Class (throwError)
 import Control.Monad.Trans.Class (lift)
 
 import Control.Monad.Except (runExcept)
@@ -34,7 +36,7 @@ import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
 import Data.List(many)
 
-import Foreign (readString) as Foreign
+import Foreign (readString, readInt) as Foreign
 import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
@@ -175,6 +177,21 @@ schema filename = DB.schema filename "Sensor" $
   , Tuple "ETime" DB.TextNotNull
   , Tuple "Sensor" DB.TextNotNull
   ]
+
+total :: String -> DB.Request Int
+total filename = do
+  results <- DB.select runResult filename query
+  case results of
+    [total'] -> pure total'
+    _        -> lift $ lift (throwError error)
+  where
+    runResult result = do
+      result' <- pure (runExcept $ result ! "Total" >>= Foreign.readInt)
+      case result' of
+        (Left _)       -> throwError error
+        (Right total') -> pure total'
+    error = Exception.error "Unexpected results."
+    query = "SELECT SUM(Entries) as Total FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM Sensor GROUP BY LogID)"
 
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $

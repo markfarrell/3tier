@@ -15,14 +15,13 @@ module DB
 
 import Prelude
 
-import Control.Monad.Except (runExcept)
 import Control.Monad.Free.Trans (FreeT, liftFreeT, runFreeT)
 import Control.Monad.Error.Class (try)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Writer.Class (tell)
 import Control.Monad.Writer.Trans (WriterT, runWriterT)
 
-import Data.Either (Either, either)
+import Data.Either (Either)
 import Data.Traversable (sequence)
 
 import Data.Tuple (Tuple, fst, snd)
@@ -72,15 +71,13 @@ insert filename table' params = do
      columns' = fst <$> params
      values'  = snd <$> params
 
-select :: forall a. String -> String -> (SQLite3.Row -> SQLite3.Result a) -> Request (Array a)
-select filename query readResult = do
+select :: forall a. (SQLite3.Row -> Aff a) -> String -> String -> Request (Array a)
+select runResult filename query = do
   database <- connect filename SQLite3.OpenReadOnly
   rows     <- all query $ database
   _        <- close database
-  lift $ pure (resultSet rows)
-  where
-    resultSet  rows = either (const []) identity $ resultSet' rows
-    resultSet' rows = sequence $ runExcept <$> readResult <$> rows
+  results  <- lift (lift $ sequence (runResult <$> rows))
+  lift $ pure results
 
 data ColumnType = TextNotNull
 
