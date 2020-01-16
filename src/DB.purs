@@ -10,6 +10,7 @@ module DB
  , select
  , schema
  , touch
+ , remove
  , runRequest
  ) where
 
@@ -80,6 +81,14 @@ select runResult filename query = do
   lift $ pure results
 
 data ColumnType = TextNotNull
+
+remove :: String -> String -> Request Unit
+remove filename table' = do
+  database <- connect filename SQLite3.OpenReadWrite
+  _        <- all query $ database
+  _        <- close database
+  lift $ pure unit
+  where query = "DROP TABLE IF EXISTS " <> table'
 
 schema :: String -> String -> Array (Tuple String ColumnType) -> Request Unit
 schema filename table' params = do

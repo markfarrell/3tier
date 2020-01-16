@@ -44,12 +44,20 @@ testRequest label request = do
 testSchema :: String -> Aff Unit
 testSchema filename = assert' label =<< try do
   _ <- testRequest "Test.DB.touch"                    $ DB.touch filename
+  _ <- testRequest "Test.DB.remove"                   $ remove' filename
   _ <- testRequest "Test.SIEM.Logging.Sensor.schema"  $ Sensor.schema filename
   _ <- testRequest "Test.SIEM.Logging.Linux.schema"   $ Linux.schema filename
   _ <- testRequest "Test.SIEM.Logging.Windows.schema" $ Windows.schema filename
   _ <- testRequest "Test.SIEM.Logging.Audit.schema"   $ Audit.schema filename
   pure unit
-  where label = "Test.DB.schema"
+  where 
+    remove' filename' = do
+      _ <- DB.remove filename' $ "Sensor"
+      _ <- DB.remove filename' $ "Windows"
+      _ <- DB.remove filename' $ "Linux" 
+      _ <- DB.remove filename' $"Audit"
+      pure unit
+    label = "Test.DB.schema"
 
 testServer' :: Aff Unit
 testServer' = assert' label =<< try do
@@ -112,13 +120,16 @@ testInsertSensor :: String -> Sensor.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertSensor filename entry req = testRequest label $ Sensor.insert filename entry req
   where label = "Test.SIEM.Logging.Sensor.insert"
 
-testTotalSensor' :: String -> Aff Number
-testTotalSensor' filename = testRequest label $ Sensor.total filename
-  where label = "Test.SIEM.Logging.Sensor.total (1)"
-
 testTotalSensor :: String -> Aff Number
-testTotalSensor filename = testRequest label $ Sensor.total filename
-  where label = "Test.SIEM.Logging.Sensor.total (1)"
+testTotalSensor filename = do
+  total   <- testRequest label $ Sensor.average filename
+  _       <- assert label' expect $ total
+  pure total
+  where
+    expect = 1.0
+    label  = "Test.SIEM.Logging.Sensor.total (1)"
+    label' = "Test.SIEM.Logging.Sensor.total (2)"
+
 
 testAverageSensor :: String -> Aff Number
 testAverageSensor filename = do
@@ -140,22 +151,30 @@ testVarianceSensor filename = do
     label  = "Test.SIEM.Logging.Sensor.variance (1)"
     label' = "Test.SIEM.Logging.Sensor.variance (2)"
 
+testMinSensor :: String -> Aff Number
+testMinSensor filename = do
+  min'  <- testRequest label $ Sensor.min filename
+  _     <- assert label' expect $ min'
+  pure min'
+  where
+    expect = 1.0
+    label  = "Test.SIEM.Logging.Sensor.min (1)"
+    label' = "Test.SIEM.Logging.Sensor.min (2)"
+
 testSensor :: String -> Aff Unit
 testSensor filename = assert' label  =<< try do
-  total   <- testTotalSensor filename
   entry'  <- testParseSensor entry
   entry'' <- testWriteSensor entry'
   req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardSensor entry''
   _       <- testInsertSensor filename entry' $ req
-  total'  <- testTotalSensor filename
+  _       <- testTotalSensor filename
   _       <- testAverageSensor filename
   _       <- testVarianceSensor filename
-  _       <- assert label' (total + 1.0) $ total'
+  _       <- testMinSensor filename
   pure unit
   where
     entry  = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
     label  = "Test.SIEM.Logging.Sensor"
-    label' = "Test.SIEM.Logging.Sensor.total (2)"
 
 main :: Effect Unit
 main = void $ launchAff $ do
