@@ -161,6 +161,17 @@ testMinSensor filename = do
     label  = "Test.SIEM.Logging.Sensor.min (1)"
     label' = "Test.SIEM.Logging.Sensor.min (2)"
 
+testMaxSensor :: String -> Aff Number
+testMaxSensor filename = do
+  max'  <- testRequest label $ Sensor.min filename
+  _     <- assert label' expect $ max'
+  pure max'
+  where
+    expect = 1.0
+    label  = "Test.SIEM.Logging.Sensor.max (1)"
+    label' = "Test.SIEM.Logging.Sensor.max (2)"
+
+
 testSensor :: String -> Aff Unit
 testSensor filename = assert' label  =<< try do
   entry'  <- testParseSensor entry
@@ -171,6 +182,7 @@ testSensor filename = assert' label  =<< try do
   _       <- testAverageSensor filename
   _       <- testVarianceSensor filename
   _       <- testMinSensor filename
+  _       <- testMaxSensor filename
   pure unit
   where
     entry  = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"

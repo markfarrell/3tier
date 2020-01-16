@@ -8,6 +8,7 @@ module SIEM.Logging.Sensor
   , average
   , variance
   , min
+  , max
   , createReader
   ) where
 
@@ -226,6 +227,22 @@ min filename = do
         (Right min')     -> pure min'
     error = Exception.error "Unexpected results."
     query = "SELECT MIN(Entries) AS Minimum FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM Sensor GROUP BY LogID)"
+
+max :: String -> DB.Request Number
+max filename = do
+  results <- DB.select runResult filename query
+  case results of
+    [max'] -> pure max'
+    _      -> lift $ lift (throwError error)
+  where
+    runResult row = do
+      result' <- pure (runExcept $ row ! "Maximum" >>= Foreign.readNumber)
+      case result' of
+        (Left _)         -> throwError error
+        (Right max')     -> pure max'
+    error = Exception.error "Unexpected results."
+    query = "SELECT MAX(Entries) AS Maximum FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM Sensor GROUP BY LogID)"
+
 
 logs :: String -> DB.Request (Array { logID :: String, entries :: Number })
 logs filename = DB.select runResult filename query
