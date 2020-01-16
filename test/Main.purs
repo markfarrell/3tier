@@ -112,9 +112,33 @@ testInsertSensor :: String -> Sensor.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertSensor filename entry req = testRequest label $ Sensor.insert filename entry req
   where label = "Test.SIEM.Logging.Sensor.insert"
 
-testTotalSensor :: String -> Aff Int
+testTotalSensor' :: String -> Aff Number
+testTotalSensor' filename = testRequest label $ Sensor.total filename
+  where label = "Test.SIEM.Logging.Sensor.total (1)"
+
+testTotalSensor :: String -> Aff Number
 testTotalSensor filename = testRequest label $ Sensor.total filename
   where label = "Test.SIEM.Logging.Sensor.total (1)"
+
+testAverageSensor :: String -> Aff Number
+testAverageSensor filename = do
+  average <- testRequest label $ Sensor.average filename
+  _       <- assert label' expect $ average
+  pure average
+  where
+    expect = 1.0
+    label  = "Test.SIEM.Logging.Sensor.average (1)"
+    label' = "Test.SIEM.Logging.Sensor.average (2)"
+
+testVarianceSensor :: String -> Aff Number
+testVarianceSensor filename = do
+  variance <- testRequest label $ Sensor.variance filename
+  _        <- assert label' expect $ variance
+  pure variance
+  where
+    expect = 0.0
+    label  = "Test.SIEM.Logging.Sensor.variance (1)"
+    label' = "Test.SIEM.Logging.Sensor.variance (2)"
 
 testSensor :: String -> Aff Unit
 testSensor filename = assert' label  =<< try do
@@ -124,7 +148,9 @@ testSensor filename = assert' label  =<< try do
   req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardSensor entry''
   _       <- testInsertSensor filename entry' $ req
   total'  <- testTotalSensor filename
-  _       <- assert label' (total + 1) $ total'
+  _       <- testAverageSensor filename
+  _       <- testVarianceSensor filename
+  _       <- assert label' (total + 1.0) $ total'
   pure unit
   where
     entry  = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"

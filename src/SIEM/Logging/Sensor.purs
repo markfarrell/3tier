@@ -5,6 +5,8 @@ module SIEM.Logging.Sensor
   , insert
   , schema
   , total
+  , average
+  , variance
   , createReader
   ) where
 
@@ -36,7 +38,7 @@ import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
 import Data.List(many)
 
-import Foreign (readString, readInt) as Foreign
+import Foreign (readString, readNumber) as Foreign
 import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
@@ -178,7 +180,7 @@ schema filename = DB.schema filename "Sensor" $
   , Tuple "Sensor" DB.TextNotNull
   ]
 
-total :: String -> DB.Request Int
+total :: String -> DB.Request Number
 total filename = do
   results <- DB.select runResult filename query
   case results of
@@ -186,12 +188,61 @@ total filename = do
     _        -> lift $ lift (throwError error)
   where
     runResult row = do
-      result' <- pure (runExcept $ row ! "Total" >>= Foreign.readInt)
+      result' <- pure (runExcept $ row ! "Total" >>= Foreign.readNumber)
       case result' of
         (Left _)       -> throwError error
         (Right total') -> pure total'
     error = Exception.error "Unexpected results."
     query = "SELECT SUM(Entries) AS Total FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM Sensor GROUP BY LogID)"
+
+average :: String -> DB.Request Number
+average filename = do
+  results <- DB.select runResult filename query
+  case results of
+    [average'] -> pure average'
+    _          -> lift $ lift (throwError error)
+  where
+    runResult row = do
+      result' <- pure (runExcept $ row ! "Average" >>= Foreign.readNumber)
+      case result' of
+        (Left _)         -> throwError error
+        (Right average') -> pure average'
+    error = Exception.error "Unexpected results."
+    query = "SELECT AVG(Entries) AS Average FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM Sensor GROUP BY LogID)"
+
+logs :: String -> DB.Request (Array { logID :: String, entries :: Number })
+logs filename = DB.select runResult filename query
+  where
+    runResult row = do
+      result' <- pure (runExcept $ runResult' row)
+      case result' of
+        (Left _)       -> throwError error
+        (Right total') -> pure total'
+    runResult' row = do
+      logID   <- row ! "LogID"   >>= Foreign.readString
+      entries <- row ! "Entries" >>= Foreign.readNumber
+      pure  $
+        { logID   : logID
+        , entries : entries }
+    error = Exception.error "Unexpected results."
+    query = "SELECT LogID as LogID, COUNT(DISTINCT EntryID) AS Entries FROM Sensor GROUP BY LogID"
+
+variance :: String -> DB.Request Number
+variance filename = do
+  results <- logs filename
+  pure $ variance' results
+  where
+    variance' results   = (variance'' results) / (total'' results)
+    variance'' results  = foldl (+) 0.0 $ variance''' results (average' results)
+    variance''' results = \avg -> flip (<$>) results $ variance'''' avg
+    variance'''' avg    = \result -> (result.entries - avg) * (result.entries - avg)
+    average' results    = (total' results) / (total'' results)
+    total' results      = foldl (+) 0.0 (totals results)
+    total'' results     = foldl (+) 0.0 (totals'' results)
+    totals results      = flip (<$>) results $ \result -> result.entries
+    totals'' results    = flip (<$>) results $ \_ -> 1.0
+
+--todo: compute variance (and average for variance) based on the result of Sensor.logs
 
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
