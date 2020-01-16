@@ -122,57 +122,6 @@ testInsertSensor :: String -> Sensor.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertSensor filename entry req = testRequest label $ Sensor.insert filename entry req
   where label = "Test.SIEM.Logging.Sensor.insert"
 
-testTotalSensor :: String -> Aff Number
-testTotalSensor filename = do
-  total   <- testRequest label $ Sensor.average filename
-  _       <- assert label' expect $ total
-  pure total
-  where
-    expect = 1.0
-    label  = "Test.SIEM.Logging.Sensor.total (1)"
-    label' = "Test.SIEM.Logging.Sensor.total (2)"
-
-
-testAverageSensor :: String -> Aff Number
-testAverageSensor filename = do
-  average <- testRequest label $ Sensor.average filename
-  _       <- assert label' expect $ average
-  pure average
-  where
-    expect = 1.0
-    label  = "Test.SIEM.Logging.Sensor.average (1)"
-    label' = "Test.SIEM.Logging.Sensor.average (2)"
-
-testVarianceSensor :: String -> Aff Number
-testVarianceSensor filename = do
-  variance <- testRequest label $ Sensor.variance filename
-  _        <- assert label' expect $ variance
-  pure variance
-  where
-    expect = 0.0
-    label  = "Test.SIEM.Logging.Sensor.variance (1)"
-    label' = "Test.SIEM.Logging.Sensor.variance (2)"
-
-testMinSensor :: String -> Aff Number
-testMinSensor filename = do
-  min'  <- testRequest label $ Sensor.min filename
-  _     <- assert label' expect $ min'
-  pure min'
-  where
-    expect = 1.0
-    label  = "Test.SIEM.Logging.Sensor.min (1)"
-    label' = "Test.SIEM.Logging.Sensor.min (2)"
-
-testMaxSensor :: String -> Aff Number
-testMaxSensor filename = do
-  max'  <- testRequest label $ Sensor.min filename
-  _     <- assert label' expect $ max'
-  pure max'
-  where
-    expect = 1.0
-    label  = "Test.SIEM.Logging.Sensor.max (1)"
-    label' = "Test.SIEM.Logging.Sensor.max (2)"
-
 testStatistics :: Statistics.Entry -> String -> String -> Aff Statistics.Entry
 testStatistics expect filename table = do
   entry  <- testRequest label $ Statistics.statistics filename table
@@ -200,11 +149,6 @@ testSensor filename = assert' label  =<< try do
   entry'' <- testWriteSensor entry'
   req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardSensor entry''
   _       <- testInsertSensor filename entry' $ req
-  _       <- testTotalSensor filename
-  _       <- testAverageSensor filename
-  _       <- testVarianceSensor filename
-  _       <- testMinSensor filename
-  _       <- testMaxSensor filename
   _       <- testSensorStatistics filename
   pure unit
   where
