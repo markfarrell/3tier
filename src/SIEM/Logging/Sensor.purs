@@ -276,8 +276,6 @@ variance filename = do
     totals results      = flip (<$>) results $ \result -> result.entries
     totals'' results    = flip (<$>) results $ \_ -> 1.0
 
---todo: compute variance (and average for variance) based on the result of Sensor.logs
-
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
   [ entry.dIP

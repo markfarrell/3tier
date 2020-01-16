@@ -26,6 +26,8 @@ import SIEM.Logging.Windows as Windows
 import SIEM.Logging.Forwarder as Forwarder
 import SIEM.Logging.Server as Server
 
+import SIEM.Logging.Statistics as Statistics
+
 import Audit as Audit
 
 import Assert (assert)
@@ -171,6 +173,26 @@ testMaxSensor filename = do
     label  = "Test.SIEM.Logging.Sensor.max (1)"
     label' = "Test.SIEM.Logging.Sensor.max (2)"
 
+testStatistics :: Statistics.Entry -> String -> String -> Aff Statistics.Entry
+testStatistics expect filename table = do
+  entry  <- testRequest label $ Statistics.statistics filename table
+  _      <- assert label' expect $ entry
+  pure entry
+  where
+    label  = "Test.SIEM.Logging.Statistics.statistics " <> table <> " (1)"
+    label' = "Test.SIEM.Logging.Statistics.statistics " <> table <> " (2)"
+
+testSensorStatistics :: String -> Aff Statistics.Entry
+testSensorStatistics filename = testStatistics expect filename table
+  where
+    expect = Statistics.Entry $ 
+      { min      : 1.0
+      , max      : 1.0
+      , total    : 1.0
+      , average  : 1.0
+      , variance : 0.0
+      }
+    table = "Sensor"
 
 testSensor :: String -> Aff Unit
 testSensor filename = assert' label  =<< try do
@@ -183,6 +205,7 @@ testSensor filename = assert' label  =<< try do
   _       <- testVarianceSensor filename
   _       <- testMinSensor filename
   _       <- testMaxSensor filename
+  _       <- testSensorStatistics filename
   pure unit
   where
     entry  = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
