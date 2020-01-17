@@ -138,6 +138,7 @@ testSensorStatistics filename = testStatistics expect filename table
     expect = Statistics.Entry $ 
       { min      : 1.0
       , max      : 1.0
+      , logs     : 1.0
       , total    : 1.0
       , average  : 1.0
       , variance : 0.0

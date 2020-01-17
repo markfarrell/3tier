@@ -88,8 +88,8 @@ logs filename table = DB.select runResult filename query
     runResult row = do
       result' <- pure (runExcept $ runResult' row)
       case result' of
-        (Left _)       -> throwError error
-        (Right total') -> pure total'
+        (Left _)         -> throwError error
+        (Right result'') -> pure result''
     runResult' row = do
       logID   <- row ! "LogID"   >>= Foreign.readString
       entries <- row ! "Entries" >>= Foreign.readNumber
@@ -98,6 +98,21 @@ logs filename table = DB.select runResult filename query
         , entries : entries }
     error = Exception.error "Unexpected results."
     query = "SELECT LogID as LogID, COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID"
+
+logs' :: String -> String -> DB.Request Number
+logs' filename table = do
+  results <- DB.select runResult filename query
+  case results of
+    [logs''] -> pure logs''
+    _        -> lift $ lift (throwError error)
+  where
+    runResult row = do
+       result' <- pure (runExcept $ row ! "Logs" >>= Foreign.readNumber)
+       case result' of
+         (Left _)          -> throwError error
+         (Right logs'')    -> pure logs''
+    error = Exception.error "Unexpected results."
+    query = "SELECT COUNT(DISTINCT LogID) as Logs FROM " <> table
 
 variance :: String -> String -> DB.Request Number
 variance filename table = do
@@ -117,6 +132,7 @@ variance filename table = do
 data Entry = Entry
   { min          :: Number
   , max          :: Number
+  , logs         :: Number
   , total        :: Number
   , average      :: Number
   , variance     :: Number 
@@ -132,12 +148,14 @@ statistics :: String -> String -> DB.Request Entry
 statistics filename table = do
   min'      <- minimum filename table
   max'      <- maximum filename table
+  logs''    <- logs' filename table
   total'    <- total filename table
   average'  <- average filename table 
   variance' <- variance filename table
   pure $ Entry $
     { min      : min'
     , max      : max'
+    , logs     : logs''
     , total    : total'
     , average  : average'
     , variance : variance'
@@ -152,6 +170,7 @@ schema filename = DB.schema filename "Statistics" $
   , Tuple "EntryID" DB.TextNotNull
   , Tuple "Minimum" DB.TextNotNull
   , Tuple "Maximum" DB.TextNotNull
+  , Tuple "Logs" DB.TextNotNull
   , Tuple "Total"   DB.TextNotNull
   , Tuple "Average" DB.TextNotNull
   , Tuple "Variance" DB.TextNotNull
