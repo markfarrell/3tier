@@ -16,13 +16,17 @@ import Data.Foldable (foldl)
 
 import Effect.Exception (error) as Exception
 
-import Foreign (readNumber, readString) as Foreign
+import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
 
 import DB as DB
 
-sum :: String -> String -> DB.Request Number
-sum filename table = do
+entryType :: EntryType -> String
+entryType LogID         = "LogID"
+entryType RemoteAddress = "RemoteAddress"
+
+sum :: String -> String -> EntryType -> DB.Request Number
+sum filename table ty = do
   results <- DB.select runResult filename query
   case results of
     [sum'] -> pure sum'
@@ -35,10 +39,10 @@ sum filename table = do
         (Left _)       -> throwError error
         (Right sum') -> pure sum'
     error = Exception.error "Unexpected results."
-    query = "SELECT SUM(Entries) AS Total FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID)"
+    query = "SELECT SUM(Entries) AS Total FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY " <> (entryType ty) <> ")"
 
-average :: String -> String -> DB.Request Number
-average filename table = do
+average :: String -> String -> EntryType -> DB.Request Number
+average filename table ty = do
   results <- DB.select runResult filename query
   case results of
     [average'] -> pure average'
@@ -50,10 +54,10 @@ average filename table = do
         (Left _)         -> throwError error
         (Right average') -> pure average'
     error = Exception.error "Unexpected results."
-    query = "SELECT AVG(Entries) AS Average FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID)"
+    query = "SELECT AVG(Entries) AS Average FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY " <> (entryType ty) <> ")"
 
-minimum :: String -> String -> DB.Request Number
-minimum filename table = do
+minimum :: String -> String -> EntryType -> DB.Request Number
+minimum filename table ty = do
   results <- DB.select runResult filename query
   case results of
     [min'] -> pure min'
@@ -65,10 +69,10 @@ minimum filename table = do
         (Left _)         -> throwError error
         (Right min')     -> pure min'
     error = Exception.error "Unexpected results."
-    query = "SELECT MIN(Entries) AS Minimum FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID)"
+    query = "SELECT MIN(Entries) AS Minimum FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY " <> (entryType ty) <> ")"
 
-maximum :: String -> String -> DB.Request Number
-maximum filename table = do
+maximum :: String -> String -> EntryType -> DB.Request Number
+maximum filename table ty = do
   results <- DB.select runResult filename query
   case results of
     [max'] -> pure max'
@@ -80,11 +84,11 @@ maximum filename table = do
         (Left _)         -> throwError error
         (Right max')     -> pure max'
     error = Exception.error "Unexpected results."
-    query = "SELECT MAX(Entries) AS Maximum FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID)"
+    query = "SELECT MAX(Entries) AS Maximum FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY " <> (entryType ty) <> ")"
 
 
-logs :: String -> String -> DB.Request (Array { logID :: String, entries :: Number })
-logs filename table = DB.select runResult filename query
+totals :: String -> String -> EntryType -> DB.Request (Array Number)
+totals filename table ty = DB.select runResult filename query
   where
     runResult row = do
       result' <- pure (runExcept $ runResult' row)
@@ -92,51 +96,50 @@ logs filename table = DB.select runResult filename query
         (Left _)         -> throwError error
         (Right result'') -> pure result''
     runResult' row = do
-      logID   <- row ! "LogID"   >>= Foreign.readString
-      entries <- row ! "Entries" >>= Foreign.readNumber
-      pure  $
-        { logID   : logID
-        , entries : entries }
+      total' <- row ! "Total"  >>= Foreign.readNumber
+      pure total'
     error = Exception.error "Unexpected results."
-    query = "SELECT LogID as LogID, COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID"
+    query = "SELECT COUNT(DISTINCT EntryID) AS Total FROM " <> table <> " GROUP BY " <> (entryType ty)
 
-total :: String -> String -> DB.Request Number
-total filename table = do
+total :: String -> String -> EntryType -> DB.Request Number
+total filename table ty = do
   results <- DB.select runResult filename query
   case results of
-    [logs''] -> pure logs''
+    [total'] -> pure total'
     _        -> lift $ lift (throwError error)
   where
     runResult row = do
-       result' <- pure (runExcept $ row ! "Logs" >>= Foreign.readNumber)
+       result' <- pure (runExcept $ row ! "Total" >>= Foreign.readNumber)
        case result' of
          (Left _)          -> throwError error
-         (Right logs'')    -> pure logs''
+         (Right total')    -> pure total'
     error = Exception.error "Unexpected results."
-    query = "SELECT COUNT(DISTINCT LogID) as Logs FROM " <> table
+    query = "SELECT COUNT(DISTINCT " <> (entryType ty) <> ") as Total FROM " <> table
 
-variance :: String -> String -> DB.Request Number
-variance filename table = do
-  results <- logs filename table
+variance :: String -> String -> EntryType -> DB.Request Number
+variance filename table ty = do
+  results <- totals filename table $ ty
   pure $ variance' results
   where
     variance' results   = (variance'' results) / (sum'' results)
     variance'' results  = foldl (+) 0.0 $ variance''' results (average' results)
     variance''' results = \avg -> flip (<$>) results $ variance'''' avg
-    variance'''' avg    = \result -> (result.entries - avg) * (result.entries - avg)
+    variance'''' avg    = \result -> (result - avg) * (result - avg)
     average' results    = (sum' results) / (sum'' results)
-    sum' results      = foldl (+) 0.0 (sums results)
-    sum'' results     = foldl (+) 0.0 (sums'' results)
-    sums results      = flip (<$>) results $ \result -> result.entries
-    sums'' results    = flip (<$>) results $ \_ -> 1.0
+    sum' results      = foldl (+) 0.0 results
+    sum'' results     = foldl (+) 0.0 (sum''' results)
+    sum''' results    = flip (<$>) results $ \_ -> 1.0
 
-data EntryType = LogID
+data EntryType = LogID | RemoteAddress
 
 instance showEntryType :: Show EntryType where
-  show LogID = "LogID"
+  show LogID         = "LogID"
+  show RemoteAddress = "RemoteAddress"
 
 instance eqEntryType :: Eq EntryType where
-  eq LogID LogID = true
+  eq LogID LogID                 = true
+  eq RemoteAddress RemoteAddress = true
+  eq _ _                         = false
 
 data Entry = Entry
   { min                 :: Number
@@ -154,14 +157,14 @@ instance showEntry :: Show Entry where
 instance eqEntry :: Eq Entry where
   eq (Entry x) (Entry y) = x == y
 
-statistics :: String -> String -> DB.Request Entry
-statistics filename table = do
-  min'      <- minimum filename table
-  max'      <- maximum filename table
-  sum'      <- sum filename table
-  total'    <- total filename table
-  average'  <- average filename table 
-  variance' <- variance filename table
+statistics :: String -> String -> EntryType -> DB.Request Entry
+statistics filename table ty = do
+  min'      <- minimum filename table  $ ty
+  max'      <- maximum filename table  $ ty
+  sum'      <- sum filename table      $ ty
+  total'    <- total filename table    $ ty
+  average'  <- average filename table  $ ty 
+  variance' <- variance filename table $ ty
   pure $ Entry $
     { min       : min'
     , max       : max'
@@ -169,7 +172,7 @@ statistics filename table = do
     , total     : total'
     , average   : average'
     , variance  : variance'
-    , entryType : LogID
+    , entryType : ty
     }
 
 schema :: String -> DB.Request Unit
