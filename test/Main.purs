@@ -45,12 +45,13 @@ testRequest label request = do
 
 testSchema :: String -> Aff Unit
 testSchema filename = assert' label =<< try do
-  _ <- testRequest "Test.DB.touch"                    $ DB.touch filename
-  _ <- testRequest "Test.DB.remove"                   $ remove' filename
-  _ <- testRequest "Test.SIEM.Logging.Sensor.schema"  $ Sensor.schema filename
-  _ <- testRequest "Test.SIEM.Logging.Linux.schema"   $ Linux.schema filename
-  _ <- testRequest "Test.SIEM.Logging.Windows.schema" $ Windows.schema filename
-  _ <- testRequest "Test.SIEM.Logging.Audit.schema"   $ Audit.schema filename
+  _ <- testRequest "Test.DB.touch"                       $ DB.touch filename
+  _ <- testRequest "Test.DB.remove"                      $ remove' filename
+  _ <- testRequest "Test.SIEM.Logging.Sensor.schema"     $ Sensor.schema filename
+  _ <- testRequest "Test.SIEM.Logging.Linux.schema"      $ Linux.schema filename
+  _ <- testRequest "Test.SIEM.Logging.Windows.schema"    $ Windows.schema filename
+  _ <- testRequest "Test.SIEM.Logging.Audit.schema"      $ Audit.schema filename
+  _ <- testRequest "Test.SIEM.Logging.Statistics.schema" $ Statistics.schema filename
   pure unit
   where 
     remove' filename' = do

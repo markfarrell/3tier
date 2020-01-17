@@ -1,6 +1,7 @@
 module SIEM.Logging.Statistics
   ( Entry(..)
   , statistics
+  , schema
   ) where
 
 import Prelude
@@ -9,6 +10,7 @@ import Control.Monad.Except (runExcept, throwError)
 import Control.Monad.Trans.Class (lift)
 
 import Data.Either (Either(..))
+import Data.Tuple (Tuple(..))
 import Data.Foldable (foldl)
 
 import Effect.Exception (error) as Exception
@@ -140,3 +142,17 @@ statistics filename table = do
     , average  : average'
     , variance : variance'
     }
+
+schema :: String -> DB.Request Unit
+schema filename = DB.schema filename "Statistics" $
+  [ Tuple "Timestamp" DB.TextNotNull
+  , Tuple "RemoteAddress" DB.TextNotNull
+  , Tuple "RemotePort" DB.TextNotNull
+  , Tuple "LogID" DB.TextNotNull
+  , Tuple "EntryID" DB.TextNotNull
+  , Tuple "Minimum" DB.TextNotNull
+  , Tuple "Maximum" DB.TextNotNull
+  , Tuple "Total"   DB.TextNotNull
+  , Tuple "Average" DB.TextNotNull
+  , Tuple "Variance" DB.TextNotNull
+  ]
