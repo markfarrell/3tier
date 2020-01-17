@@ -1,5 +1,6 @@
 module SIEM.Logging.Statistics
   ( Entry(..)
+  , EntryType(..)
   , statistics
   , schema
   ) where
@@ -20,11 +21,11 @@ import Foreign.Index ((!))
 
 import DB as DB
 
-total :: String -> String -> DB.Request Number
-total filename table = do
+sum :: String -> String -> DB.Request Number
+sum filename table = do
   results <- DB.select runResult filename query
   case results of
-    [total'] -> pure total'
+    [sum'] -> pure sum'
     []       -> pure 0.0
     _        -> lift $ lift (throwError error)
   where
@@ -32,7 +33,7 @@ total filename table = do
       result' <- pure (runExcept $ row ! "Total" >>= Foreign.readNumber)
       case result' of
         (Left _)       -> throwError error
-        (Right total') -> pure total'
+        (Right sum') -> pure sum'
     error = Exception.error "Unexpected results."
     query = "SELECT SUM(Entries) AS Total FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID)"
 
@@ -99,8 +100,8 @@ logs filename table = DB.select runResult filename query
     error = Exception.error "Unexpected results."
     query = "SELECT LogID as LogID, COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID"
 
-logs' :: String -> String -> DB.Request Number
-logs' filename table = do
+total :: String -> String -> DB.Request Number
+total filename table = do
   results <- DB.select runResult filename query
   case results of
     [logs''] -> pure logs''
@@ -119,23 +120,32 @@ variance filename table = do
   results <- logs filename table
   pure $ variance' results
   where
-    variance' results   = (variance'' results) / (total'' results)
+    variance' results   = (variance'' results) / (sum'' results)
     variance'' results  = foldl (+) 0.0 $ variance''' results (average' results)
     variance''' results = \avg -> flip (<$>) results $ variance'''' avg
     variance'''' avg    = \result -> (result.entries - avg) * (result.entries - avg)
-    average' results    = (total' results) / (total'' results)
-    total' results      = foldl (+) 0.0 (totals results)
-    total'' results     = foldl (+) 0.0 (totals'' results)
-    totals results      = flip (<$>) results $ \result -> result.entries
-    totals'' results    = flip (<$>) results $ \_ -> 1.0
+    average' results    = (sum' results) / (sum'' results)
+    sum' results      = foldl (+) 0.0 (sums results)
+    sum'' results     = foldl (+) 0.0 (sums'' results)
+    sums results      = flip (<$>) results $ \result -> result.entries
+    sums'' results    = flip (<$>) results $ \_ -> 1.0
+
+data EntryType = LogID
+
+instance showEntryType :: Show EntryType where
+  show LogID = "LogID"
+
+instance eqEntryType :: Eq EntryType where
+  eq LogID LogID = true
 
 data Entry = Entry
-  { min          :: Number
-  , max          :: Number
-  , logs         :: Number
-  , total        :: Number
-  , average      :: Number
-  , variance     :: Number 
+  { min                 :: Number
+  , max                 :: Number
+  , sum                 :: Number
+  , total               :: Number
+  , average             :: Number
+  , variance            :: Number 
+  , entryType           :: EntryType 
   }
 
 instance showEntry :: Show Entry where
@@ -148,17 +158,18 @@ statistics :: String -> String -> DB.Request Entry
 statistics filename table = do
   min'      <- minimum filename table
   max'      <- maximum filename table
-  logs''    <- logs' filename table
+  sum'      <- sum filename table
   total'    <- total filename table
   average'  <- average filename table 
   variance' <- variance filename table
   pure $ Entry $
-    { min      : min'
-    , max      : max'
-    , logs     : logs''
-    , total    : total'
-    , average  : average'
-    , variance : variance'
+    { min       : min'
+    , max       : max'
+    , sum       : sum'
+    , total     : total'
+    , average   : average'
+    , variance  : variance'
+    , entryType : LogID
     }
 
 schema :: String -> DB.Request Unit

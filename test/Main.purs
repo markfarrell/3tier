@@ -136,12 +136,13 @@ testSensorStatistics :: String -> Aff Statistics.Entry
 testSensorStatistics filename = testStatistics expect filename table
   where
     expect = Statistics.Entry $ 
-      { min      : 1.0
-      , max      : 1.0
-      , logs     : 1.0
-      , total    : 1.0
-      , average  : 1.0
-      , variance : 0.0
+      { min       : 1.0
+      , max       : 1.0
+      , sum       : 1.0
+      , total     : 1.0
+      , average   : 1.0
+      , variance  : 0.0
+      , entryType : Statistics.LogID
       }
     table = "Sensor"
 
