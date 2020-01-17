@@ -2,6 +2,7 @@ module SIEM.Logging.Statistics
   ( Entry(..)
   , EntryType(..)
   , statistics
+  , report
   , schema
   ) where
 
@@ -13,11 +14,16 @@ import Control.Monad.Trans.Class (lift)
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
 import Data.Foldable (foldl)
+import Data.Traversable (sequence)
 
 import Effect.Exception (error) as Exception
 
 import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
+
+import Unsafe.Coerce (unsafeCoerce)
+
+import JSON as JSON
 
 import DB as DB
 
@@ -148,7 +154,6 @@ data Entry = Entry
   , total               :: Number
   , average             :: Number
   , variance            :: Number 
-  , entryType           :: EntryType 
   }
 
 instance showEntry :: Show Entry where
@@ -172,8 +177,24 @@ statistics filename table ty = do
     , total     : total'
     , average   : average'
     , variance  : variance'
-    , entryType : ty
     }
+
+report :: String -> DB.Request String
+report filename = do
+    result  <- sequence (report' LogID <$> tables)
+    result' <- sequence (report' RemoteAddress <$> tables)
+    pure $ stringify (result <> result')
+  where
+    report' ty table = do
+      result  <- statistics filename table ty
+      case result of
+        (Entry entry) -> pure $ 
+          { entryClass       : table
+          , entryType        : (entryType ty)
+          , statistics       : entry
+          }
+    stringify = JSON.stringify <<< unsafeCoerce
+    tables    = ["Sensor", "Windows", "Linux", "Audit"]
 
 schema :: String -> DB.Request Unit
 schema filename = DB.schema filename "Statistics" $
@@ -182,9 +203,11 @@ schema filename = DB.schema filename "Statistics" $
   , Tuple "RemotePort" DB.TextNotNull
   , Tuple "LogID" DB.TextNotNull
   , Tuple "EntryID" DB.TextNotNull
+  , Tuple "ReportClass" DB.TextNotNull
+  , Tuple "ReportType" DB.TextNotNull 
   , Tuple "Minimum" DB.TextNotNull
   , Tuple "Maximum" DB.TextNotNull
-  , Tuple "Logs" DB.TextNotNull
+  , Tuple "Sum" DB.TextNotNull
   , Tuple "Total"   DB.TextNotNull
   , Tuple "Average" DB.TextNotNull
   , Tuple "Variance" DB.TextNotNull

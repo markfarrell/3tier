@@ -39,25 +39,34 @@ import SIEM.Logging.Linux as Linux
 import SIEM.Logging.Sensor as Sensor
 import SIEM.Logging.Windows as Windows
 
-data Route = ForwardLinux Linux.Entry | ForwardWindows Windows.Entry | ForwardSensor Sensor.Entry
+import SIEM.Logging.Statistics as Statistics
+
+data Route = ReportStatistics
+  | ForwardLinux Linux.Entry 
+  | ForwardWindows Windows.Entry 
+  | ForwardSensor Sensor.Entry
 
 instance showRoute :: Show Route where
-  show (ForwardLinux entry) = "(ForwardLinux " <> show entry <> ")"
+  show (ReportStatistics)     = "(ReportStatistics)"
+  show (ForwardLinux entry)   = "(ForwardLinux " <> show entry <> ")"
   show (ForwardWindows entry) = "(ForwardWindows " <> show entry <> ")"
-  show (ForwardSensor entry) = "(ForwardSensor " <> show entry <> ")"
+  show (ForwardSensor entry)  = "(ForwardSensor " <> show entry <> ")"
 
 parseRoute :: Parser String Route
-parseRoute = forwardLinux <|> forwardWindows <|> forwardSensor
+parseRoute = reportStatistics <|> forwardLinux <|> forwardWindows <|> forwardSensor
   where
-     forwardLinux = do
+    reportStatistics = do
+      _     <- string "/report/statistics"
+      pure (ReportStatistics)
+    forwardLinux = do
       _     <- string "/forward/linux?entry="
       entry <- Linux.parseEntry
       pure (ForwardLinux entry)
-     forwardWindows = do
+    forwardWindows = do
       _     <- string "/forward/windows?entry="
       entry <- Windows.parseEntry
       pure (ForwardWindows entry)
-     forwardSensor = do
+    forwardSensor = do
       _     <- string "/forward/sensor?entry="
       entry <- Sensor.parseEntry
       pure (ForwardSensor entry)
@@ -86,8 +95,8 @@ class ContentJSON a where
 instance contentJSONUnit :: ContentJSON Unit where
   showJSON _ = ""
 
-instance contentJSONSummary :: ContentJSON (Array (Array String)) where
-  showJSON x = show x
+instance contentJSONString :: ContentJSON String where
+  showJSON x = x
 
 runRequest' :: forall a. ContentJSON a => String -> (HTTP.IncomingMessage -> DB.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRequest' filename request req = do
@@ -111,15 +120,16 @@ runRoute filename req  = do
     (Right route) -> do
       _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
       case route of 
-        (ForwardWindows entry) -> (runRequest'' $ insertWindows entry) $ req
-        (ForwardLinux entry)   -> (runRequest'' $ insertLinux entry)   $ req 
-        (ForwardSensor entry)  -> (runRequest'' $ insertSensor entry)  $ req
+        (ForwardWindows entry) -> (runRequest' filename $ insertWindows entry)       $ req
+        (ForwardLinux entry)   -> (runRequest' filename $ insertLinux entry)         $ req 
+        (ForwardSensor entry)  -> (runRequest' filename $ insertSensor entry)        $ req
+        (ReportStatistics)     -> (runRequest' filename $ const reportStatistics)    $ req
   where
-    insertWindows = Windows.insert filename
-    insertLinux   = Linux.insert filename
-    insertSensor  = Sensor.insert filename
-    runRequest''  = runRequest' filename
-    audit         = Audit.application filename
+    reportStatistics = Statistics.report filename
+    insertWindows    = Windows.insert filename
+    insertLinux      = Linux.insert filename
+    insertSensor     = Sensor.insert filename
+    audit            = Audit.application filename
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
