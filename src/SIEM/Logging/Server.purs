@@ -29,6 +29,8 @@ import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
 
 import Strings as Strings
+import UUIDv1 as UUIDv1
+import RSA as RSA
 
 import DB as DB
 import HTTP as HTTP
@@ -41,20 +43,25 @@ import SIEM.Logging.Windows as Windows
 
 import SIEM.Logging.Statistics as Statistics
 
-data Route = ReportStatistics
+data Route = CreateLogID
+  | ReportStatistics
   | ForwardLinux Linux.Entry 
   | ForwardWindows Windows.Entry 
   | ForwardSensor Sensor.Entry
 
 instance showRoute :: Show Route where
+  show (CreateLogID)          = "(CreateLogID)"
   show (ReportStatistics)     = "(ReportStatistics)"
   show (ForwardLinux entry)   = "(ForwardLinux " <> show entry <> ")"
   show (ForwardWindows entry) = "(ForwardWindows " <> show entry <> ")"
   show (ForwardSensor entry)  = "(ForwardSensor " <> show entry <> ")"
 
 parseRoute :: Parser String Route
-parseRoute = reportStatistics <|> forwardLinux <|> forwardWindows <|> forwardSensor
+parseRoute = createLogID <|> reportStatistics <|> forwardLinux <|> forwardWindows <|> forwardSensor
   where
+    createLogID = do
+      _ <- string "/"
+      pure (CreateLogID)
     reportStatistics = do
       _     <- string "/report/statistics"
       pure (ReportStatistics)
@@ -71,14 +78,15 @@ parseRoute = reportStatistics <|> forwardLinux <|> forwardWindows <|> forwardSen
       entry <- Sensor.parseEntry
       pure (ForwardSensor entry)
 
-data ContentType a = TextJSON a
+data ContentType a = TextJSON a | TextHTML a
 
 data AuthenticationType = Bearer
 
 data ResponseType a = Ok (ContentType a) | InternalServerError a | BadRequest String | Forbidden AuthenticationType String
 
 instance showContentType :: (Show a) => Show (ContentType a) where
-  show (TextJSON x) = "TextJSON (" <> show x <> ")"
+  show (TextJSON x) = "(TextJSON (" <> show x <> "))"
+  show (TextHTML x) = "(TextHTML (" <> show x <> "))" 
 
 instance showAuthenticationType :: Show AuthenticationType where
   show Bearer = "Bearer"
@@ -110,6 +118,11 @@ runRequest' filename request req = do
      pure $ Ok (TextJSON (showJSON result''))
   where audit = Audit.application filename
 
+runCreateLogID :: String -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runCreateLogID filename req = do
+  logID <- liftEffect $ UUIDv1.createUUID
+  pure $ Ok (TextHTML $ RSA.defaultEncrypt logID)
+
 runRoute :: String -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute filename req  = do
   result <-  pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
@@ -124,11 +137,12 @@ runRoute filename req  = do
         (ForwardLinux entry)   -> (runRequest' filename $ insertLinux entry)         $ req 
         (ForwardSensor entry)  -> (runRequest' filename $ insertSensor entry)        $ req
         (ReportStatistics)     -> (runRequest' filename $ const reportStatistics)    $ req
+        (CreateLogID)          -> (runCreateLogID filename)                          $ req
   where
-    reportStatistics = Statistics.report filename
     insertWindows    = Windows.insert filename
     insertLinux      = Linux.insert filename
     insertSensor     = Sensor.insert filename
+    reportStatistics = Statistics.report filename
     audit            = Audit.application filename
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
@@ -138,6 +152,13 @@ respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
   _ <- HTTP.write body $ res
   _ <- HTTP.end $ res
   pure unit
+respondResource (Ok (TextHTML body)) = \res -> liftEffect $ do
+  _ <- HTTP.setHeader "Content-Type" "text/html" $ res
+  _ <- HTTP.writeHead 200 $ res
+  _ <- HTTP.write body $ res
+  _ <- HTTP.end $ res
+  pure unit
+
 respondResource (BadRequest _) = \res -> liftEffect $ do
   _ <- HTTP.writeHead 400 $ res
   _ <- HTTP.end $ res
