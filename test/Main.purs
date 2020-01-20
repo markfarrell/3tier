@@ -142,7 +142,6 @@ testSensorStatistics filename ty = testStatistics expect filename table ty
       , total     : 1.0
       , average   : 1.0
       , variance  : 0.0
-      , entryType : ty
       }
     table = "Sensor"
 

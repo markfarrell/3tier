@@ -11,14 +11,13 @@ import Prelude
 
 import Control.Coroutine (Producer)
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Except (runExcept)
 
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
-import Effect.Exception (error, throw) as Exception
+import Effect.Exception (error) as Exception
 
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
@@ -49,6 +48,8 @@ import HTTP as HTTP
 import Socket as Socket
 
 import UUIDv3 as UUIDv3
+
+import SIEM.Logging.Session as Session
 
 newtype Entry = Entry
   { eventID :: String
@@ -136,7 +137,7 @@ parseEntry = do
 insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename (Entry entry) req = do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  logID     <- lift $ liftEffect (createLogID)
+  logID     <- lift $ lift (Session.getLogID req)
   DB.insert filename table $ params timestamp logID
   where
     params timestamp logID =
@@ -167,14 +168,6 @@ insert filename (Entry entry) req = do
     remotePort' = show remotePort
     entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
     table = "Windows"
-    createLogID' headers = runExcept $ do
-      result <- headers ! "log-id" >>= Foreign.readString
-      pure result
-    createLogID = do
-       result <- pure (createLogID' $ HTTP.messageHeaders req)
-       case result of
-         (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
-         (Right logID) -> pure $ logID 
 
 schema :: String -> DB.Request Unit
 schema filename = DB.schema filename "Windows" $

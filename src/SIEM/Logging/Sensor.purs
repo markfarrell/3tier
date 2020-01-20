@@ -14,14 +14,12 @@ import Control.Coroutine.Aff (produce, emit)
 
 import Control.Monad.Trans.Class (lift)
 
-import Control.Monad.Except (runExcept)
-
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
-import Effect.Exception (error, throw) as Exception
+import Effect.Exception (error) as Exception
 
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
@@ -33,9 +31,6 @@ import Data.Foldable (foldl)
 import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
 import Data.List(many)
-
-import Foreign (readString) as Foreign
-import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (char, satisfy)
@@ -51,6 +46,8 @@ import UUIDv3 as UUIDv3
 
 import Audit as Audit
 import DB as DB
+
+import SIEM.Logging.Session as Session
 
 newtype Entry = Entry
   { sIP      :: String
@@ -119,7 +116,7 @@ parseEntry = do
 insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename (Entry entry) req = do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  logID     <- lift $ liftEffect (createLogID)
+  logID     <- lift $ lift (Session.getLogID req)
   DB.insert filename table $ params timestamp logID
   where
     params timestamp logID = 
@@ -146,14 +143,6 @@ insert filename (Entry entry) req = do
     remotePort' = show remotePort
     entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
     table = "Sensor"
-    createLogID' headers = runExcept $ do
-      result <- headers ! "log-id" >>= Foreign.readString
-      pure result
-    createLogID = do
-       result <- pure (createLogID' $ HTTP.messageHeaders req)
-       case result of
-         (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
-         (Right logID) -> pure $ logID
 
 schema :: String -> DB.Request Unit
 schema filename = DB.schema filename "Sensor" $

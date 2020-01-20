@@ -17,14 +17,12 @@ import Control.Coroutine.Aff (produce, emit)
 import Control.Alternative ((<|>))
 import Control.Monad.Trans.Class (lift)
 
-import Control.Monad.Except (runExcept)
-
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
-import Effect.Exception (error, throw) as Exception
+import Effect.Exception (error) as Exception
 
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
@@ -36,9 +34,6 @@ import Data.Array (fromFoldable) as Array
 import Data.Foldable(foldl)
 import Data.Traversable (sequence)
 import Data.String.CodeUnits (singleton)
-
-import Foreign (readString) as Foreign
-import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (char, string)
@@ -59,6 +54,7 @@ import UUIDv3 as UUIDv3
 import Audit as Audit
 
 import SIEM.Logging.Linux.Fields as Fields
+import SIEM.Logging.Session as Session
 
 type Field = Fields.Field
 
@@ -196,7 +192,7 @@ message (Message msg) = msg
 insert' :: String -> Entry -> HTTP.IncomingMessage -> Array (DB.Request Unit)
 insert' filename (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  logID     <- lift $ liftEffect (createLogID)
+  logID     <- lift $ lift (Session.getLogID req)
   DB.insert filename table $ params timestamp logID field
   where
     params timestamp logID field =
@@ -217,14 +213,6 @@ insert' filename (Entry ty msg fields) req = flip (<$>) fields $ \field -> do
     messageType' = messageType ty
     message' = message msg
     table = "Linux"
-    createLogID' headers = runExcept $ do
-      result <- headers ! "log-id" >>= Foreign.readString
-      pure result
-    createLogID = do
-       result <- pure (createLogID' $ HTTP.messageHeaders req)
-       case result of
-         (Left _)      -> Exception.throw "Invalid request headers (Log-ID)."
-         (Right logID) -> pure $ logID 
 
 insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename entry req = do
