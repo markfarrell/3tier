@@ -16,6 +16,7 @@ import Effect.Exception (error)
 import Text.Parsing.Parser (runParser)
 
 import HTTP as HTTP
+import RSA as RSA
 
 import DB as DB
 
@@ -158,8 +159,18 @@ testSensor filename = assert' label  =<< try do
     entry  = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
     label  = "Test.SIEM.Logging.Sensor"
 
+testRSA :: Aff Unit
+testRSA = do
+  result <- pure $ RSA.defaultEncrypt expect
+  _      <- assert label expect $ RSA.defaultDecrypt result 
+  pure unit
+  where
+    expect = "test"
+    label  = "Test.RSA"
+
 main :: Effect Unit
 main = void $ launchAff $ do
+  _ <- testRSA
   _ <- testSchema filename
   _ <- testServer'
   _ <- testServer
