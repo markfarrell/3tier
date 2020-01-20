@@ -6,7 +6,7 @@ module SIEM.Logging.Session
 
 import Prelude
 
-import Control.Monad.Error.Class (throwError)
+import Control.Monad.Error.Class (try, throwError)
 import Control.Monad.Except (runExcept)
 
 import Data.Either (Either(..))
@@ -39,11 +39,7 @@ createLogID = do
 
 echoLogID :: HTTP.IncomingRequest -> Aff Unit
 echoLogID (HTTP.IncomingRequest req res) = do
-  result <- pure $ runExcept $ headers ! header >>= Foreign.readString
+  result <- try $ getLogID req
   case result of
     (Left _)      -> pure unit
-    (Right logID) -> liftEffect $ HTTP.setHeader header logID $ res 
-  where
-    header = "log-id"
-    headers = HTTP.messageHeaders req
-
+    (Right logID) -> liftEffect $ HTTP.setHeader "log-id" logID $ res 
