@@ -162,12 +162,15 @@ testSensor filename = assert' label  =<< try do
 
 testRSA :: Aff Unit
 testRSA = do
-  result <- pure $ RSA.defaultEncrypt expect
-  _      <- assert label expect $ RSA.defaultDecrypt result 
+  result  <- pure $ RSA.defaultEncrypt expect
+  _       <- assert label expect $ RSA.defaultDecrypt result 
+  result' <- pure $ RSA.defaultSign expect
+  _       <- assert label' true $ RSA.defaultVerify expect result'
   pure unit
   where
     expect = "test"
-    label  = "Test.RSA"
+    label  = "Test.RSA.defaultEncrypt"
+    label' = "Test.RSA.defaultSign"
 
 main :: Effect Unit
 main = void $ launchAff $ do
