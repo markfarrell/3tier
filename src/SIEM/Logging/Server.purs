@@ -55,7 +55,7 @@ parseRoute :: Parser String Route
 parseRoute = createLogID <|> reportStatistics <|> forwardLinux <|> forwardWindows <|> forwardSensor
   where
     createLogID = do
-      _ <- string "/"
+      _ <- string "/create/log-id"
       pure (CreateLogID)
     reportStatistics = do
       _     <- string "/report/statistics"

@@ -35,14 +35,13 @@ sum :: String -> String -> EntryType -> DB.Request Number
 sum filename table ty = do
   results <- DB.select runResult filename query
   case results of
-    [sum'] -> pure sum'
-    []       -> pure 0.0
+    [sum']   -> pure sum'
     _        -> lift $ lift (throwError error)
   where
     runResult row = do
       result' <- pure (runExcept $ row ! "Total" >>= Foreign.readNumber)
       case result' of
-        (Left _)       -> throwError error
+        (Left _)     -> pure 0.0
         (Right sum') -> pure sum'
     error = Exception.error "Unexpected results."
     query = "SELECT SUM(Entries) AS Total FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY " <> (entryType ty) <> ")"
@@ -51,13 +50,14 @@ average :: String -> String -> EntryType -> DB.Request Number
 average filename table ty = do
   results <- DB.select runResult filename query
   case results of
+    []         -> pure 0.0
     [average'] -> pure average'
     _          -> lift $ lift (throwError error)
   where
     runResult row = do
       result' <- pure (runExcept $ row ! "Average" >>= Foreign.readNumber)
       case result' of
-        (Left _)         -> throwError error
+        (Left _)         -> pure 0.0
         (Right average') -> pure average'
     error = Exception.error "Unexpected results."
     query = "SELECT AVG(Entries) AS Average FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY " <> (entryType ty) <> ")"
@@ -72,7 +72,7 @@ minimum filename table ty = do
     runResult row = do
       result' <- pure (runExcept $ row ! "Minimum" >>= Foreign.readNumber)
       case result' of
-        (Left _)         -> throwError error
+        (Left _)         -> pure 0.0
         (Right min')     -> pure min'
     error = Exception.error "Unexpected results."
     query = "SELECT MIN(Entries) AS Minimum FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY " <> (entryType ty) <> ")"
@@ -87,7 +87,7 @@ maximum filename table ty = do
     runResult row = do
       result' <- pure (runExcept $ row ! "Maximum" >>= Foreign.readNumber)
       case result' of
-        (Left _)         -> throwError error
+        (Left _)         -> pure 0.0
         (Right max')     -> pure max'
     error = Exception.error "Unexpected results."
     query = "SELECT MAX(Entries) AS Maximum FROM (SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY " <> (entryType ty) <> ")"
@@ -99,12 +99,11 @@ totals filename table ty = DB.select runResult filename query
     runResult row = do
       result' <- pure (runExcept $ runResult' row)
       case result' of
-        (Left _)         -> throwError error
+        (Left _)         -> pure 0.0
         (Right result'') -> pure result''
     runResult' row = do
       total' <- row ! "Total"  >>= Foreign.readNumber
       pure total'
-    error = Exception.error "Unexpected results."
     query = "SELECT COUNT(DISTINCT EntryID) AS Total FROM " <> table <> " GROUP BY " <> (entryType ty)
 
 total :: String -> String -> EntryType -> DB.Request Number
@@ -117,7 +116,7 @@ total filename table ty = do
     runResult row = do
        result' <- pure (runExcept $ row ! "Total" >>= Foreign.readNumber)
        case result' of
-         (Left _)          -> throwError error
+         (Left _)          -> pure 0.0
          (Right total')    -> pure total'
     error = Exception.error "Unexpected results."
     query = "SELECT COUNT(DISTINCT " <> (entryType ty) <> ") as Total FROM " <> table
@@ -125,7 +124,8 @@ total filename table ty = do
 variance :: String -> String -> EntryType -> DB.Request Number
 variance filename table ty = do
   results <- totals filename table $ ty
-  pure $ variance' results
+  case results of
+    _     -> pure $ variance' results
   where
     variance' results   = (variance'' results) / (sum'' results)
     variance'' results  = foldl (+) 0.0 $ variance''' results (average' results)
