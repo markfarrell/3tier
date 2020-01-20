@@ -29,8 +29,6 @@ import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
 
 import Strings as Strings
-import UUIDv1 as UUIDv1
-import RSA as RSA
 
 import DB as DB
 import HTTP as HTTP
@@ -41,6 +39,7 @@ import SIEM.Logging.Linux as Linux
 import SIEM.Logging.Sensor as Sensor
 import SIEM.Logging.Windows as Windows
 
+import SIEM.Logging.Session as Session
 import SIEM.Logging.Statistics as Statistics
 
 data Route = CreateLogID
@@ -120,8 +119,8 @@ runRequest' filename request req = do
 
 runCreateLogID :: String -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runCreateLogID filename req = do
-  logID <- liftEffect $ UUIDv1.createUUID
-  pure $ Ok (TextHTML $ RSA.defaultEncrypt logID)
+  logID <- Session.createLogID
+  pure $ Ok (TextHTML logID)
 
 runRoute :: String -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute filename req  = do
