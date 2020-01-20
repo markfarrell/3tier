@@ -14,5 +14,5 @@ exports.defaultEncrypt = function(str) {
 };
 
 exports.defaultDecrypt= function(str) {
-  return defaultKey.decryptPublic(str, "utf8");
+  return defaultKey.decryptPublic(str, "utf8", "base64");
 };
