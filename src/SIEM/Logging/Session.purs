@@ -1,6 +1,7 @@
 module SIEM.Logging.Session
   ( getLogID
   , createLogID
+  , echoLogID
   ) where
 
 import Prelude
@@ -35,3 +36,14 @@ createLogID :: Aff String
 createLogID = do
   uuid <- liftEffect $ UUIDv1.createUUID
   pure uuid
+
+echoLogID :: HTTP.IncomingRequest -> Aff Unit
+echoLogID (HTTP.IncomingRequest req res) = do
+  result <- pure $ runExcept $ headers ! header >>= Foreign.readString
+  case result of
+    (Left _)      -> pure unit
+    (Right logID) -> liftEffect $ HTTP.setHeader header logID $ res 
+  where
+    header = "log-id"
+    headers = HTTP.messageHeaders req
+
