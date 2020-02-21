@@ -34,8 +34,8 @@ getLogID req = do
 
 createLogID :: Aff String
 createLogID = do
-  uuid <- liftEffect $ UUIDv1.createUUID
-  pure uuid
+  id <- liftEffect  $ UUIDv1.createUUID
+  pure id
 
 echoLogID :: HTTP.IncomingRequest -> Aff Unit
 echoLogID (HTTP.IncomingRequest req res) = do

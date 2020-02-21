@@ -125,19 +125,37 @@ testInsertSensor :: String -> Sensor.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertSensor filename entry req = testRequest label $ Sensor.insert filename entry req
   where label = "Test.SIEM.Logging.Sensor.insert"
 
-testStatistics :: Statistics.Entry -> String -> String -> Statistics.EntryType -> Aff Statistics.Entry
-testStatistics expect filename table ty = do
-  entry  <- testRequest label $ Statistics.statistics filename table ty
+testStatistics :: Statistics.Entry -> String -> String -> Aff Statistics.Entry
+testStatistics expect filename table = do
+  entry  <- testRequest label $ Statistics.statistics filename table
   _      <- assert label' expect $ entry
   pure entry
   where
-    label  = "Test.SIEM.Logging.Statistics.statistics " <> table <> " " <> show ty <> " (1)"
-    label' = "Test.SIEM.Logging.Statistics.statistics " <> table <> " " <> show ty <> " (2)"
+    label  = "Test.SIEM.Logging.Statistics.statistics " <> table <> " (1)"
+    label' = "Test.SIEM.Logging.Statistics.statistics " <> table <> " (2)"
 
-testSensorStatistics :: String -> Statistics.EntryType -> Aff Statistics.Entry
-testSensorStatistics filename ty = testStatistics expect filename table ty
+testSensor :: String -> Aff Unit
+testSensor filename = assert' label  =<< try do
+  entry'  <- testParseSensor entry
+  entry'' <- testWriteSensor entry'
+  _       <- testStatistics expect filename table
+  req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardSensor entry''
+  _       <- testInsertSensor filename entry' $ req
+  _       <- testStatistics expect' filename table
+  pure unit
   where
+    entry   = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
+    label   = "Test.SIEM.Logging.Sensor"
+    table   = "Sensor"
     expect = Statistics.Entry $ 
+      { min       : 0.0
+      , max       : 0.0
+      , sum       : 0.0
+      , total     : 0.0
+      , average   : 0.0
+      , variance  : 0.0
+      }
+    expect' = Statistics.Entry $ 
       { min       : 1.0
       , max       : 1.0
       , sum       : 1.0
@@ -145,20 +163,6 @@ testSensorStatistics filename ty = testStatistics expect filename table ty
       , average   : 1.0
       , variance  : 0.0
       }
-    table = "Sensor"
-
-testSensor :: String -> Aff Unit
-testSensor filename = assert' label  =<< try do
-  entry'  <- testParseSensor entry
-  entry'' <- testWriteSensor entry'
-  req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardSensor entry''
-  _       <- testInsertSensor filename entry' $ req
-  _       <- testSensorStatistics filename $ Statistics.LogID
-  _       <- testSensorStatistics filename $ Statistics.RemoteAddress
-  pure unit
-  where
-    entry  = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
-    label  = "Test.SIEM.Logging.Sensor"
 
 testRSA :: Aff Unit
 testRSA = do

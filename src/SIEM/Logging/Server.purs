@@ -36,30 +36,24 @@ import SIEM.Logging.Sensor as Sensor
 import SIEM.Logging.Windows as Windows
 
 import SIEM.Logging.Session as Session
-import SIEM.Logging.Statistics as Statistics
 
 data Route = CreateLogID
-  | ReportStatistics
   | ForwardLinux Linux.Entry 
   | ForwardWindows Windows.Entry 
   | ForwardSensor Sensor.Entry
 
 instance showRoute :: Show Route where
   show (CreateLogID)          = "(CreateLogID)"
-  show (ReportStatistics)     = "(ReportStatistics)"
   show (ForwardLinux entry)   = "(ForwardLinux " <> show entry <> ")"
   show (ForwardWindows entry) = "(ForwardWindows " <> show entry <> ")"
   show (ForwardSensor entry)  = "(ForwardSensor " <> show entry <> ")"
 
 parseRoute :: Parser String Route
-parseRoute = createLogID <|> reportStatistics <|> forwardLinux <|> forwardWindows <|> forwardSensor
+parseRoute = createLogID <|> forwardLinux <|> forwardWindows <|> forwardSensor
   where
     createLogID = do
       _ <- string "/create/log-id"
       pure (CreateLogID)
-    reportStatistics = do
-      _     <- string "/report/statistics"
-      pure (ReportStatistics)
     forwardLinux = do
       _     <- string "/forward/linux?entry="
       entry <- Linux.parseEntry
@@ -131,13 +125,11 @@ runRoute filename req  = do
         (ForwardWindows entry) -> (runRequest' filename $ insertWindows entry)       $ req
         (ForwardLinux entry)   -> (runRequest' filename $ insertLinux entry)         $ req 
         (ForwardSensor entry)  -> (runRequest' filename $ insertSensor entry)        $ req
-        (ReportStatistics)     -> (runRequest' filename $ const reportStatistics)    $ req
         (CreateLogID)          -> (runCreateLogID filename)                          $ req
   where
     insertWindows    = Windows.insert filename
     insertLinux      = Linux.insert filename
     insertSensor     = Sensor.insert filename
-    reportStatistics = Statistics.report filename
     audit            = Audit.application filename
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
