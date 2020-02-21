@@ -13,7 +13,7 @@ import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
 
 import Data.Either (Either(..))
-import Data.Traversable (sequence)
+import Data.Traversable (foldMap, sequence)
 
 import Effect (Effect)
 import Effect.Aff (Aff, Fiber, launchAff, forkAff)
@@ -21,8 +21,11 @@ import Effect.Class (liftEffect)
 
 import Data.Tuple (Tuple(..))
 
+import Data.String.CodeUnits (singleton)
+import Data.List(many)
+
 import Text.Parsing.Parser (Parser, runParser)
-import Text.Parsing.Parser.String (string)
+import Text.Parsing.Parser.String (string, anyChar)
 
 import Strings as Strings
 
@@ -35,30 +38,38 @@ import SIEM.Logging.Linux as Linux
 import SIEM.Logging.Sensor as Sensor
 import SIEM.Logging.Windows as Windows
 
-data Route = ForwardLinux Linux.Entry 
+import SIEM.Logging.Statistics as Statistics
+
+data Route = ReportStatistics String
+  | ForwardLinux Linux.Entry
   | ForwardWindows Windows.Entry 
   | ForwardSensor Sensor.Entry
 
 instance showRoute :: Show Route where
-  show (ForwardLinux entry)   = "(ForwardLinux " <> show entry <> ")"
-  show (ForwardWindows entry) = "(ForwardWindows " <> show entry <> ")"
-  show (ForwardSensor entry)  = "(ForwardSensor " <> show entry <> ")"
+  show (ReportStatistics entry)   = "(ReportStatistics " <> show entry <> ")" 
+  show (ForwardLinux entry)       = "(ForwardLinux " <> show entry <> ")"
+  show (ForwardWindows entry)     = "(ForwardWindows " <> show entry <> ")"
+  show (ForwardSensor entry)      = "(ForwardSensor " <> show entry <> ")"
 
 parseRoute :: Parser String Route
-parseRoute = forwardLinux <|> forwardWindows <|> forwardSensor
+parseRoute = forwardLinux <|> forwardWindows <|> forwardSensor <|> reportStatistics 
   where
     forwardLinux = do
-      _     <- string "/forward/linux?entry="
+      _     <- string "/forward/linux?q="
       entry <- Linux.parseEntry
       pure (ForwardLinux entry)
     forwardWindows = do
-      _     <- string "/forward/windows?entry="
+      _     <- string "/forward/windows?q="
       entry <- Windows.parseEntry
       pure (ForwardWindows entry)
     forwardSensor = do
-      _     <- string "/forward/sensor?entry="
+      _     <- string "/forward/sensor?q="
       entry <- Sensor.parseEntry
       pure (ForwardSensor entry)
+    reportStatistics = do
+      _     <- string "/report/statistics?q="
+      table <- foldMap singleton <$> many anyChar
+      pure (ReportStatistics table)
 
 data ContentType a = TextJSON a | TextHTML a
 
@@ -110,14 +121,16 @@ runRoute filename req  = do
     (Right route) -> do
       _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
       case route of 
-        (ForwardWindows entry) -> (runRequest' filename $ insertWindows entry)       $ req
-        (ForwardLinux entry)   -> (runRequest' filename $ insertLinux entry)         $ req 
-        (ForwardSensor entry)  -> (runRequest' filename $ insertSensor entry)        $ req
+        (ForwardWindows entry)       -> (runRequest' filename $ insertWindows entry)       $ req
+        (ForwardLinux entry)         -> (runRequest' filename $ insertLinux entry)         $ req 
+        (ForwardSensor entry)        -> (runRequest' filename $ insertSensor entry)        $ req
+        (ReportStatistics table)     -> (runRequest' filename $ reportStatistics table)    $ req
   where
-    insertWindows    = Windows.insert filename
-    insertLinux      = Linux.insert filename
-    insertSensor     = Sensor.insert filename
-    audit            = Audit.application filename
+    insertWindows     = Windows.insert filename
+    insertLinux       = Linux.insert filename
+    insertSensor      = Sensor.insert filename
+    reportStatistics  = const <<< Statistics.report filename
+    audit             = Audit.application filename
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do

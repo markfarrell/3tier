@@ -44,7 +44,7 @@ forward forwardType host entry = do
   res <- HTTP.endRequest req
   pure res
   where
-    requestURL = "http://" <> host <> "/forward/" <> (forwardType' forwardType) <> "?entry=" <> entry'
+    requestURL = "http://" <> host <> "/forward/" <> (forwardType' forwardType) <> "?q=" <> entry'
     entry' = Strings.encodeURIComponent entry
 
 forwardWindows :: String -> String -> Aff HTTP.IncomingResponse

@@ -1,6 +1,7 @@
 module SIEM.Logging.Statistics
   ( Entry(..)
   , statistics
+  , report
   , schema
   , writeEntry
   ) where
@@ -165,6 +166,15 @@ statistics filename table = do
     , variance  : variance'
     }
 
+report :: String -> String -> DB.Request String
+report filename table = do
+  result  <- statistics filename table
+  case result of
+    (Entry entry) -> pure $ stringify (report' entry)  
+  (Right result') -> pure result' 
+  where 
+    stringify = JSON.stringify <<< unsafeCoerce
+
 schema :: String -> DB.Request Unit
 schema filename = DB.schema filename "Statistics" $
   [ Tuple "Timestamp" DB.TextNotNull
@@ -183,5 +193,5 @@ schema filename = DB.schema filename "Statistics" $
   ]
 
 writeEntry :: Entry -> Either Error String
-writeEntry entry = pure $ stringify entry
+writeEntry (Entry entry) = pure $ stringify entry
   where stringify = JSON.stringify <<< unsafeCoerce
