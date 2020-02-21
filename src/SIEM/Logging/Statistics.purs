@@ -2,6 +2,7 @@ module SIEM.Logging.Statistics
   ( Entry(..)
   , statistics
   , schema
+  , writeEntry
   ) where
 
 import Prelude
@@ -13,13 +14,14 @@ import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
 import Data.Foldable (foldl)
 
+import Effect.Exception (Error)
 import Effect.Exception (error) as Exception
 
 import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
 
---import Unsafe.Coerce (unsafeCoerce)
---import JSON as JSON
+import Unsafe.Coerce (unsafeCoerce)
+import JSON as JSON
 
 import DB as DB
 
@@ -179,3 +181,7 @@ schema filename = DB.schema filename "Statistics" $
   , Tuple "Average" DB.TextNotNull
   , Tuple "Variance" DB.TextNotNull
   ]
+
+writeEntry :: Entry -> Either Error String
+writeEntry entry = pure $ stringify entry
+  where stringify = JSON.stringify <<< unsafeCoerce
