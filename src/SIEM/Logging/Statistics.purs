@@ -168,12 +168,10 @@ statistics filename table = do
 
 report :: String -> String -> DB.Request String
 report filename table = do
-  result  <- statistics filename table
+  result  <- writeEntry <$> statistics filename table
   case result of
-    (Entry entry) -> pure $ stringify (report' entry)  
-  (Right result') -> pure result' 
-  where 
-    stringify = JSON.stringify <<< unsafeCoerce
+    (Left _)        -> throwError $ Exception.error "Unexpected behaviour."
+    (Right result') -> pure result' 
 
 schema :: String -> DB.Request Unit
 schema filename = DB.schema filename "Statistics" $
