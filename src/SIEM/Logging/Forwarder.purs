@@ -2,7 +2,6 @@ module SIEM.Logging.Forwarder
   ( forwardWindows
   , forwardSensor
   , forwardLinux
-  , createLogID
   , main
   ) where
 
@@ -39,27 +38,26 @@ forwardType' Windows = "windows"
 forwardType' Sensor = "sensor"
 forwardType' Linux = "linux"
 
-forward :: ForwardType -> String -> String -> String -> Aff HTTP.IncomingResponse
-forward forwardType host logID entry = do
-  req <- HTTP.createRequest HTTP.Post requestURL
-  _   <- HTTP.setRequestHeader "Log-ID" logID $ req
+forward :: ForwardType -> String -> String -> Aff HTTP.IncomingResponse
+forward forwardType host entry = do
+  req <- HTTP.createRequest HTTP.Post requestURL 
   res <- HTTP.endRequest req
   pure res
   where
     requestURL = "http://" <> host <> "/forward/" <> (forwardType' forwardType) <> "?entry=" <> entry'
     entry' = Strings.encodeURIComponent entry
 
-forwardWindows :: String -> String -> String -> Aff HTTP.IncomingResponse
+forwardWindows :: String -> String -> Aff HTTP.IncomingResponse
 forwardWindows = forward Windows
 
-forwardSensor :: String -> String -> String -> Aff HTTP.IncomingResponse
+forwardSensor :: String -> String -> Aff HTTP.IncomingResponse
 forwardSensor = forward Sensor
 
-forwardLinux :: String -> String -> String -> Aff HTTP.IncomingResponse
+forwardLinux :: String -> String -> Aff HTTP.IncomingResponse
 forwardLinux = forward Linux
 
-forwarder :: forall a. Show a => ForwardType -> (a -> Either Error String) -> String -> String -> Consumer a Aff Unit
-forwarder forwardType write host logID = forever $ do
+forwarder :: forall a. Show a => ForwardType -> (a -> Either Error String) -> String -> Consumer a Aff Unit
+forwarder forwardType write host = forever $ do
   entry       <- await
   result      <- lift $ pure $ write entry
   case result of
@@ -69,7 +67,7 @@ forwarder forwardType write host logID = forever $ do
     (Right entry') -> do
        let result' = { entry : entry, entry' : entry' }
        _ <- lift $ Audit.debug $ Audit.Entry Audit.Success Audit.SerializationRequest (show result')
-       result'' <- lift $ try $ forward forwardType host logID entry'
+       result'' <- lift $ try $ forward forwardType host entry'
        case result'' of
          (Left error)                           -> do
             let result''' = { entry : entry, error : error }
@@ -78,32 +76,20 @@ forwarder forwardType write host logID = forever $ do
             let result''' = { entry : entry, body : body }
             lift $ Audit.debug $ Audit.Entry Audit.Success Audit.ForwardRequest (show result''')
 
-createLogID :: String -> Aff String
-createLogID host = do
-  req <- HTTP.createRequest HTTP.Get requestURL
-  res <- HTTP.endRequest req
-  case res of
-    (HTTP.IncomingResponse body _) -> pure body
-  where
-    requestURL = "http://" <> host <> "/create/log-id"
-
 main :: Effect Unit
 main = do
   case argv' of
     [host, "windows"] -> void $ launchAff $ do
-      logID     <- createLogID host
       producer  <- liftEffect (Windows.createReader Process.stdin)
-      consumer  <- pure $ forwarderWindows host logID
+      consumer  <- pure $ forwarderWindows host
       runProcess $ pullFrom consumer producer
     [host, "sensor"]  -> void $ launchAff $ do
-      logID     <- createLogID host
       producer  <- liftEffect (Sensor.createReader Process.stdin)
-      consumer  <- pure $ forwarderSensor host logID
+      consumer  <- pure $ forwarderSensor host
       runProcess $ pullFrom consumer producer
     [host, "linux"]   -> void $ launchAff $ do
-      logID     <- createLogID host
       producer  <- liftEffect (Linux.createReader Process.stdin)
-      consumer  <- pure $ forwarderLinux host logID
+      consumer  <- pure $ forwarderLinux host
       runProcess $ pullFrom consumer producer
     _                 -> pure unit
   where

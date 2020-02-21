@@ -108,8 +108,7 @@ testForwardSensor entry = do
   server <- liftEffect (HTTP.createServer)
   fiber  <- Server.start server
   _      <- liftEffect (HTTP.listen port $ server)
-  logID  <- Forwarder.createLogID host
-  result <- Forwarder.forwardSensor host logID entry
+  result <- Forwarder.forwardSensor host entry
   _      <- assert label ok $ statusCode' result
   _      <- flip killFiber fiber $ error "Expected behaviour."
   _      <- liftEffect (HTTP.close server)

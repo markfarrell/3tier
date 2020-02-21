@@ -35,25 +35,18 @@ import SIEM.Logging.Linux as Linux
 import SIEM.Logging.Sensor as Sensor
 import SIEM.Logging.Windows as Windows
 
-import SIEM.Logging.Session as Session
-
-data Route = CreateLogID
-  | ForwardLinux Linux.Entry 
+data Route = ForwardLinux Linux.Entry 
   | ForwardWindows Windows.Entry 
   | ForwardSensor Sensor.Entry
 
 instance showRoute :: Show Route where
-  show (CreateLogID)          = "(CreateLogID)"
   show (ForwardLinux entry)   = "(ForwardLinux " <> show entry <> ")"
   show (ForwardWindows entry) = "(ForwardWindows " <> show entry <> ")"
   show (ForwardSensor entry)  = "(ForwardSensor " <> show entry <> ")"
 
 parseRoute :: Parser String Route
-parseRoute = createLogID <|> forwardLinux <|> forwardWindows <|> forwardSensor
+parseRoute = forwardLinux <|> forwardWindows <|> forwardSensor
   where
-    createLogID = do
-      _ <- string "/create/log-id"
-      pure (CreateLogID)
     forwardLinux = do
       _     <- string "/forward/linux?entry="
       entry <- Linux.parseEntry
@@ -107,11 +100,6 @@ runRequest' filename request req = do
      pure $ Ok (TextJSON (showJSON result''))
   where audit = Audit.application filename
 
-runCreateLogID :: String -> HTTP.IncomingMessage -> Aff (ResponseType String)
-runCreateLogID filename req = do
-  logID <- Session.createLogID
-  pure $ Ok (TextHTML logID)
-
 runRoute :: String -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute filename req  = do
   result <-  pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
@@ -125,7 +113,6 @@ runRoute filename req  = do
         (ForwardWindows entry) -> (runRequest' filename $ insertWindows entry)       $ req
         (ForwardLinux entry)   -> (runRequest' filename $ insertLinux entry)         $ req 
         (ForwardSensor entry)  -> (runRequest' filename $ insertSensor entry)        $ req
-        (CreateLogID)          -> (runCreateLogID filename)                          $ req
   where
     insertWindows    = Windows.insert filename
     insertLinux      = Linux.insert filename
@@ -167,7 +154,6 @@ producer server = produce \emitter -> do
 consumer :: String -> Consumer HTTP.IncomingRequest Aff Unit
 consumer filename = forever $ do
   request <- await
-  _       <- lift $ Session.echoLogID request
   case request of
     (HTTP.IncomingRequest req res) -> do
       routeResult <- lift $ try (runRoute' req)
