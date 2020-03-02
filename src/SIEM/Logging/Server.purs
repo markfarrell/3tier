@@ -35,26 +35,19 @@ import HTTP as HTTP
 import Audit as Audit
 
 import SIEM.Logging.Flow as Flow
-import SIEM.Logging.Windows as Windows
 
 import SIEM.Logging.Statistics as Statistics
 
 data Route = ReportStatistics String
-  | ForwardWindows Windows.Entry 
   | ForwardFlow Flow.Entry
 
 instance showRoute :: Show Route where
   show (ReportStatistics entry)   = "(ReportStatistics " <> show entry <> ")" 
-  show (ForwardWindows entry)     = "(ForwardWindows " <> show entry <> ")"
   show (ForwardFlow entry)      = "(ForwardFlow " <> show entry <> ")"
 
 parseRoute :: Parser String Route
-parseRoute = forwardWindows <|> forwardFlow <|> reportStatistics 
+parseRoute = forwardFlow <|> reportStatistics 
   where
-    forwardWindows = do
-      _     <- string "/forward/windows?q="
-      entry <- Windows.parseEntry
-      pure (ForwardWindows entry)
     forwardFlow = do
       _     <- string "/forward/flow?q="
       entry <- Flow.parseEntry
@@ -114,11 +107,9 @@ runRoute filename req  = do
     (Right route) -> do
       _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
       case route of 
-        (ForwardWindows entry)       -> (runRequest' filename $ insertWindows entry)       $ req
         (ForwardFlow entry)        -> (runRequest' filename $ insertFlow entry)        $ req
         (ReportStatistics table)     -> (runRequest' filename $ reportStatistics table)    $ req
   where
-    insertWindows     = Windows.insert filename
     insertFlow      = Flow.insert filename
     reportStatistics  = const <<< Statistics.report filename
     audit             = Audit.application filename
@@ -187,7 +178,6 @@ initialize = do
   where
     schemas filename =
       [ Audit.schema filename
-      , Windows.schema filename
       , Flow.schema filename
       ]
     getFilename = pure "logs.db"
