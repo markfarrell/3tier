@@ -1,4 +1,4 @@
-module SIEM.Logging.Forwarder
+module Test.Forwarder
   ( forwardWindows
   , forwardFlow
   , main

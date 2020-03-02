@@ -21,10 +21,9 @@ import RSA as RSA
 import DB as DB
 
 import SIEM.Logging.Flow as Flow
-import SIEM.Logging.Linux as Linux
 import SIEM.Logging.Windows as Windows
 
-import SIEM.Logging.Forwarder as Forwarder
+import Test.Forwarder as Forwarder
 import SIEM.Logging.Server as Server
 
 import SIEM.Logging.Statistics as Statistics
@@ -48,8 +47,7 @@ testSchema :: String -> Aff Unit
 testSchema filename = assert' label =<< try do
   _ <- testRequest "Test.DB.touch"                       $ DB.touch filename
   _ <- testRequest "Test.DB.remove"                      $ remove' filename
-  _ <- testRequest "Test.SIEM.Logging.Flow.schema"     $ Flow.schema filename
-  _ <- testRequest "Test.SIEM.Logging.Linux.schema"      $ Linux.schema filename
+  _ <- testRequest "Test.SIEM.Logging.Flow.schema"       $ Flow.schema filename
   _ <- testRequest "Test.SIEM.Logging.Windows.schema"    $ Windows.schema filename
   _ <- testRequest "Test.SIEM.Logging.Audit.schema"      $ Audit.schema filename
   _ <- testRequest "Test.SIEM.Logging.Statistics.schema" $ Statistics.schema filename
@@ -58,7 +56,6 @@ testSchema filename = assert' label =<< try do
     remove' filename' = do
       _ <- DB.remove filename' $ "Flow"
       _ <- DB.remove filename' $ "Windows"
-      _ <- DB.remove filename' $ "Linux" 
       _ <- DB.remove filename' $"Audit"
       pure unit
     label = "Test.DB.schema"
@@ -117,7 +114,7 @@ testForwardFlow entry = do
     ok   = 200
     port = 4000
     host = "127.0.0.1:4000"
-    label = "Test.SIEM.Logging.Forwarder.forwardFlow"
+    label = "Test.Test.Forwarder.forwardFlow"
     statusCode' (HTTP.IncomingResponse _ req) = HTTP.statusCode req
 
 testInsertFlow :: String -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
