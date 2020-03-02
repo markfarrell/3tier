@@ -5,7 +5,6 @@ module Audit
   , insert
   , schema
   , application
-  , debug
   ) where
 
 import Prelude
@@ -13,11 +12,9 @@ import Prelude
 import Control.Monad.Error.Class (try)
 import Control.Monad.Trans.Class (lift)
 
-import Data.Either(Either(..))
 import Data.Tuple(Tuple(..))
 
 import Effect.Aff (Aff)
-import Effect.Console (log, error) as Console
 import Effect.Class (liftEffect)
 
 import DB as DB
@@ -31,7 +28,7 @@ import UUIDv3 as UUIDv3
 
 data EventType = Success | Failure
 
-data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest | AuthorizationRequest | ForwardRequest | DeserializationRequest | SerializationRequest | AuditRequest | AssertRequest
+data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest
 
 data Entry = Entry EventType EventID String
 
@@ -44,12 +41,6 @@ instance showEventID :: Show EventID where
   show ResourceRequest = "RESOURCE-REQUEST"
   show ResourceResponse = "RESOURCE-RESPONSE"
   show RoutingRequest = "ROUTING-REQUEST"
-  show AuthorizationRequest = "AUTHORIZATION-REQUEST"
-  show ForwardRequest = "FORWARD-REQUEST"
-  show DeserializationRequest = "DESERIALIZATION-REQUEST"
-  show SerializationRequest = "SERIALIZATION-REQUEST"
-  show AuditRequest = "AUDIT-REQUEST"
-  show AssertRequest = "ASSERT-REQUEST"
 
 instance showEntry :: Show Entry where
   show (Entry eventType eventID msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show msg <> ")"
@@ -93,30 +84,8 @@ schema filename = DB.schema filename table $
   , Tuple "Message" DB.TextNotNull
   ]
 
-debugFailure :: Entry -> Aff Unit
-debugFailure (Entry ty id msg) = do
- timestamp <- liftEffect $ Date.toISOString <$> Date.current
- error' $ show [timestamp, show ty, show id, msg]
- where error' = liftEffect <<< Console.error
-
-debugSuccess :: Entry -> Aff Unit
-debugSuccess (Entry ty id msg) = do
- timestamp <- liftEffect $ Date.toISOString <$> Date.current
- error' $ show [timestamp, show ty, show id, msg]
- where error' = liftEffect <<< Console.log
-
-debug :: Entry -> Aff Unit
-debug = \entry -> do
-  case entry of
-    (Entry Failure _ _) -> debugFailure entry
-    (Entry Success _ _) -> debugSuccess entry
-
 {-- Audit an application-layer event associated with an incoming HTTP request. --}
 application :: String -> Entry -> HTTP.IncomingMessage -> Aff Unit
 application filename entry req = do
-  _      <- debug entry
-  result <- try $ DB.runRequest (insert filename entry $ req)
-  msg    <- pure (show { entry : entry, result : result })
-  case result of 
-    (Left  _)  -> debug $ Entry Failure AuditRequest msg
-    (Right _)  -> debug $ Entry Success AuditRequest msg
+  _      <- try $ DB.runRequest (insert filename entry $ req)
+  pure unit

@@ -206,16 +206,11 @@ start :: HTTP.Server -> Aff (Fiber Unit)
 start server = do
   result <- DB.runRequest initialize
   case result of
-    (Left error) -> do
-       _ <- audit' (Audit.Entry Audit.Failure Audit.DatabaseRequest (show error))
-       forkAff $ pure unit
-    (Right (Tuple filename steps)) -> do
-       _ <- audit' (Audit.Entry Audit.Success Audit.DatabaseRequest (show steps))
-       forkAff $ start' filename
+    (Left error)                -> forkAff $ pure unit
+    (Right (Tuple filename _))  -> forkAff $ start' filename
   where 
     start' filename = do
       runProcess $ process filename server
-    audit' = Audit.debug
 
 main :: Effect Unit
 main = do

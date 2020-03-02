@@ -25,8 +25,6 @@ import HTTP as HTTP
 import Process as Process
 import Strings as Strings
 
-import Audit as Audit
-
 import SIEM.Logging.Windows as Windows
 import SIEM.Logging.Flow as Flow
 import SIEM.Logging.Linux as Linux
@@ -61,20 +59,10 @@ forwarder forwardType write host = forever $ do
   entry       <- await
   result      <- lift $ pure $ write entry
   case result of
-    (Left error) -> do
-       let result' = { entry : entry, error : error }
-       lift $ Audit.debug $ Audit.Entry Audit.Failure Audit.SerializationRequest (show result')
-    (Right entry') -> do
-       let result' = { entry : entry, entry' : entry' }
-       _ <- lift $ Audit.debug $ Audit.Entry Audit.Success Audit.SerializationRequest (show result')
-       result'' <- lift $ try $ forward forwardType host entry'
-       case result'' of
-         (Left error)                           -> do
-            let result''' = { entry : entry, error : error }
-            lift $ Audit.debug $ Audit.Entry Audit.Failure Audit.ForwardRequest (show result''')
-         (Right (HTTP.IncomingResponse body _)) -> do
-            let result''' = { entry : entry, body : body }
-            lift $ Audit.debug $ Audit.Entry Audit.Success Audit.ForwardRequest (show result''')
+    (Left error)   -> lift $ pure unit
+    (Right entry') -> do 
+       _ <- lift $ try $ forward forwardType host entry'
+       pure unit
 
 main :: Effect Unit
 main = do

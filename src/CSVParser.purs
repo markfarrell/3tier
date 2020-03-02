@@ -12,14 +12,12 @@ import Control.Monad.Except (runExcept)
 import Data.Either (Either(..))
 
 import Effect (Effect)
-import Effect.Aff (Aff, launchAff)
+import Effect.Aff (Aff)
 
 import Foreign (Foreign)
 import Foreign as Foreign
 
 import Stream as Stream
-
-import Audit as Audit
 
 type Options =
   { separator :: String
@@ -37,13 +35,8 @@ reader read writable = produce \emitter -> do
     emit' emitter = \row -> do
       result <- pure $ runExcept (read row)
       case result of 
-        (Left error)     -> do
-           _ <- debug $ Audit.Entry Audit.Failure Audit.DeserializationRequest (show error)
-           pure unit
-        (Right row')     -> do 
-           _ <- debug $ Audit.Entry Audit.Success Audit.DeserializationRequest (show row') 
-           emit emitter $ row'
-    debug entry = void $ launchAff $ Audit.debug entry
+        (Left error) -> pure unit
+        (Right row') -> emit emitter $ row'
 
 createReader :: forall a. Show a => (Foreign -> Foreign.F a) -> Stream.Readable -> Options -> Effect (Producer a Aff Unit)
 createReader read readable options = do

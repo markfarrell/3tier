@@ -18,7 +18,7 @@ import Control.Alternative ((<|>))
 import Control.Monad.Trans.Class (lift)
 
 import Effect (Effect)
-import Effect.Aff (Aff, launchAff)
+import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
@@ -50,8 +50,6 @@ import Strings as Strings
 import Process as Process
 
 import UUIDv3 as UUIDv3
-
-import Audit as Audit
 
 import SIEM.Logging.Linux.Fields as Fields
 import SIEM.Logging.Session as Session
@@ -266,15 +264,8 @@ createReader' interface = produce \emitter -> do
     emit' emitter = \line -> do
       result <- pure $ flip runParser parseEntry $ line
       case result of
-        (Left error)  -> do
-           let result' = { line : line, error : error }
-           _ <- debug $ Audit.Entry Audit.Failure Audit.DeserializationRequest (show result') 
-           pure unit
-        (Right entry) -> do
-           let result' = { line : line, entry : entry }
-           _ <- debug $ Audit.Entry Audit.Success Audit.DeserializationRequest (show result') 
-           emit emitter $ entry
-    debug entry = void $ launchAff $ Audit.debug entry
+        (Left error)  -> pure unit
+        (Right entry) -> emit emitter $ entry
 
 createReader :: Stream.Readable -> Effect (Producer Entry Aff Unit)
 createReader readable = do
