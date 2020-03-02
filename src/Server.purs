@@ -1,4 +1,4 @@
-module SIEM.Logging.Server 
+module Server 
   ( start
   , main
   ) where 
@@ -34,9 +34,9 @@ import HTTP as HTTP
 
 import Audit as Audit
 
-import SIEM.Logging.Flow as Flow
+import Flow as Flow
 
-import SIEM.Logging.Statistics as Statistics
+import Statistics as Statistics
 
 data Route = ReportStatistics String
   | ForwardFlow Flow.Entry

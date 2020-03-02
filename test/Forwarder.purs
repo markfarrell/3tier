@@ -1,6 +1,5 @@
 module Test.Forwarder
-  ( forwardWindows
-  , forwardFlow
+  ( forwardFlow
   , main
   ) where
 
@@ -24,13 +23,11 @@ import HTTP as HTTP
 import Process as Process
 import Strings as Strings
 
-import SIEM.Logging.Windows as Windows
-import SIEM.Logging.Flow as Flow
+import Flow as Flow
 
-data ForwardType = Windows | Flow
+data ForwardType = Flow
 
 forwardType' :: ForwardType -> String
-forwardType' Windows = "windows"
 forwardType' Flow = "flow"
 
 forward :: ForwardType -> String -> String -> Aff HTTP.IncomingResponse
@@ -41,9 +38,6 @@ forward forwardType host entry = do
   where
     requestURL = "http://" <> host <> "/forward/" <> (forwardType' forwardType) <> "?q=" <> entry'
     entry' = Strings.encodeURIComponent entry
-
-forwardWindows :: String -> String -> Aff HTTP.IncomingResponse
-forwardWindows = forward Windows
 
 forwardFlow :: String -> String -> Aff HTTP.IncomingResponse
 forwardFlow = forward Flow
@@ -61,16 +55,11 @@ forwarder forwardType write host = forever $ do
 main :: Effect Unit
 main = do
   case argv' of
-    [host, "windows"] -> void $ launchAff $ do
-      producer  <- liftEffect (Windows.createReader Process.stdin)
-      consumer  <- pure $ forwarderWindows host
-      runProcess $ pullFrom consumer producer
     [host, "flow"]  -> void $ launchAff $ do
       producer  <- liftEffect (Flow.createReader Process.stdin)
       consumer  <- pure $ forwarderFlow host
       runProcess $ pullFrom consumer producer
     _ -> pure unit
   where
-    forwarderWindows = forwarder Windows Windows.writeEntry
     forwarderFlow  = forwarder Flow Flow.writeEntry
     argv'  = Array.drop 2 Process.argv

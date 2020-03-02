@@ -1,4 +1,4 @@
-module SIEM.Logging.Statistics
+module Statistics
   ( Entry(..)
   , statistics
   , report

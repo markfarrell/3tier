@@ -20,13 +20,12 @@ import RSA as RSA
 
 import DB as DB
 
-import SIEM.Logging.Flow as Flow
-import SIEM.Logging.Windows as Windows
+import Flow as Flow
 
 import Test.Forwarder as Forwarder
-import SIEM.Logging.Server as Server
+import Server as Server
 
-import SIEM.Logging.Statistics as Statistics
+import Statistics as Statistics
 
 import Audit as Audit
 
@@ -47,15 +46,13 @@ testSchema :: String -> Aff Unit
 testSchema filename = assert' label =<< try do
   _ <- testRequest "Test.DB.touch"                       $ DB.touch filename
   _ <- testRequest "Test.DB.remove"                      $ remove' filename
-  _ <- testRequest "Test.SIEM.Logging.Flow.schema"       $ Flow.schema filename
-  _ <- testRequest "Test.SIEM.Logging.Windows.schema"    $ Windows.schema filename
-  _ <- testRequest "Test.SIEM.Logging.Audit.schema"      $ Audit.schema filename
-  _ <- testRequest "Test.SIEM.Logging.Statistics.schema" $ Statistics.schema filename
+  _ <- testRequest "Test.Flow.schema"       $ Flow.schema filename
+  _ <- testRequest "Test.Audit.schema"      $ Audit.schema filename
+  _ <- testRequest "Test.Statistics.schema" $ Statistics.schema filename
   pure unit
   where 
     remove' filename' = do
       _ <- DB.remove filename' $ "Flow"
-      _ <- DB.remove filename' $ "Windows"
       _ <- DB.remove filename' $"Audit"
       pure unit
     label = "Test.DB.schema"
@@ -80,7 +77,7 @@ testServer = assert' label =<< try do
   pure unit
   where
     port  = 4000
-    label = "Test.SIEM.Logging.Server"
+    label = "Test.Server"
 
 testParseFlow :: String -> Aff Flow.Entry
 testParseFlow entry = do
@@ -89,7 +86,7 @@ testParseFlow entry = do
   case result of
     (Left _)       -> throwError $ error "Unexpected behaviour."
     (Right entry') -> pure entry'
-  where label = "Test.SIEM.Logging.Flow.parseEntry"
+  where label = "Test.Flow.parseEntry"
 
 testWriteFlow :: Flow.Entry -> Aff String
 testWriteFlow entry = do
@@ -98,7 +95,7 @@ testWriteFlow entry = do
   case result of
     (Left _)       -> throwError $ error "Unexpected behaviour."
     (Right entry') -> pure entry'
-  where label = "Test.SIEM.Logging.Flow.writeEntry"
+  where label = "Test.Flow.writeEntry"
 
 testForwardFlow :: String -> Aff HTTP.IncomingResponse
 testForwardFlow entry = do
@@ -119,7 +116,7 @@ testForwardFlow entry = do
 
 testInsertFlow :: String -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertFlow filename entry req = testRequest label $ Flow.insert filename entry req
-  where label = "Test.SIEM.Logging.Flow.insert"
+  where label = "Test.Flow.insert"
 
 testStatistics :: Statistics.Entry -> String -> String -> Aff Statistics.Entry
 testStatistics expect filename table = do
@@ -127,8 +124,8 @@ testStatistics expect filename table = do
   _      <- assert label' expect $ entry
   pure entry
   where
-    label  = "Test.SIEM.Logging.Statistics.statistics " <> table <> " (1)"
-    label' = "Test.SIEM.Logging.Statistics.statistics " <> table <> " (2)"
+    label  = "Test.Statistics.statistics " <> table <> " (1)"
+    label' = "Test.Statistics.statistics " <> table <> " (2)"
 
 testFlow :: String -> Aff Unit
 testFlow filename = assert' label  =<< try do
@@ -141,7 +138,7 @@ testFlow filename = assert' label  =<< try do
   pure unit
   where
     entry   = "192.168.2.100,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
-    label   = "Test.SIEM.Logging.Flow"
+    label   = "Test.Flow"
     table   = "Flow"
     expect = Statistics.Entry $ 
       { min       : 0.0

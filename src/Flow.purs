@@ -1,4 +1,4 @@
-module SIEM.Logging.Flow
+module Flow
   ( Entry (..)
   , parseEntry
   , writeEntry
@@ -42,11 +42,10 @@ import Stream as Stream
 import Process as Process
 import Readline as Readline
 
+import UUIDv1 as UUIDv1
 import UUIDv3 as UUIDv3
 
 import DB as DB
-
-import SIEM.Logging.Session as Session
 
 newtype Entry = Entry
   { sIP      :: String
@@ -115,15 +114,14 @@ parseEntry = do
 insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename (Entry entry) req = do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  logID     <- lift $ lift (Session.getLogID req)
-  DB.insert filename table $ params timestamp logID
+  DB.insert filename table $ params timestamp
   where
-    params timestamp logID = 
+    params timestamp = 
       [ Tuple "Timestamp" timestamp
       , Tuple "RemoteAddress" remoteAddress
       , Tuple "RemotePort" remotePort'
       , Tuple "LogID" logID
-      , Tuple "EntryID" (entryID logID)
+      , Tuple "EntryID" entryID
       , Tuple "SIP" entry.sIP
       , Tuple "DIP" entry.dIP
       , Tuple "SPort" entry.sPort
@@ -138,9 +136,10 @@ insert filename (Entry entry) req = do
       , Tuple "Sensor" entry.sensor
       ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
-    remotePort = Socket.remotePort $ HTTP.socket req
-    remotePort' = show remotePort
-    entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
+    remotePort    = Socket.remotePort $ HTTP.socket req
+    remotePort'   = show remotePort
+    entryID       = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
+    logID         = UUIDv1.defaultUUID
 
 schema :: String -> DB.Request Unit
 schema filename = DB.schema filename table $
