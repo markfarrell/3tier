@@ -1,6 +1,6 @@
 module SIEM.Logging.Forwarder
   ( forwardWindows
-  , forwardSensor
+  , forwardFlow
   , forwardLinux
   , main
   ) where
@@ -28,14 +28,14 @@ import Strings as Strings
 import Audit as Audit
 
 import SIEM.Logging.Windows as Windows
-import SIEM.Logging.Sensor as Sensor
+import SIEM.Logging.Flow as Flow
 import SIEM.Logging.Linux as Linux
 
-data ForwardType = Windows | Sensor | Linux
+data ForwardType = Windows | Flow | Linux
 
 forwardType' :: ForwardType -> String
 forwardType' Windows = "windows"
-forwardType' Sensor = "sensor"
+forwardType' Flow = "flow"
 forwardType' Linux = "linux"
 
 forward :: ForwardType -> String -> String -> Aff HTTP.IncomingResponse
@@ -50,8 +50,8 @@ forward forwardType host entry = do
 forwardWindows :: String -> String -> Aff HTTP.IncomingResponse
 forwardWindows = forward Windows
 
-forwardSensor :: String -> String -> Aff HTTP.IncomingResponse
-forwardSensor = forward Sensor
+forwardFlow :: String -> String -> Aff HTTP.IncomingResponse
+forwardFlow = forward Flow
 
 forwardLinux :: String -> String -> Aff HTTP.IncomingResponse
 forwardLinux = forward Linux
@@ -83,17 +83,17 @@ main = do
       producer  <- liftEffect (Windows.createReader Process.stdin)
       consumer  <- pure $ forwarderWindows host
       runProcess $ pullFrom consumer producer
-    [host, "sensor"]  -> void $ launchAff $ do
-      producer  <- liftEffect (Sensor.createReader Process.stdin)
-      consumer  <- pure $ forwarderSensor host
+    [host, "flow"]  -> void $ launchAff $ do
+      producer  <- liftEffect (Flow.createReader Process.stdin)
+      consumer  <- pure $ forwarderFlow host
       runProcess $ pullFrom consumer producer
-    [host, "linux"]   -> void $ launchAff $ do
+    [host, "linux"] -> void $ launchAff $ do
       producer  <- liftEffect (Linux.createReader Process.stdin)
       consumer  <- pure $ forwarderLinux host
       runProcess $ pullFrom consumer producer
     _                 -> pure unit
   where
     forwarderWindows = forwarder Windows Windows.writeEntry
-    forwarderSensor  = forwarder Sensor Sensor.writeEntry
+    forwarderFlow  = forwarder Flow Flow.writeEntry
     forwarderLinux   = forwarder Linux Linux.writeEntry
     argv'  = Array.drop 2 Process.argv

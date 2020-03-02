@@ -1,4 +1,4 @@
-module SIEM.Logging.Sensor
+module SIEM.Logging.Flow
   ( Entry (..)
   , parseEntry
   , writeEntry
@@ -142,10 +142,9 @@ insert filename (Entry entry) req = do
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
     entryID logID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
-    table = "Sensor"
 
 schema :: String -> DB.Request Unit
-schema filename = DB.schema filename "Sensor" $
+schema filename = DB.schema filename table $
   [ Tuple "Timestamp" DB.TextNotNull
   , Tuple "RemoteAddress" DB.TextNotNull
   , Tuple "RemotePort" DB.TextNotNull
@@ -164,6 +163,9 @@ schema filename = DB.schema filename "Sensor" $
   , Tuple "ETime" DB.TextNotNull
   , Tuple "Sensor" DB.TextNotNull
   ]
+
+table :: String
+table = "Flow"
 
 writeEntry'' :: Entry -> String
 writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $

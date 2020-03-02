@@ -35,7 +35,7 @@ import HTTP as HTTP
 import Audit as Audit
 
 import SIEM.Logging.Linux as Linux
-import SIEM.Logging.Sensor as Sensor
+import SIEM.Logging.Flow as Flow
 import SIEM.Logging.Windows as Windows
 
 import SIEM.Logging.Statistics as Statistics
@@ -43,16 +43,16 @@ import SIEM.Logging.Statistics as Statistics
 data Route = ReportStatistics String
   | ForwardLinux Linux.Entry
   | ForwardWindows Windows.Entry 
-  | ForwardSensor Sensor.Entry
+  | ForwardFlow Flow.Entry
 
 instance showRoute :: Show Route where
   show (ReportStatistics entry)   = "(ReportStatistics " <> show entry <> ")" 
   show (ForwardLinux entry)       = "(ForwardLinux " <> show entry <> ")"
   show (ForwardWindows entry)     = "(ForwardWindows " <> show entry <> ")"
-  show (ForwardSensor entry)      = "(ForwardSensor " <> show entry <> ")"
+  show (ForwardFlow entry)      = "(ForwardFlow " <> show entry <> ")"
 
 parseRoute :: Parser String Route
-parseRoute = forwardLinux <|> forwardWindows <|> forwardSensor <|> reportStatistics 
+parseRoute = forwardLinux <|> forwardWindows <|> forwardFlow <|> reportStatistics 
   where
     forwardLinux = do
       _     <- string "/forward/linux?q="
@@ -62,10 +62,10 @@ parseRoute = forwardLinux <|> forwardWindows <|> forwardSensor <|> reportStatist
       _     <- string "/forward/windows?q="
       entry <- Windows.parseEntry
       pure (ForwardWindows entry)
-    forwardSensor = do
-      _     <- string "/forward/sensor?q="
-      entry <- Sensor.parseEntry
-      pure (ForwardSensor entry)
+    forwardFlow = do
+      _     <- string "/forward/flow?q="
+      entry <- Flow.parseEntry
+      pure (ForwardFlow entry)
     reportStatistics = do
       _     <- string "/report/statistics?q="
       table <- foldMap singleton <$> many anyChar
@@ -123,12 +123,12 @@ runRoute filename req  = do
       case route of 
         (ForwardWindows entry)       -> (runRequest' filename $ insertWindows entry)       $ req
         (ForwardLinux entry)         -> (runRequest' filename $ insertLinux entry)         $ req 
-        (ForwardSensor entry)        -> (runRequest' filename $ insertSensor entry)        $ req
+        (ForwardFlow entry)        -> (runRequest' filename $ insertFlow entry)        $ req
         (ReportStatistics table)     -> (runRequest' filename $ reportStatistics table)    $ req
   where
     insertWindows     = Windows.insert filename
     insertLinux       = Linux.insert filename
-    insertSensor      = Sensor.insert filename
+    insertFlow      = Flow.insert filename
     reportStatistics  = const <<< Statistics.report filename
     audit             = Audit.application filename
 
@@ -197,7 +197,7 @@ initialize = do
     schemas filename =
       [ Audit.schema filename
       , Windows.schema filename
-      , Sensor.schema filename
+      , Flow.schema filename
       , Linux.schema filename
       ]
     getFilename = pure "logs.db"
