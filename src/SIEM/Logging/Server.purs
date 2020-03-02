@@ -34,30 +34,23 @@ import HTTP as HTTP
 
 import Audit as Audit
 
-import SIEM.Logging.Linux as Linux
 import SIEM.Logging.Flow as Flow
 import SIEM.Logging.Windows as Windows
 
 import SIEM.Logging.Statistics as Statistics
 
 data Route = ReportStatistics String
-  | ForwardLinux Linux.Entry
   | ForwardWindows Windows.Entry 
   | ForwardFlow Flow.Entry
 
 instance showRoute :: Show Route where
   show (ReportStatistics entry)   = "(ReportStatistics " <> show entry <> ")" 
-  show (ForwardLinux entry)       = "(ForwardLinux " <> show entry <> ")"
   show (ForwardWindows entry)     = "(ForwardWindows " <> show entry <> ")"
   show (ForwardFlow entry)      = "(ForwardFlow " <> show entry <> ")"
 
 parseRoute :: Parser String Route
-parseRoute = forwardLinux <|> forwardWindows <|> forwardFlow <|> reportStatistics 
+parseRoute = forwardWindows <|> forwardFlow <|> reportStatistics 
   where
-    forwardLinux = do
-      _     <- string "/forward/linux?q="
-      entry <- Linux.parseEntry
-      pure (ForwardLinux entry)
     forwardWindows = do
       _     <- string "/forward/windows?q="
       entry <- Windows.parseEntry
@@ -122,12 +115,10 @@ runRoute filename req  = do
       _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
       case route of 
         (ForwardWindows entry)       -> (runRequest' filename $ insertWindows entry)       $ req
-        (ForwardLinux entry)         -> (runRequest' filename $ insertLinux entry)         $ req 
         (ForwardFlow entry)        -> (runRequest' filename $ insertFlow entry)        $ req
         (ReportStatistics table)     -> (runRequest' filename $ reportStatistics table)    $ req
   where
     insertWindows     = Windows.insert filename
-    insertLinux       = Linux.insert filename
     insertFlow      = Flow.insert filename
     reportStatistics  = const <<< Statistics.report filename
     audit             = Audit.application filename
@@ -198,7 +189,6 @@ initialize = do
       [ Audit.schema filename
       , Windows.schema filename
       , Flow.schema filename
-      , Linux.schema filename
       ]
     getFilename = pure "logs.db"
 

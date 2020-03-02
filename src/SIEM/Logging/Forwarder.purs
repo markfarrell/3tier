@@ -1,7 +1,6 @@
 module SIEM.Logging.Forwarder
   ( forwardWindows
   , forwardFlow
-  , forwardLinux
   , main
   ) where
 
@@ -27,14 +26,12 @@ import Strings as Strings
 
 import SIEM.Logging.Windows as Windows
 import SIEM.Logging.Flow as Flow
-import SIEM.Logging.Linux as Linux
 
-data ForwardType = Windows | Flow | Linux
+data ForwardType = Windows | Flow
 
 forwardType' :: ForwardType -> String
 forwardType' Windows = "windows"
 forwardType' Flow = "flow"
-forwardType' Linux = "linux"
 
 forward :: ForwardType -> String -> String -> Aff HTTP.IncomingResponse
 forward forwardType host entry = do
@@ -50,9 +47,6 @@ forwardWindows = forward Windows
 
 forwardFlow :: String -> String -> Aff HTTP.IncomingResponse
 forwardFlow = forward Flow
-
-forwardLinux :: String -> String -> Aff HTTP.IncomingResponse
-forwardLinux = forward Linux
 
 forwarder :: forall a. Show a => ForwardType -> (a -> Either Error String) -> String -> Consumer a Aff Unit
 forwarder forwardType write host = forever $ do
@@ -75,13 +69,8 @@ main = do
       producer  <- liftEffect (Flow.createReader Process.stdin)
       consumer  <- pure $ forwarderFlow host
       runProcess $ pullFrom consumer producer
-    [host, "linux"] -> void $ launchAff $ do
-      producer  <- liftEffect (Linux.createReader Process.stdin)
-      consumer  <- pure $ forwarderLinux host
-      runProcess $ pullFrom consumer producer
-    _                 -> pure unit
+    _ -> pure unit
   where
     forwarderWindows = forwarder Windows Windows.writeEntry
     forwarderFlow  = forwarder Flow Flow.writeEntry
-    forwarderLinux   = forwarder Linux Linux.writeEntry
     argv'  = Array.drop 2 Process.argv
