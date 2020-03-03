@@ -9,6 +9,8 @@ module Flow
 
 import Prelude
 
+import Control.Alt ((<|>))
+
 import Control.Coroutine (Producer)
 import Control.Coroutine.Aff (produce, emit)
 
@@ -187,31 +189,57 @@ time = do
       , millis
       ]
 
+{-- Parses a valid lowercase letter, or fails otherwise. --}
+lowercase :: Parser String String
+lowercase = choice (string <$> letters)
+  where 
+    letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
+      <> ["i", "j", "k", "l", "m", "n", "o", "p"] 
+      <> ["q", "r", "s", "t", "u", "v", "w", "x"]
+      <> ["y", "z"]
+
+{-- Parses a valid uppercase letter, or fails otherwise. --}
+uppercase :: Parser String String
+uppercase = choice (string <$> letters)
+  where 
+    letters = ["A", "B", "C", "D", "E", "F", "G", "H"]
+      <> ["I", "J", "K", "L", "M", "N", "O", "P"] 
+      <> ["Q", "R", "S", "T", "U", "V", "W", "Z"]
+      <> ["Y", "Z"]
+
+{-- Parses a valid name for a SiLk sensor from a set of whitelisted characters. --}
+sensor :: Parser String String
+sensor = foldMap id <$> List.many whitelist
+  where  
+    other     = choice (string <$> ["-", "_", "."])
+    whitelist = lowercase <|> uppercase <|> digit <|> other
+
+{-- Parses a valid SiLk flow record based on the parsers defined for its fields, or fails otherwise. --}
 parse :: Parser String Entry
 parse = do
   sIP       <- ipv4
-  _         <- char delimiter
+  _         <- comma
   dIP       <- ipv4
-  _         <- char delimiter
+  _         <- comma
   sPort     <- port
-  _         <- char delimiter
+  _         <- comma
   dPort     <- port
-  _         <- char delimiter
+  _         <- comma
   protocol  <- octet
-  _         <- char delimiter
+  _         <- comma
   packets   <- digits
-  _         <- char delimiter
+  _         <- comma
   bytes     <- digits
-  _         <- char delimiter
+  _         <- comma
   flags'    <- flags
-  _         <- char delimiter
+  _         <- comma
   sTime     <- time
-  _         <- char delimiter
+  _         <- comma
   duration' <- duration
-  _         <- char delimiter
+  _         <- comma
   eTime     <- time
-  _         <- char delimiter
-  sensor    <- parseValue
+  _         <- comma
+  sensor'   <- sensor
   pure $ Entry
     { sIP      : sIP
     , dIP      : dIP
@@ -224,8 +252,9 @@ parse = do
     , sTime    : sTime
     , duration : duration'
     , eTime    : eTime
-    , sensor   : sensor
+    , sensor   : sensor'
     }
+  where comma = char delimiter
 
 insert :: DB.Database -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename (Entry entry) req = do
