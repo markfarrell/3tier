@@ -23,6 +23,7 @@ import Effect.Exception (error) as Exception
 
 import Data.Array as Array
 import Data.List as List
+import Data.Maybe (Maybe(..))
 
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
@@ -74,9 +75,11 @@ delimiter = ','
 parseValue :: Parser String String
 parseValue = foldMap singleton <$> List.many (satisfy $ not <<< eq delimiter)
 
+{-- Parses a valid digit, 0-9, or fails otherwise. --}
 digit :: Parser String String
 digit = choice (string <$> ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
 
+{-- Parses a valid octet, 0-255, or fails otherwise. --}
 octet :: Parser String String
 octet = do
   w <- Array.many digit
@@ -86,7 +89,7 @@ octet = do
     [x]       -> pure x
     _         -> fail "Invalid octet."
 
-{-- Parses a valid IPv4 address (or fails otherwise). --}
+{-- Parses a valid IPv4 address, 0.0.0.0-255.255.255.255, or fails otherwise. --}
 ipv4 :: Parser String String
 ipv4 = do
   w <- octet
@@ -96,8 +99,17 @@ ipv4 = do
   y <- octet
   _ <- string dot
   z <- octet
-  pure (w <> dot <> x <> dot <> y <> dot <> z )
+  pure (w <> dot <> x <> dot <> y <> dot <> z)
   where dot = "."
+
+{-- Parses a valid port number, 0-65535, or fail otherwise. --}
+port :: Parser String String
+port = do
+  w <- foldMap (\x -> x) <$> Array.many digit
+  case Array.elemIndex w ports of
+    (Just _)  -> pure w
+    (Nothing) -> fail "Invalid port."
+  where ports = show <$> Array.range 0 65535
 
 parse :: Parser String Entry
 parse = do
@@ -105,9 +117,9 @@ parse = do
   _        <- char delimiter
   dIP      <- ipv4
   _        <- char delimiter
-  sPort    <- parseValue
+  sPort    <- port
   _        <- char delimiter
-  dPort    <- parseValue
+  dPort    <- port
   _        <- char delimiter
   protocol <- parseValue
   _        <- char delimiter

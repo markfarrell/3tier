@@ -142,7 +142,7 @@ testFlow filename = assert' label  =<< try do
   _       <- testStatistics expect' filename table
   pure unit
   where
-    entry   = "0.0.0.0,192.168.2.200,3000,37396,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
+    entry   = "0.0.0.0,0.12.123.255,0,65535,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
     label   = "Test.Flow"
     table   = "Flow"
     expect = Statistics.Entry $ 
