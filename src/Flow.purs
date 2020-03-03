@@ -126,31 +126,42 @@ flags = foldMap id <$> List.many flag
 digits :: Parser String String
 digits = foldMap id <$> List.many digit
 
+{-- Parses a valid duration for SiLk flow record. --}
+duration :: Parser String String
+duration = do
+  w <- digit
+  _ <- string dot
+  x <- digit
+  y <- digit
+  z <- digit
+  pure (w <> dot <> x <> y <> z)
+  where dot = "." 
+
 parse :: Parser String Entry
 parse = do
-  sIP      <- ipv4
-  _        <- char delimiter
-  dIP      <- ipv4
-  _        <- char delimiter
-  sPort    <- port
-  _        <- char delimiter
-  dPort    <- port
-  _        <- char delimiter
-  protocol <- octet
-  _        <- char delimiter
-  packets  <- digits
-  _        <- char delimiter
-  bytes    <- digits
-  _        <- char delimiter
-  flags'   <- flags
-  _        <- char delimiter
-  sTime    <- parseValue
-  _        <- char delimiter
-  duration <- parseValue
-  _        <- char delimiter
-  eTime    <- parseValue
-  _        <- char delimiter
-  sensor   <- parseValue
+  sIP       <- ipv4
+  _         <- char delimiter
+  dIP       <- ipv4
+  _         <- char delimiter
+  sPort     <- port
+  _         <- char delimiter
+  dPort     <- port
+  _         <- char delimiter
+  protocol  <- octet
+  _         <- char delimiter
+  packets   <- digits
+  _         <- char delimiter
+  bytes     <- digits
+  _         <- char delimiter
+  flags'    <- flags
+  _         <- char delimiter
+  sTime     <- parseValue
+  _         <- char delimiter
+  duration' <- duration
+  _         <- char delimiter
+  eTime     <- parseValue
+  _         <- char delimiter
+  sensor    <- parseValue
   pure $ Entry
     { sIP      : sIP
     , dIP      : dIP
@@ -161,7 +172,7 @@ parse = do
     , bytes    : bytes
     , flags    : flags'
     , sTime    : sTime
-    , duration : duration
+    , duration : duration'
     , eTime    : eTime
     , sensor   : sensor
     }
