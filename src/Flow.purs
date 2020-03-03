@@ -137,6 +137,56 @@ duration = do
   pure (w <> dot <> x <> y <> z)
   where dot = "." 
 
+{-- Parses a valid sTime or eTime for a SiLk flow record (assume UTC time). --}
+time :: Parser String String
+time = do
+  year   <- digits
+  _      <- string "/"
+  month  <- digits
+  _      <- string "/"
+  day    <- digits
+  _      <- string "T"
+  hour   <- digits
+  _      <- string ":"
+  minute <- digits
+  _      <- string ":"
+  second <- digits
+  _      <- string "."
+  millis <- digits
+  case Date.isValid (format year month day hour minute second millis) of
+    true  -> pure $ format' year month day hour minute second millis
+    false -> fail "Invalid sTime or eTime."
+  where
+    format year month day hour minute second millis = foldl (<>) year $
+      [ "-"
+      , month
+      , "-"
+      , day
+      , "T"
+      , hour
+      , ":"
+      , minute
+      , ":"
+      , second
+      , "."
+      , millis
+      , "Z"
+      ]
+    format' year month day hour minute second millis = foldl (<>) year $
+      [ "/"
+      , month
+      , "/"
+      , day
+      , "T"
+      , hour
+      , ":"
+      , minute
+      , ":"
+      , second
+      , "."
+      , millis
+      ]
+
 parse :: Parser String Entry
 parse = do
   sIP       <- ipv4
@@ -155,11 +205,11 @@ parse = do
   _         <- char delimiter
   flags'    <- flags
   _         <- char delimiter
-  sTime     <- parseValue
+  sTime     <- time
   _         <- char delimiter
   duration' <- duration
   _         <- char delimiter
-  eTime     <- parseValue
+  eTime     <- time
   _         <- char delimiter
   sensor    <- parseValue
   pure $ Entry

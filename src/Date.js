@@ -12,3 +12,7 @@ exports.toISOString = function(date) {
 exports.getMilliseconds = function(date) {
   return date.getMilliseconds();
 };
+
+exports.isValid = function(dateString) {
+  return !(isNaN(Date.parse(dateString)));
+};
