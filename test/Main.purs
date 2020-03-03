@@ -39,7 +39,7 @@ testRequest label request = do
     (Left error)            -> throwError error
     (Right (Tuple x steps)) -> pure x
 
-testSchema :: String -> Aff Unit
+testSchema :: DB.Database -> Aff Unit
 testSchema filename = assert' label =<< try do
   _ <- testRequest "Test.DB.touch"                       $ DB.touch filename
   _ <- testRequest "Test.DB.remove"                      $ remove' filename
@@ -119,11 +119,11 @@ testForwardFlow query = do
     statusCode' (HTTP.IncomingResponse _ req) = HTTP.statusCode req
       
 
-testInsertFlow :: String -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
+testInsertFlow :: DB.Database -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertFlow filename entry req = testRequest label $ Flow.insert filename entry req
   where label = "Test.Flow.insert"
 
-testStatistics :: Statistics.Entry -> String -> String -> Aff Statistics.Entry
+testStatistics :: Statistics.Entry -> DB.Database -> DB.Table -> Aff Statistics.Entry
 testStatistics expect filename table = do
   entry  <- testRequest label $ Statistics.statistics filename table
   _      <- assert label' expect $ entry
@@ -132,7 +132,7 @@ testStatistics expect filename table = do
     label  = "Test.Statistics.statistics " <> table <> " (1)"
     label' = "Test.Statistics.statistics " <> table <> " (2)"
 
-testFlow :: String -> Aff Unit
+testFlow :: DB.Database -> Aff Unit
 testFlow filename = assert' label  =<< try do
   entry'  <- testParseFlow entry
   entry'' <- testWriteFlow entry'

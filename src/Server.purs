@@ -85,7 +85,7 @@ instance contentJSONUnit :: ContentJSON Unit where
 instance contentJSONString :: ContentJSON String where
   showJSON x = x
 
-runRequest' :: forall a. ContentJSON a => String -> (HTTP.IncomingMessage -> DB.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runRequest' :: forall a. ContentJSON a => DB.Database -> (HTTP.IncomingMessage -> DB.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRequest' filename request req = do
   result' <- DB.runRequest $ request req
   case result' of
@@ -97,7 +97,7 @@ runRequest' filename request req = do
      pure $ Ok (TextJSON (showJSON result''))
   where audit = Audit.application filename
 
-runRoute :: String -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runRoute :: DB.Database -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute filename req  = do
   result <-  pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
   case result of
@@ -146,7 +146,7 @@ producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
 producer server = produce \emitter -> do
   HTTP.onRequest (\req res -> emit emitter $ HTTP.IncomingRequest req res) $ server
 
-consumer :: String -> Consumer HTTP.IncomingRequest Aff Unit
+consumer :: DB.Database -> Consumer HTTP.IncomingRequest Aff Unit
 consumer filename = forever $ do
   request <- await
   case request of
@@ -166,10 +166,10 @@ consumer filename = forever $ do
     runRoute' = runRoute filename
     audit     = Audit.application filename
 
-process :: String -> HTTP.Server -> Process Aff Unit
+process :: DB.Database -> HTTP.Server -> Process Aff Unit
 process filename server = pullFrom (consumer filename) (producer server)
 
-initialize :: DB.Request String
+initialize :: DB.Request DB.Database
 initialize = do
   filename <- lift $ getFilename
   _        <- DB.touch filename

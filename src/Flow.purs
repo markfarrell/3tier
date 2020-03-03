@@ -111,7 +111,7 @@ parseEntry = do
     , sensor   : sensor
     }
 
-insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert :: DB.Database -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename (Entry entry) req = do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
   DB.insert filename table $ params timestamp
@@ -141,7 +141,7 @@ insert filename (Entry entry) req = do
     entryID       = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
     logID         = UUIDv1.defaultUUID
 
-schema :: String -> DB.Request Unit
+schema :: DB.Database -> DB.Request Unit
 schema filename = DB.schema filename table $
   [ Tuple "Timestamp" DB.TextNotNull
   , Tuple "RemoteAddress" DB.TextNotNull
@@ -162,7 +162,7 @@ schema filename = DB.schema filename table $
   , Tuple "Sensor" DB.TextNotNull
   ]
 
-table :: String
+table :: DB.Table
 table = "Flow"
 
 writeEntry'' :: Entry -> String

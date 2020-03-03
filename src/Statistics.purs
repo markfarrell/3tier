@@ -26,10 +26,10 @@ import JSON as JSON
 
 import DB as DB
 
-entries :: String -> String
+entries :: DB.Table -> DB.Table
 entries table = "SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID, RemoteAddress" 
 
-sum :: String -> String -> DB.Request Number
+sum :: DB.Database -> DB.Table -> DB.Request Number
 sum filename table = do
   results <- DB.select runResult filename query
   case results of
@@ -44,7 +44,7 @@ sum filename table = do
     error = Exception.error "Unexpected results."
     query = "SELECT SUM(Entries) AS Total FROM (" <> (entries table) <> ")"
 
-average :: String -> String -> DB.Request Number
+average :: DB.Database -> DB.Table -> DB.Request Number
 average filename table = do
   results <- DB.select runResult filename query
   case results of
@@ -60,7 +60,7 @@ average filename table = do
     error = Exception.error "Unexpected results."
     query = "SELECT AVG(Entries) AS Average FROM (" <> (entries table) <> ")"
 
-minimum :: String -> String -> DB.Request Number
+minimum :: DB.Database  -> DB.Table -> DB.Request Number
 minimum filename table = do
   results <- DB.select runResult filename query
   case results of
@@ -75,7 +75,7 @@ minimum filename table = do
     error = Exception.error "Unexpected results."
     query = "SELECT MIN(Entries) AS Minimum FROM (" <> (entries table) <> ")"
 
-maximum :: String -> String -> DB.Request Number
+maximum :: DB.Database -> DB.Table -> DB.Request Number
 maximum filename table = do
   results <- DB.select runResult filename query
   case results of
@@ -90,7 +90,7 @@ maximum filename table = do
     error = Exception.error "Unexpected results."
     query = "SELECT MAX(Entries) AS Maximum FROM (" <> (entries table) <> ")"
 
-totals :: String -> String -> DB.Request (Array Number)
+totals :: DB.Database -> DB.Table -> DB.Request (Array Number)
 totals filename table = DB.select runResult filename query
   where
     runResult row = do
@@ -103,7 +103,7 @@ totals filename table = DB.select runResult filename query
       pure total'
     query = entries table
 
-total :: String -> String -> DB.Request Number
+total :: DB.Database  -> DB.Table -> DB.Request Number
 total filename table = do
   results <- DB.select runResult filename query
   case results of
@@ -118,7 +118,7 @@ total filename table = do
     error = Exception.error "Unexpected results."
     query = "SELECT COUNT(*) as Total FROM (" <> (entries table) <> ")"
 
-variance :: String -> String -> DB.Request Number
+variance :: DB.Database -> DB.Table -> DB.Request Number
 variance filename table = do
   results <- totals filename table
   case results of
@@ -149,7 +149,7 @@ instance showEntry :: Show Entry where
 instance eqEntry :: Eq Entry where
   eq (Entry x) (Entry y) = x == y
 
-statistics :: String -> String -> DB.Request Entry
+statistics :: DB.Database  -> DB.Table -> DB.Request Entry
 statistics filename table = do
   min'      <- minimum filename table
   max'      <- maximum filename table
@@ -166,14 +166,14 @@ statistics filename table = do
     , variance  : variance'
     }
 
-report :: String -> String -> DB.Request String
+report :: DB.Database -> DB.Table -> DB.Request String
 report filename table = do
   result  <- writeEntry <$> statistics filename table
   case result of
     (Left _)        -> throwError $ Exception.error "Unexpected behaviour."
     (Right result') -> pure result' 
 
-schema :: String -> DB.Request Unit
+schema :: DB.Database -> DB.Request Unit
 schema filename = DB.schema filename "Statistics" $
   [ Tuple "Timestamp" DB.TextNotNull
   , Tuple "RemoteAddress" DB.TextNotNull

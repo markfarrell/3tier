@@ -3,6 +3,8 @@ module DB
  , Interpreter
  , Request
  , Result
+ , Database
+ , Table
  , ColumnType(..)
  , close
  , connect
@@ -34,9 +36,13 @@ import Arrays as Arrays
 
 import SQLite3 as SQLite3
 
+type Database = String
+
+type Table = String
+
 data RequestDSL a = Close SQLite3.Database (Unit -> a)
-  | Connect String SQLite3.Mode (SQLite3.Database -> a) 
-  | All String SQLite3.Database (Array SQLite3.Row -> a)
+  | Connect Database SQLite3.Mode (SQLite3.Database -> a) 
+  | All Table SQLite3.Database (Array SQLite3.Row -> a)
 
 instance functorRequestDSL :: Functor RequestDSL where
   map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
@@ -53,13 +59,13 @@ type Result a = Either Error (Tuple a (Array String))
 close :: SQLite3.Database -> Request Unit
 close database = liftFreeT $ (Close database identity)
 
-connect :: String -> SQLite3.Mode -> Request SQLite3.Database
+connect :: Database -> SQLite3.Mode -> Request SQLite3.Database
 connect filename mode = liftFreeT $ (Connect filename mode identity)
 
 all :: String -> SQLite3.Database -> Request (Array SQLite3.Row)
 all query database = liftFreeT $ (All query database identity)
 
-insert :: String -> String -> Array (Tuple String String) -> Request Unit
+insert :: Database -> Table -> Array (Tuple String String) -> Request Unit
 insert filename table' params = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
@@ -72,7 +78,7 @@ insert filename table' params = do
      columns' = fst <$> params
      values'  = snd <$> params
 
-select :: forall a. (SQLite3.Row -> Aff a) -> String -> String -> Request (Array a)
+select :: forall a. (SQLite3.Row -> Aff a) -> Database -> String -> Request (Array a)
 select runResult filename query = do
   database <- connect filename SQLite3.OpenReadOnly
   rows     <- all query $ database
@@ -82,7 +88,7 @@ select runResult filename query = do
 
 data ColumnType = TextNotNull
 
-remove :: String -> String -> Request Unit
+remove :: Database -> Table -> Request Unit
 remove filename table' = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
@@ -90,7 +96,7 @@ remove filename table' = do
   lift $ pure unit
   where query = "DROP TABLE IF EXISTS " <> table'
 
-schema :: String -> String -> Array (Tuple String ColumnType) -> Request Unit
+schema :: Database -> Table -> Array (Tuple String ColumnType) -> Request Unit
 schema filename table' params = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
@@ -103,7 +109,7 @@ schema filename table' params = do
      column param           = Arrays.join " " $ [fst param, columnType $ snd param]
      columnType TextNotNull = "TEXT NOT NULL"
 
-touch :: String -> Request Unit
+touch :: Database -> Request Unit
 touch filename = do
   database <- connect filename SQLite3.OpenCreate
   _        <- close database
