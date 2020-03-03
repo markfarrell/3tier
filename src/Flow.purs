@@ -102,14 +102,29 @@ ipv4 = do
   pure (w <> dot <> x <> dot <> y <> dot <> z)
   where dot = "."
 
-{-- Parses a valid port number, 0-65535, or fail otherwise. --}
+id :: forall a. a -> a
+id x = x
+
+{-- Parses a valid port number, 0-65535, or failw otherwise. --}
 port :: Parser String String
 port = do
-  w <- foldMap (\x -> x) <$> Array.many digit
+  w <- foldMap id <$> List.many digit
   case Array.elemIndex w ports of
     (Just _)  -> pure w
     (Nothing) -> fail "Invalid port."
   where ports = show <$> Array.range 0 65535
+
+{-- Parses a valid TCP flag. --}
+flag :: Parser String String
+flag = choice (string <$> ["U", "A", "P", "R", "S", "F"])
+
+{-- Parses a valid string of TCP flags. --}
+flags :: Parser String String
+flags = foldMap id <$> List.many flag
+
+{-- Parses a valid string of digits. --}
+digits :: Parser String String
+digits = foldMap id <$> List.many digit
 
 parse :: Parser String Entry
 parse = do
@@ -121,13 +136,13 @@ parse = do
   _        <- char delimiter
   dPort    <- port
   _        <- char delimiter
-  protocol <- parseValue
+  protocol <- octet
   _        <- char delimiter
-  packets  <- parseValue
+  packets  <- digits
   _        <- char delimiter
-  bytes    <- parseValue
+  bytes    <- digits
   _        <- char delimiter
-  flags    <- parseValue
+  flags'   <- flags
   _        <- char delimiter
   sTime    <- parseValue
   _        <- char delimiter
@@ -144,7 +159,7 @@ parse = do
     , protocol : protocol
     , packets  : packets
     , bytes    : bytes
-    , flags    : flags
+    , flags    : flags'
     , sTime    : sTime
     , duration : duration
     , eTime    : eTime
