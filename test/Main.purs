@@ -19,15 +19,12 @@ import HTTP as HTTP
 import RSA as RSA
 
 import DB as DB
-
-import Flow as Flow
-
-import Test.Forwarder as Forwarder
-import Server as Server
-
-import Statistics as Statistics
+import Strings as Strings
 
 import Audit as Audit
+import Flow as Flow
+import Server as Server
+import Statistics as Statistics
 
 import Assert (assert)
 
@@ -97,12 +94,19 @@ testWriteFlow entry = do
     (Right entry') -> pure entry'
   where label = "Test.Flow.writeEntry"
 
+forwardFlow :: String -> String -> Aff HTTP.IncomingResponse
+forwardFlow host query = do
+  req <- HTTP.createRequest HTTP.Post url
+  res <- HTTP.endRequest req
+  pure res
+  where url = "http://" <> host <> "/forward/flow?q=" <> (Strings.encodeURIComponent query)
+
 testForwardFlow :: String -> Aff HTTP.IncomingResponse
-testForwardFlow entry = do
+testForwardFlow query = do
   server <- liftEffect (HTTP.createServer)
   fiber  <- Server.start server
   _      <- liftEffect (HTTP.listen port $ server)
-  result <- Forwarder.forwardFlow host entry
+  result <- forwardFlow host query
   _      <- assert label ok $ statusCode' result
   _      <- flip killFiber fiber $ error "Expected behaviour."
   _      <- liftEffect (HTTP.close server)
@@ -113,6 +117,7 @@ testForwardFlow entry = do
     host = "127.0.0.1:4000"
     label = "Test.Test.Forwarder.forwardFlow"
     statusCode' (HTTP.IncomingResponse _ req) = HTTP.statusCode req
+      
 
 testInsertFlow :: String -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertFlow filename entry req = testRequest label $ Flow.insert filename entry req
