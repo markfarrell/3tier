@@ -33,7 +33,8 @@ import Data.String.CodeUnits (singleton)
 import Data.List(many)
 
 import Text.Parsing.Parser (Parser, runParser)
-import Text.Parsing.Parser.String (char, satisfy)
+import Text.Parsing.Parser.String (char, satisfy, string)
+import Text.Parsing.Parser.Combinators (choice)
 
 import Date as Date
 import HTTP as HTTP
@@ -71,11 +72,36 @@ delimiter = ','
 parseValue :: Parser String String
 parseValue = foldMap singleton <$> many (satisfy $ not <<< eq delimiter)
 
+parseIPv4 :: Parser String String
+parseIPv4 = do
+  w <- segment
+  _ <- string dot
+  x <- segment
+  _ <- string dot
+  y <- segment
+  _ <- string dot
+  z <- segment
+  pure (w <> dot <> x <> dot <> y <> dot <> z)
+  where
+    dot         = "."
+    digits      = string <$> ["0","1","2","3","4","5","6","7","8","9"]
+    oneDigit    = choice digits
+    twoDigits   = do
+       x <- oneDigit
+       y <- oneDigit
+       pure (x <> y)
+    threeDigits = do
+       x <- oneDigit
+       y <- oneDigit
+       z <- oneDigit
+       pure (x <> y <> z)
+    segment = choice [oneDigit, twoDigits, threeDigits]
+
 parseEntry :: Parser String Entry
 parseEntry = do
-  sIP      <- parseValue
+  sIP      <- parseIPv4
   _        <- char delimiter
-  dIP      <- parseValue
+  dIP      <- parseIPv4
   _        <- char delimiter
   sPort    <- parseValue
   _        <- char delimiter
