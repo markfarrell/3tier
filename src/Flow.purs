@@ -21,6 +21,9 @@ import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 import Effect.Exception (error) as Exception
 
+import Data.Array as Array
+import Data.List as List
+
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
 
@@ -30,10 +33,10 @@ import Data.Newtype (unwrap)
 import Data.Foldable (foldl)
 import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
-import Data.List(many)
 
-import Text.Parsing.Parser (Parser, runParser)
-import Text.Parsing.Parser.String (char, satisfy)
+import Text.Parsing.Parser (Parser, fail, runParser)
+import Text.Parsing.Parser.String (char, satisfy, string)
+import Text.Parsing.Parser.Combinators (choice)
 
 import Date as Date
 import HTTP as HTTP
@@ -69,13 +72,38 @@ delimiter :: Char
 delimiter = ','
 
 parseValue :: Parser String String
-parseValue = foldMap singleton <$> many (satisfy $ not <<< eq delimiter)
+parseValue = foldMap singleton <$> List.many (satisfy $ not <<< eq delimiter)
+
+digit :: Parser String String
+digit = choice (string <$> ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
+
+octet :: Parser String String
+octet = do
+  w <- Array.many digit
+  case w of
+    [x, y, z] -> pure (x <> y <> z)
+    [x, y]    -> pure (x <> y)
+    [x]       -> pure x
+    _         -> fail "Invalid octet."
+
+{-- Parses a valid IPv4 address (or fails otherwise). --}
+ipv4 :: Parser String String
+ipv4 = do
+  w <- octet
+  _ <- string dot
+  x <- octet
+  _ <- string dot
+  y <- octet
+  _ <- string dot
+  z <- octet
+  pure (w <> dot <> x <> dot <> y <> dot <> z )
+  where dot = "."
 
 parse :: Parser String Entry
 parse = do
-  sIP      <- parseValue
+  sIP      <- ipv4
   _        <- char delimiter
-  dIP      <- parseValue
+  dIP      <- ipv4
   _        <- char delimiter
   sPort    <- parseValue
   _        <- char delimiter
