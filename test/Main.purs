@@ -78,21 +78,21 @@ testServer = assert' label =<< try do
 
 testParseFlow :: String -> Aff Flow.Entry
 testParseFlow entry = do
-  result <- pure $ runParser entry Flow.parseEntry
+  result <- pure $ runParser entry Flow.parse
   _      <- assert' label $ result
   case result of
     (Left _)       -> throwError $ error "Unexpected behaviour."
     (Right entry') -> pure entry'
-  where label = "Test.Flow.parseEntry"
+  where label = "Test.Flow.parse"
 
-testWriteFlow :: Flow.Entry -> Aff String
-testWriteFlow entry = do
-  result <- pure $ Flow.writeEntry entry
+testUnparseFlow :: Flow.Entry -> Aff String
+testUnparseFlow entry = do
+  result <- pure $ Flow.unparse entry
   _      <- assert' label result
   case result of
     (Left _)       -> throwError $ error "Unexpected behaviour."
     (Right entry') -> pure entry'
-  where label = "Test.Flow.writeEntry"
+  where label = "Test.Flow.unparse"
 
 forwardFlow :: String -> String -> Aff HTTP.IncomingResponse
 forwardFlow host query = do
@@ -135,7 +135,7 @@ testStatistics expect filename table = do
 testFlow :: DB.Database -> Aff Unit
 testFlow filename = assert' label  =<< try do
   entry'  <- testParseFlow entry
-  entry'' <- testWriteFlow entry'
+  entry'' <- testUnparseFlow entry'
   _       <- testStatistics expect filename table
   req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardFlow entry''
   _       <- testInsertFlow filename entry' $ req

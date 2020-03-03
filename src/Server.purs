@@ -50,7 +50,7 @@ parseRoute = forwardFlow <|> reportStatistics
   where
     forwardFlow = do
       _     <- string "/forward/flow?q="
-      entry <- Flow.parseEntry
+      entry <- Flow.parse
       pure (ForwardFlow entry)
     reportStatistics = do
       _     <- string "/report/statistics?q="

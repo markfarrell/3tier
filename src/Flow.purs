@@ -1,7 +1,7 @@
 module Flow
   ( Entry (..)
-  , parseEntry
-  , writeEntry
+  , parse
+  , unparse
   , insert
   , schema
   , createReader
@@ -71,8 +71,8 @@ delimiter = ','
 parseValue :: Parser String String
 parseValue = foldMap singleton <$> many (satisfy $ not <<< eq delimiter)
 
-parseEntry :: Parser String Entry
-parseEntry = do
+parse :: Parser String Entry
+parse = do
   sIP      <- parseValue
   _        <- char delimiter
   dIP      <- parseValue
@@ -165,8 +165,8 @@ schema filename = DB.schema filename table $
 table :: DB.Table
 table = "Flow"
 
-writeEntry'' :: Entry -> String
-writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
+unparse'' :: Entry -> String
+unparse'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
   [ entry.dIP
   , entry.sPort
   , entry.dPort
@@ -181,16 +181,16 @@ writeEntry'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
   ]
   where delimiter' = singleton delimiter
 
-writeEntry' :: Entry -> Identity (Either Error String)
-writeEntry' entry = do
-  expect     <- pure $ writeEntry'' entry
-  result'    <- pure $ flip runParser parseEntry $ (writeEntry'' entry)
+unparse' :: Entry -> Identity (Either Error String)
+unparse' entry = do
+  expect     <- pure $ unparse'' entry
+  result'    <- pure $ flip runParser parse $ (unparse'' entry)
   case result' of
     (Left error) -> do
       let result'' = { error : error, expect : expect, entry : entry }
       pure $ Left (Exception.error $ show result'')
     (Right entry')    -> do
-      check <- pure $ writeEntry'' entry'
+      check <- pure $ unparse'' entry'
       let result'' = { check  : check, expect : expect, entry : entry }
       case check == expect of
         true -> do
@@ -198,15 +198,15 @@ writeEntry' entry = do
         false -> do
           pure $ Left (Exception.error $ show result'')
 
-writeEntry :: Entry -> Either Error String
-writeEntry entry = unwrap $ writeEntry' entry
+unparse :: Entry -> Either Error String
+unparse entry = unwrap $ unparse' entry
 
 createReader' :: Readline.Interface -> Producer Entry Aff Unit
 createReader' interface = produce \emitter -> do
   Readline.onLine (\line -> emit' emitter $ line) $ interface
   where
     emit' emitter = \line -> do
-      result <- pure $ flip runParser parseEntry $ line
+      result <- pure $ flip runParser parse $ line
       case result of
         (Left error)  -> pure unit
         (Right entry) -> emit emitter $ entry

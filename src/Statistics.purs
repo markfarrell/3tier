@@ -3,7 +3,7 @@ module Statistics
   , statistics
   , report
   , schema
-  , writeEntry
+  , unparse
   ) where
 
 import Prelude
@@ -168,7 +168,7 @@ statistics filename table = do
 
 report :: DB.Database -> DB.Table -> DB.Request String
 report filename table = do
-  result  <- writeEntry <$> statistics filename table
+  result  <- unparse <$> statistics filename table
   case result of
     (Left _)        -> throwError $ Exception.error "Unexpected behaviour."
     (Right result') -> pure result' 
@@ -190,6 +190,6 @@ schema filename = DB.schema filename "Statistics" $
   , Tuple "Variance" DB.TextNotNull
   ]
 
-writeEntry :: Entry -> Either Error String
-writeEntry (Entry entry) = pure $ stringify entry
+unparse :: Entry -> Either Error String
+unparse (Entry entry) = pure $ stringify entry
   where stringify = JSON.stringify <<< unsafeCoerce
