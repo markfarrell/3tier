@@ -38,7 +38,7 @@ import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
 
 import Text.Parsing.Parser (Parser, fail, runParser)
-import Text.Parsing.Parser.String (char, satisfy, string)
+import Text.Parsing.Parser.String (char, eof, satisfy, string)
 import Text.Parsing.Parser.Combinators (choice)
 
 import Date as Date
@@ -240,6 +240,7 @@ parse = do
   eTime     <- time
   _         <- comma
   sensor'   <- sensor
+  _         <- eof
   pure $ Entry
     { sIP      : sIP
     , dIP      : dIP
