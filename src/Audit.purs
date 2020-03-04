@@ -55,9 +55,9 @@ insert filename (Entry eventType eventID msg) req = do
   where 
     params timestamp =
       [ Tuple "Timestamp" timestamp 
-      , Tuple "RemoteAddress" remoteAddress
-      , Tuple "RemotePort" remotePort'
-      , Tuple "LogID" logID
+      , Tuple "SourceAddress" remoteAddress
+      , Tuple "SourcePort" remotePort'
+      , Tuple "SourceID" sourceID
       , Tuple "EntryID" entryID
       , Tuple "EventType" eventType'
       , Tuple "EventID" eventID'
@@ -66,8 +66,8 @@ insert filename (Entry eventType eventID msg) req = do
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
     remotePort' = show remotePort
-    logID = UUIDv1.defaultUUID
-    entryID = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
+    sourceID = UUIDv1.defaultUUID
+    entryID = UUIDv3.namespaceUUID sourceID $ HTTP.messageURL req
     eventType' = show eventType
     eventID' = show eventID
     message = Strings.encodeBase64 msg
@@ -75,9 +75,9 @@ insert filename (Entry eventType eventID msg) req = do
 schema :: String -> DB.Request Unit
 schema filename = DB.schema filename table $
   [ Tuple "Timestamp" DB.TextNotNull
-  , Tuple "RemoteAddress" DB.TextNotNull
-  , Tuple "RemotePort" DB.TextNotNull
-  , Tuple "LogID" DB.TextNotNull
+  , Tuple "SourceAddress" DB.TextNotNull
+  , Tuple "SourcePort" DB.TextNotNull
+  , Tuple "SourceID" DB.TextNotNull
   , Tuple "EntryID" DB.TextNotNull
   , Tuple "EventType" DB.TextNotNull
   , Tuple "EventID" DB.TextNotNull

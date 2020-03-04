@@ -269,9 +269,9 @@ insert filename (Entry entry) req = do
   where
     params timestamp = 
       [ Tuple "Timestamp" timestamp
-      , Tuple "RemoteAddress" remoteAddress
-      , Tuple "RemotePort" remotePort'
-      , Tuple "LogID" logID
+      , Tuple "SourceAddress" remoteAddress
+      , Tuple "SourcePort" remotePort'
+      , Tuple "SourceID" sourceID
       , Tuple "EntryID" entryID
       , Tuple "SIP" entry.sIP
       , Tuple "DIP" entry.dIP
@@ -289,15 +289,15 @@ insert filename (Entry entry) req = do
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort    = Socket.remotePort $ HTTP.socket req
     remotePort'   = show remotePort
-    entryID       = UUIDv3.namespaceUUID logID $ HTTP.messageURL req
-    logID         = UUIDv1.defaultUUID
+    entryID       = UUIDv3.namespaceUUID sourceID $ HTTP.messageURL req
+    sourceID      = UUIDv1.defaultUUID
 
 schema :: DB.Database -> DB.Request Unit
 schema filename = DB.schema filename table $
   [ Tuple "Timestamp" DB.TextNotNull
-  , Tuple "RemoteAddress" DB.TextNotNull
-  , Tuple "RemotePort" DB.TextNotNull
-  , Tuple "LogID" DB.TextNotNull
+  , Tuple "SourceAddress" DB.TextNotNull
+  , Tuple "SourcePort" DB.TextNotNull
+  , Tuple "SourceID" DB.TextNotNull
   , Tuple "EntryID" DB.TextNotNull
   , Tuple "SIP" DB.TextNotNull
   , Tuple "DIP" DB.TextNotNull
