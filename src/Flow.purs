@@ -123,9 +123,11 @@ flag = choice (string <$> ["U", "A", "P", "R", "S", "F"])
 {-- Parses a valid string of TCP flags. --}
 flags :: Parser String String
 flags = do
-  results <- List.many flag
-  case isValid result of
-    true -> result
+  elems <- List.many flag
+  count <- pure $ List.length elems
+  case (count >= 0) && (count <= 6) of
+    true  -> pure $ foldMap id elems
+    false -> fail "Invalid number of TCP flags."
 
 {-- Parses a valid string of digits. --}
 digits :: Parser String String
