@@ -122,7 +122,10 @@ flag = choice (string <$> ["U", "A", "P", "R", "S", "F"])
 
 {-- Parses a valid string of TCP flags. --}
 flags :: Parser String String
-flags = foldMap id <$> List.many flag
+flags = do
+  results <- List.many flag
+  case isValid result of
+    true -> result
 
 {-- Parses a valid string of digits. --}
 digits :: Parser String String
