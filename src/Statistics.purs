@@ -27,7 +27,7 @@ import JSON as JSON
 import DB as DB
 
 entries :: DB.Table -> DB.Table
-entries table = "SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID, RemoteAddress" 
+entries table = "SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY SourceID, SourceAddress" 
 
 sum :: DB.Database -> DB.Table -> DB.Request Number
 sum filename table = do
@@ -178,7 +178,7 @@ schema filename = DB.schema filename "Statistics" $
   [ Tuple "Timestamp" DB.TextNotNull
   , Tuple "RemoteAddress" DB.TextNotNull
   , Tuple "RemotePort" DB.TextNotNull
-  , Tuple "LogID" DB.TextNotNull
+  , Tuple "SourceID" DB.TextNotNull
   , Tuple "EntryID" DB.TextNotNull
   , Tuple "ReportClass" DB.TextNotNull
   , Tuple "ReportType" DB.TextNotNull 
