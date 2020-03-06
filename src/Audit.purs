@@ -30,7 +30,7 @@ data EventType = Success | Failure
 
 data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest
 
-data Entry = Entry EventType EventID String
+data Entry = Entry EventType EventID Number String
 
 instance showEventType :: Show EventType where
   show Success = "SUCCESS"
@@ -43,13 +43,13 @@ instance showEventID :: Show EventID where
   show RoutingRequest = "ROUTING-REQUEST"
 
 instance showEntry :: Show Entry where
-  show (Entry eventType eventID msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show msg <> ")"
+  show (Entry eventType eventID duration msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> " " <> show duration <> " " <> show msg <> ")"
 
 table :: String
 table = "Audit"
 
 insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insert filename (Entry eventType eventID msg) req = do
+insert filename (Entry eventType eventID duration msg) req = do
   timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
   DB.insert filename table $ params timestamp
   where 
@@ -61,6 +61,7 @@ insert filename (Entry eventType eventID msg) req = do
       , Tuple "EntryID" entryID
       , Tuple "EventType" eventType'
       , Tuple "EventID" eventID'
+      , Tuple "Duration" duration'
       , Tuple "Message" message
       ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
@@ -70,6 +71,7 @@ insert filename (Entry eventType eventID msg) req = do
     entryID = UUIDv3.namespaceUUID sourceID $ HTTP.messageURL req
     eventType' = show eventType
     eventID' = show eventID
+    duration' = show duration
     message = Strings.encodeBase64 msg
 
 schema :: String -> DB.Request Unit
@@ -81,6 +83,7 @@ schema filename = DB.schema filename table $
   , Tuple "EntryID" DB.TextNotNull
   , Tuple "EventType" DB.TextNotNull
   , Tuple "EventID" DB.TextNotNull
+  , Tuple "Duration" DB.RealNotNull
   , Tuple "Message" DB.TextNotNull
   ]
 

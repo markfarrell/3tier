@@ -86,7 +86,7 @@ select runResult filename query = do
   results  <- lift (lift $ sequence (runResult <$> rows))
   lift $ pure results
 
-data ColumnType = TextNotNull
+data ColumnType = TextNotNull | RealNotNull
 
 remove :: Database -> Table -> Request Unit
 remove filename table' = do
@@ -108,6 +108,7 @@ schema filename table' params = do
      columns'               = column <$> params
      column param           = Arrays.join " " $ [fst param, columnType $ snd param]
      columnType TextNotNull = "TEXT NOT NULL"
+     columnType RealNotNull = "REAL NOT NULL"
 
 touch :: Database -> Request Unit
 touch filename = do
