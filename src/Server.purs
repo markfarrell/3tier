@@ -31,11 +31,10 @@ import Strings as Strings
 
 import DB as DB
 import HTTP as HTTP
+import UUIDv1 as UUIDv1
 
 import Audit as Audit
-
 import Flow as Flow
-
 import Statistics as Statistics
 
 data ForwardType = Flow Flow.Entry
@@ -175,7 +174,7 @@ initialize = do
       [ Audit.schema filename
       , Flow.schema filename
       ]
-    getFilename = pure "logs.db"
+    getFilename = pure $ UUIDv1.defaultUUID <> ".db"
 
 start :: HTTP.Server -> Aff (Fiber Unit)
 start server = do

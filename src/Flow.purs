@@ -290,7 +290,7 @@ insert filename (Entry entry) req = do
     remotePort    = Socket.remotePort $ HTTP.socket req
     remotePort'   = show remotePort
     entryID       = UUIDv3.namespaceUUID sourceID $ HTTP.messageURL req
-    sourceID      = UUIDv1.defaultUUID
+    sourceID      = UUIDv3.namespaceUUID UUIDv1.defaultUUID $ remoteAddress
 
 schema :: DB.Database -> DB.Request Unit
 schema filename = DB.schema filename table $
