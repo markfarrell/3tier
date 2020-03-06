@@ -38,26 +38,29 @@ import Flow as Flow
 
 import Statistics as Statistics
 
-data Route = ReportStatistics String
-  | ForwardFlow Flow.Entry
+data ForwardType = Flow Flow.Entry
+
+data ReportType = Statistics DB.Table
+
+data Route = Forward ForwardType | Report ReportType
 
 instance showRoute :: Show Route where
-  show (ReportStatistics entry)   = "(ReportStatistics " <> show entry <> ")" 
-  show (ForwardFlow entry)      = "(ForwardFlow " <> show entry <> ")"
+  show (Report (Statistics table)) = "(Report (Statistics " <> show table <> "))" 
+  show (Forward (Flow entry))      = "(Forward (Flow " <> show entry <> "))"
 
 parseRoute :: Parser String Route
-parseRoute = forwardFlow <|> reportStatistics 
+parseRoute = forward <|> report
   where
-    forwardFlow = do
+    forward = do
       _     <- string "/forward/flow?q="
       entry <- Flow.parse
-      pure (ForwardFlow entry)
-    reportStatistics = do
+      pure (Forward (Flow entry))
+    report  = do
       _     <- string "/report/statistics?q="
       table <- foldMap singleton <$> many anyChar
-      pure (ReportStatistics table)
+      pure (Report (Statistics table))
 
-data ContentType a = TextJSON a | TextHTML a
+data ContentType a = TextJSON a
 
 data AuthenticationType = Bearer
 
@@ -65,7 +68,6 @@ data ResponseType a = Ok (ContentType a) | InternalServerError a | BadRequest St
 
 instance showContentType :: (Show a) => Show (ContentType a) where
   show (TextJSON x) = "(TextJSON (" <> show x <> "))"
-  show (TextHTML x) = "(TextHTML (" <> show x <> "))" 
 
 instance showAuthenticationType :: Show AuthenticationType where
   show Bearer = "Bearer"
@@ -107,10 +109,10 @@ runRoute filename req  = do
     (Right route) -> do
       _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest (show route)) $ req
       case route of 
-        (ForwardFlow entry)        -> (runRequest' filename $ insertFlow entry)        $ req
-        (ReportStatistics table)     -> (runRequest' filename $ reportStatistics table)    $ req
+        (Forward (Flow entry))          -> (runRequest' filename $ insertFlow entry)        $ req
+        (Report (Statistics table))     -> (runRequest' filename $ reportStatistics table)  $ req
   where
-    insertFlow      = Flow.insert filename
+    insertFlow        = Flow.insert filename
     reportStatistics  = const <<< Statistics.report filename
     audit             = Audit.application filename
 
@@ -121,13 +123,6 @@ respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
   _ <- HTTP.write body $ res
   _ <- HTTP.end $ res
   pure unit
-respondResource (Ok (TextHTML body)) = \res -> liftEffect $ do
-  _ <- HTTP.setHeader "Content-Type" "text/html" $ res
-  _ <- HTTP.writeHead 200 $ res
-  _ <- HTTP.write body $ res
-  _ <- HTTP.end $ res
-  pure unit
-
 respondResource (BadRequest _) = \res -> liftEffect $ do
   _ <- HTTP.writeHead 400 $ res
   _ <- HTTP.end $ res
