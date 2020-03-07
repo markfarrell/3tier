@@ -39,5 +39,5 @@ for i in $(seq $N); do
 	RESULT=$?
 	END_TIME=$(date +%s%N | cut -b1-13)
 	DURATION=$(($END_TIME - $START_TIME))
-	echo "$RESULT,$DURATION,$FLOW_RECORD"
+	echo "$RESULT,$DURATION"
 done

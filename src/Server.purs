@@ -99,16 +99,16 @@ runRequest' filename request req = do
   duration    <- pure $ endTime - startTime
   case result' of
     (Left error)             -> do 
-     _     <- audit (Audit.Entry Audit.Failure Audit.DatabaseRequest duration (show error)) $ req 
-     pure $ InternalServerError ""
+      _ <- audit' duration Audit.Failure result' $ req
+      pure $ InternalServerError ""
     (Right (Tuple result'' steps)) -> do
-     _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest duration (show steps)) $ req 
-     pure $ Ok (TextJSON (showJSON result''))
+      _ <- audit' duration Audit.Success result' $ req
+      pure $ Ok (TextJSON (showJSON result''))
   where 
     audit                 = Audit.application filename
-    audit' x y z          = audit $ Audit.Entry x Audit.DatabaseRequest y (audit'' z)
+    audit' x y z          = audit x $ Audit.Entry y Audit.DatabaseRequest (audit'' z)
     audit'' (Left _)      = "" 
-    audit'' (Right steps) = steps
+    audit'' (Right (Tuple _ steps)) = show steps
 
 runRoute :: DB.Database -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute filename req  = do
@@ -118,10 +118,10 @@ runRoute filename req  = do
   duration  <- pure $ endTime - startTime
   case result of
     (Left _     ) -> do 
-      _ <- audit' Audit.Failure duration result $ req
+      _ <- audit' duration Audit.Failure result $ req
       pure $ BadRequest (HTTP.messageURL req)
     (Right route) -> do
-      _ <- audit' Audit.Success duration result $ req
+      _ <- audit' duration Audit.Success result $ req
       case route of 
         (Forward (Flow entry))          -> (runRequest' filename $ insertFlow entry)        $ req
         (Report (Statistics table))     -> (runRequest' filename $ reportStatistics table)  $ req
@@ -129,7 +129,7 @@ runRoute filename req  = do
     insertFlow        = Flow.insert filename
     reportStatistics  = const <<< Statistics.report filename
     audit             = Audit.application filename
-    audit' x y z      = audit $ Audit.Entry x Audit.RoutingRequest y (audit'' z)
+    audit' x y z      = audit x $ Audit.Entry y Audit.RoutingRequest (audit'' z)
     audit'' (Left _)                         = ""
     audit'' (Right (Forward (Flow _)))       = "FORWARD-FLOW"
     audit'' (Right (Report  (Statistics _))) = "REPORT-STATISTICS"
@@ -169,18 +169,18 @@ consumer filename = forever $ do
       endTime     <- lift $ now
       duration    <- lift $ pure (endTime - startTime)
       case routeResult of
-        (Left  error)        -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceRequest duration default) $ req
+        (Left  error)        -> lift $ audit duration (Audit.Entry Audit.Failure Audit.ResourceRequest default) $ req
         (Right ty) -> do
            _ <- case ty of
-                  (Ok _) -> lift $ audit (Audit.Entry Audit.Success Audit.ResourceRequest duration default) $ req
-                  _      -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceRequest duration default) $ req
+                  (Ok _) -> lift $ audit duration (Audit.Entry Audit.Success Audit.ResourceRequest default) $ req
+                  _      -> lift $ audit duration (Audit.Entry Audit.Failure Audit.ResourceRequest default) $ req
            startTime'     <- lift $ now
            responseResult <- lift $ try (respondResource ty res)
            endTime'       <- lift $ now
            duration'      <- lift $ pure (endTime' - startTime')
            case responseResult of
-             (Left _     )   -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceResponse duration' default)   $ req
-             (Right _)       -> lift $ audit (Audit.Entry Audit.Success Audit.ResourceResponse duration' (responseType ty)) $ req 
+             (Left  _)   -> lift $ audit duration' (Audit.Entry Audit.Failure Audit.ResourceResponse default)   $ req
+             (Right _)   -> lift $ audit duration' (Audit.Entry Audit.Success Audit.ResourceResponse (responseType ty)) $ req 
   where 
     runRoute' = runRoute filename
     audit     = Audit.application filename

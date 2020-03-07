@@ -86,7 +86,9 @@ select runResult filename query = do
   results  <- lift (lift $ sequence (runResult <$> rows))
   lift $ pure results
 
-data ColumnType = TextNotNull | RealNotNull
+type Column = Tuple String ColumnType
+ 
+data ColumnType = Text | Real
 
 remove :: Database -> Table -> Request Unit
 remove filename table' = do
@@ -96,19 +98,21 @@ remove filename table' = do
   lift $ pure unit
   where query = "DROP TABLE IF EXISTS " <> table'
 
-schema :: Database -> Table -> Array (Tuple String ColumnType) -> Request Unit
-schema filename table' params = do
+schema :: Database -> Table -> Array Column -> Array Column -> Request Unit
+schema filename table' params params' = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
   _        <- close database
   lift $ pure unit
   where
-     query = "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> ")"
+     query   = "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> "," <> primaryKey <> ")"
      columns                = (Arrays.join "," columns')
-     columns'               = column <$> params
+     columns'               = column <$> (params <> params')
      column param           = Arrays.join " " $ [fst param, columnType $ snd param]
-     columnType TextNotNull = "TEXT NOT NULL"
-     columnType RealNotNull = "REAL NOT NULL"
+     columnType Text = "TEXT NOT NULL"
+     columnType Real = "REAL NOT NULL"
+     primaryKey       = "PRIMARY KEY (" <> primaryKey' <> ")"
+     primaryKey'      = Arrays.join "," (fst <$> params)
 
 touch :: Database -> Request Unit
 touch filename = do

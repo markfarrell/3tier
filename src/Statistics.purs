@@ -2,7 +2,6 @@ module Statistics
   ( Entry(..)
   , statistics
   , report
-  , schema
   , unparse
   ) where
 
@@ -27,7 +26,7 @@ import JSON as JSON
 import DB as DB
 
 entries :: DB.Table -> DB.Table
-entries table = "SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY SourceID, SourceAddress" 
+entries table = "SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID, SourceID" 
 
 sum :: DB.Database -> DB.Table -> DB.Request Number
 sum filename table = do
@@ -172,23 +171,6 @@ report filename table = do
   case result of
     (Left _)        -> throwError $ Exception.error "Unexpected behaviour."
     (Right result') -> pure result' 
-
-schema :: DB.Database -> DB.Request Unit
-schema filename = DB.schema filename "Statistics" $
-  [ Tuple "Timestamp" DB.TextNotNull
-  , Tuple "RemoteAddress" DB.TextNotNull
-  , Tuple "RemotePort" DB.TextNotNull
-  , Tuple "SourceID" DB.TextNotNull
-  , Tuple "EntryID" DB.TextNotNull
-  , Tuple "ReportClass" DB.TextNotNull
-  , Tuple "ReportType" DB.TextNotNull 
-  , Tuple "Minimum" DB.TextNotNull
-  , Tuple "Maximum" DB.TextNotNull
-  , Tuple "Sum" DB.TextNotNull
-  , Tuple "Total"   DB.TextNotNull
-  , Tuple "Average" DB.TextNotNull
-  , Tuple "Variance" DB.TextNotNull
-  ]
 
 unparse :: Entry -> Either Error String
 unparse (Entry entry) = pure $ stringify entry

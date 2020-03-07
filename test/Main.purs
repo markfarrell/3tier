@@ -41,16 +41,15 @@ testRequest label request = do
 
 testSchema :: DB.Database -> Aff Unit
 testSchema filename = assert' label =<< try do
-  _ <- testRequest "Test.DB.touch"                       $ DB.touch filename
-  _ <- testRequest "Test.DB.remove"                      $ remove' filename
+  _ <- testRequest "Test.DB.touch"          $ DB.touch filename
+  _ <- testRequest "Test.DB.remove"         $ remove' filename
   _ <- testRequest "Test.Flow.schema"       $ Flow.schema filename
   _ <- testRequest "Test.Audit.schema"      $ Audit.schema filename
-  _ <- testRequest "Test.Statistics.schema" $ Statistics.schema filename
   pure unit
   where 
     remove' filename' = do
       _ <- DB.remove filename' $ "Flow"
-      _ <- DB.remove filename' $"Audit"
+      _ <- DB.remove filename' $ "Audit"
       pure unit
     label = "Test.DB.schema"
 

@@ -26,9 +26,9 @@ import Effect.Exception (error) as Exception
 import Data.Array as Array
 import Data.List as List
 import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
 
 import Data.Either (Either(..))
-import Data.Tuple (Tuple(..))
 
 import Data.Identity (Identity)
 import Data.Newtype (unwrap)
@@ -268,9 +268,7 @@ insert filename (Entry entry) req = do
   DB.insert filename table $ params timestamp
   where
     params timestamp = 
-      [ Tuple "Timestamp" timestamp
-      , Tuple "SourceAddress" remoteAddress
-      , Tuple "SourcePort" remotePort'
+      [ Tuple "LogID" logID
       , Tuple "SourceID" sourceID
       , Tuple "EntryID" entryID
       , Tuple "SIP" entry.sIP
@@ -291,27 +289,24 @@ insert filename (Entry entry) req = do
     remotePort'   = show remotePort
     entryID       = UUIDv3.namespaceUUID sourceID $ HTTP.messageURL req
     sourceID      = UUIDv3.namespaceUUID UUIDv1.defaultUUID $ remoteAddress
+    logID         = UUIDv1.defaultUUID
 
 schema :: DB.Database -> DB.Request Unit
-schema filename = DB.schema filename table $
-  [ Tuple "Timestamp" DB.TextNotNull
-  , Tuple "SourceAddress" DB.TextNotNull
-  , Tuple "SourcePort" DB.TextNotNull
-  , Tuple "SourceID" DB.TextNotNull
-  , Tuple "EntryID" DB.TextNotNull
-  , Tuple "SIP" DB.TextNotNull
-  , Tuple "DIP" DB.TextNotNull
-  , Tuple "SPort" DB.TextNotNull
-  , Tuple "DPort" DB.TextNotNull
-  , Tuple "Protocol" DB.TextNotNull
-  , Tuple "Packets" DB.TextNotNull
-  , Tuple "Bytes" DB.TextNotNull
-  , Tuple "Flags" DB.TextNotNull
-  , Tuple "STime" DB.TextNotNull
-  , Tuple "Duration" DB.TextNotNull
-  , Tuple "ETime" DB.TextNotNull
-  , Tuple "Sensor" DB.TextNotNull
+schema filename = DB.schema filename table params $
+  [ Tuple "SIP" DB.Text
+  , Tuple "DIP" DB.Text
+  , Tuple "SPort" DB.Text
+  , Tuple "DPort" DB.Text
+  , Tuple "Protocol" DB.Text
+  , Tuple "Packets" DB.Text
+  , Tuple "Bytes" DB.Text
+  , Tuple "Flags" DB.Text
+  , Tuple "STime" DB.Text
+  , Tuple "Duration" DB.Text
+  , Tuple "ETime" DB.Text
+  , Tuple "Sensor" DB.Text
   ]
+  where params = [ Tuple "LogID" DB.Text, Tuple "SourceID" DB.Text, Tuple "EntryID" DB.Text ]
 
 table :: DB.Table
 table = "Flow"
