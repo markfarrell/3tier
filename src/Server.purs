@@ -13,7 +13,7 @@ import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
 
 import Data.Either (Either(..))
-import Data.Traversable (foldMap, sequence)
+import Data.Traversable (sequence)
 
 import Effect (Effect)
 import Effect.Aff (Aff, Fiber, launchAff, forkAff)
@@ -21,11 +21,8 @@ import Effect.Class (liftEffect)
 
 import Data.Tuple (Tuple(..))
 
-import Data.String.CodeUnits (singleton)
-import Data.List(many)
-
 import Text.Parsing.Parser (Parser, runParser)
-import Text.Parsing.Parser.String (string, anyChar)
+import Text.Parsing.Parser.String (string, eof)
 
 import Strings as Strings
 
@@ -56,10 +53,23 @@ parseRoute = forward <|> report
       _     <- string "/forward/flow?q="
       entry <- Flow.parse
       pure (Forward (Flow entry))
-    report  = do
-      _     <- string "/report/statistics?q="
-      table <- foldMap singleton <$> many anyChar
-      pure (Report (Statistics table))
+    report = reportFlow <|> reportAudit <|> reportAuditFailure <|> reportAuditSuccess
+    reportFlow  = do
+      _  <- string "/report/statistics?q=FLOW"
+      _  <- eof
+      pure (Report (Statistics "Flow"))
+    reportAudit = do
+      _ <- string "/report/statistics?q=AUDIT"
+      _ <- eof
+      pure (Report (Statistics "Audit"))
+    reportAuditFailure = do
+      _  <- string "/report/statistics?q=AUDIT-FAILURE"
+      _  <- eof
+      pure (Report (Statistics "SELECT * FROM Audit WHERE EventType='FAILURE'")) 
+    reportAuditSuccess = do
+      _  <- string "/report/statistics?q=AUDIT-SUCCESS"
+      _  <- eof
+      pure (Report (Statistics "SELECT * FROM Audit WHERE EventType='SUCCESS'")) 
 
 data ContentType a = TextJSON a
 
