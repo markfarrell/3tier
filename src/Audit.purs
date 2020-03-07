@@ -21,7 +21,6 @@ import DB as DB
 import Date as Date
 import HTTP as HTTP
 import Socket as Socket
-import Strings as Strings
 
 import UUIDv1 as UUIDv1
 import UUIDv3 as UUIDv3
@@ -37,18 +36,18 @@ instance showEventType :: Show EventType where
   show Failure = "FAILURE"
 
 instance showEventID :: Show EventID where
-  show DatabaseRequest = "DATABASE-REQUEST"
-  show ResourceRequest = "RESOURCE-REQUEST"
+  show DatabaseRequest  = "DATABASE-REQUEST"
+  show ResourceRequest  = "RESOURCE-REQUEST"
   show ResourceResponse = "RESOURCE-RESPONSE"
-  show RoutingRequest = "ROUTING-REQUEST"
+  show RoutingRequest   = "ROUTING-REQUEST"
 
 instance showEntry :: Show Entry where
   show (Entry eventType eventID duration msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> " " <> show duration <> " " <> show msg <> ")"
 
-table :: String
+table :: DB.Table
 table = "Audit"
 
-insert :: String -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
+insert :: DB.Database -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
 insert filename (Entry eventType eventID duration msg) req = do
   timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
   DB.insert filename table $ params timestamp
@@ -62,7 +61,7 @@ insert filename (Entry eventType eventID duration msg) req = do
       , Tuple "EventType" eventType'
       , Tuple "EventID" eventID'
       , Tuple "Duration" duration'
-      , Tuple "Message" message
+      , Tuple "Message" msg
       ]
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort = Socket.remotePort $ HTTP.socket req
@@ -72,9 +71,8 @@ insert filename (Entry eventType eventID duration msg) req = do
     eventType' = show eventType
     eventID' = show eventID
     duration' = show duration
-    message = Strings.encodeBase64 msg
 
-schema :: String -> DB.Request Unit
+schema :: DB.Database -> DB.Request Unit
 schema filename = DB.schema filename table $
   [ Tuple "Timestamp" DB.TextNotNull
   , Tuple "SourceAddress" DB.TextNotNull
@@ -88,7 +86,7 @@ schema filename = DB.schema filename table $
   ]
 
 {-- Audit an application-layer event associated with an incoming HTTP request. --}
-application :: String -> Entry -> HTTP.IncomingMessage -> Aff Unit
+application :: DB.Database -> Entry -> HTTP.IncomingMessage -> Aff Unit
 application filename entry req = do
   _      <- try $ DB.runRequest (insert filename entry $ req)
   pure unit

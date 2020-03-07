@@ -42,13 +42,13 @@ type Table = String
 
 data RequestDSL a = Close SQLite3.Database (Unit -> a)
   | Connect Database SQLite3.Mode (SQLite3.Database -> a) 
-  | All Table SQLite3.Database (Array SQLite3.Row -> a)
+  | Query Table SQLite3.Database (Array SQLite3.Row -> a)
 
 instance functorRequestDSL :: Functor RequestDSL where
   map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
   map f (Close database next)        = (Close database (f <<< next))
   map f (Connect filename mode next) = (Connect filename mode (f <<< next))
-  map f (All query database next) = (All query database (f <<< next))
+  map f (Query query database next)  = (Query query database (f <<< next))
 
 type Interpreter = WriterT (Array String) Aff 
 
@@ -63,7 +63,7 @@ connect :: Database -> SQLite3.Mode -> Request SQLite3.Database
 connect filename mode = liftFreeT $ (Connect filename mode identity)
 
 all :: String -> SQLite3.Database -> Request (Array SQLite3.Row)
-all query database = liftFreeT $ (All query database identity)
+all query database = liftFreeT $ (Query query database identity)
 
 insert :: Database -> Table -> Array (Tuple String String) -> Request Unit
 insert filename table' params = do
@@ -122,11 +122,11 @@ interpret (Close database next) = do
   result <- lift $ next <$> SQLite3.close database
   lift $ pure result
 interpret (Connect filename mode next) = do
-  _      <- tell ["CONNECT " <> filename <> " " <> show mode]
+  _      <- tell ["CONNECT"]
   result <- lift $ next <$> SQLite3.connect filename mode
   lift $ pure result 
-interpret (All query database next) = do
-  _      <- tell ["ALL " <> query]
+interpret (Query query database next) = do
+  _      <- tell ["QUERY"]
   result <- lift $ next <$> SQLite3.all query database
   lift $ pure result
  

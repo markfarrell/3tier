@@ -105,7 +105,10 @@ runRequest' filename request req = do
      _ <- audit (Audit.Entry Audit.Success Audit.DatabaseRequest duration (show steps)) $ req 
      pure $ Ok (TextJSON (showJSON result''))
   where 
-    audit = Audit.application filename
+    audit                 = Audit.application filename
+    audit' x y z          = audit $ Audit.Entry x Audit.DatabaseRequest y (audit'' z)
+    audit'' (Left _)      = "" 
+    audit'' (Right steps) = steps
 
 runRoute :: DB.Database -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute filename req  = do
@@ -114,11 +117,11 @@ runRoute filename req  = do
   endTime   <- now
   duration  <- pure $ endTime - startTime
   case result of
-    (Left error) -> do 
-      _ <- audit (Audit.Entry Audit.Failure Audit.RoutingRequest duration (show error)) $ req
+    (Left _     ) -> do 
+      _ <- audit' Audit.Failure duration result $ req
       pure $ BadRequest (HTTP.messageURL req)
     (Right route) -> do
-      _       <- audit (Audit.Entry Audit.Success Audit.RoutingRequest duration (show route)) $ req
+      _ <- audit' Audit.Success duration result $ req
       case route of 
         (Forward (Flow entry))          -> (runRequest' filename $ insertFlow entry)        $ req
         (Report (Statistics table))     -> (runRequest' filename $ reportStatistics table)  $ req
@@ -126,6 +129,10 @@ runRoute filename req  = do
     insertFlow        = Flow.insert filename
     reportStatistics  = const <<< Statistics.report filename
     audit             = Audit.application filename
+    audit' x y z      = audit $ Audit.Entry x Audit.RoutingRequest y (audit'' z)
+    audit'' (Left _)                         = ""
+    audit'' (Right (Forward (Flow _)))       = "FORWARD-FLOW"
+    audit'' (Right (Report  (Statistics _))) = "REPORT-STATISTICS"
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
@@ -162,21 +169,26 @@ consumer filename = forever $ do
       endTime     <- lift $ now
       duration    <- lift $ pure (endTime - startTime)
       case routeResult of
-        (Left  error)        -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceRequest duration (show error)) $ req
-        (Right responseType) -> do
-           _ <- case responseType of
-                  (Ok _) -> lift $ audit (Audit.Entry Audit.Success Audit.ResourceRequest duration (HTTP.messageURL req)) $ req
-                  _      -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceRequest duration (HTTP.messageURL req)) $ req
+        (Left  error)        -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceRequest duration default) $ req
+        (Right ty) -> do
+           _ <- case ty of
+                  (Ok _) -> lift $ audit (Audit.Entry Audit.Success Audit.ResourceRequest duration default) $ req
+                  _      -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceRequest duration default) $ req
            startTime'     <- lift $ now
-           responseResult <- lift $ try (respondResource responseType res)
+           responseResult <- lift $ try (respondResource ty res)
            endTime'       <- lift $ now
            duration'      <- lift $ pure (endTime' - startTime')
            case responseResult of
-             (Left error')   -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceResponse duration' (show error')) $ req
-             (Right _)       -> lift $ audit (Audit.Entry Audit.Success Audit.ResourceResponse duration' (show responseType)) $ req 
+             (Left _     )   -> lift $ audit (Audit.Entry Audit.Failure Audit.ResourceResponse duration' default)   $ req
+             (Right _)       -> lift $ audit (Audit.Entry Audit.Success Audit.ResourceResponse duration' (responseType ty)) $ req 
   where 
     runRoute' = runRoute filename
     audit     = Audit.application filename
+    default   = ""
+    responseType (Ok _)                  = "OK"
+    responseType (BadRequest _)          = "BAD-REQUEST"
+    responseType (Forbidden _ _)         = "FORBIDDEN"
+    responseType (InternalServerError _) = "INTERNAL-SERVER-ERROR"
 
 process :: DB.Database -> HTTP.Server -> Process Aff Unit
 process filename server = pullFrom (consumer filename) (producer server)
