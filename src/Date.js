@@ -13,6 +13,10 @@ exports.getMilliseconds = function(date) {
   return date.getMilliseconds();
 };
 
+exports.getTime = function(date) {
+  return date.getTime();
+};
+
 exports.isValid = function(dateString) {
   return !(isNaN(Date.parse(dateString)));
 };

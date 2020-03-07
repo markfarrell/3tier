@@ -98,14 +98,11 @@ instance contentJSONUnit :: ContentJSON Unit where
 instance contentJSONString :: ContentJSON String where
   showJSON x = x
 
-now :: Aff Number
-now = Date.getMilliseconds <$> (liftEffect $ Date.current)
-
 runRequest' :: forall a. ContentJSON a => DB.Database -> (HTTP.IncomingMessage -> DB.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRequest' filename request req = do
-  startTime   <- now
+  startTime   <- liftEffect $ Date.currentTime
   result'     <- DB.runRequest $ request req
-  endTime     <- now
+  endTime     <- liftEffect $ Date.currentTime
   duration    <- pure $ endTime - startTime
   case result' of
     (Left error)             -> do 
@@ -122,9 +119,9 @@ runRequest' filename request req = do
 
 runRoute :: DB.Database -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute filename req  = do
-  startTime <- now
+  startTime <- liftEffect $ Date.currentTime
   result    <- pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
-  endTime   <- now
+  endTime   <- liftEffect $ Date.currentTime
   duration  <- pure $ endTime - startTime
   case result of
     (Left _     ) -> do 
@@ -174,9 +171,9 @@ consumer filename = forever $ do
   request <- await
   case request of
     (HTTP.IncomingRequest req res) -> do
-      startTime   <- lift $ now
+      startTime   <- lift $ liftEffect $ Date.currentTime
       routeResult <- lift $ try (runRoute' req)
-      endTime     <- lift $ now
+      endTime     <- lift $ liftEffect $ Date.currentTime
       duration    <- lift $ pure (endTime - startTime)
       case routeResult of
         (Left  error)        -> lift $ audit duration (Audit.Entry Audit.Failure Audit.ResourceRequest default) $ req
@@ -184,9 +181,9 @@ consumer filename = forever $ do
            _ <- case ty of
                   (Ok _) -> lift $ audit duration (Audit.Entry Audit.Success Audit.ResourceRequest default) $ req
                   _      -> lift $ audit duration (Audit.Entry Audit.Failure Audit.ResourceRequest default) $ req
-           startTime'     <- lift $ now
+           startTime'     <- lift $ liftEffect $ Date.currentTime
            responseResult <- lift $ try (respondResource ty res)
-           endTime'       <- lift $ now
+           endTime'       <- lift $ liftEffect $ Date.currentTime
            duration'      <- lift $ pure (endTime' - startTime')
            case responseResult of
              (Left  _)   -> lift $ audit duration' (Audit.Entry Audit.Failure Audit.ResourceResponse default)   $ req
