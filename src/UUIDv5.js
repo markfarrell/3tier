@@ -1,9 +1,9 @@
 "use strict";
 
-var uuidv3 = require("uuid/v3");
+var uuidv5 = require("uuid/v5");
 
 exports.namespaceUUID = function(namespace) {
   return function(name) {
-    return uuidv3(name, namespace);
+    return uuidv5(name, namespace);
   };
 };

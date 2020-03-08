@@ -1,4 +1,4 @@
-module UUIDv3
+module UUIDv5
   ( namespaceUUID
   ) where
 

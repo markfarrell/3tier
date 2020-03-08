@@ -11,7 +11,6 @@ import Control.Monad.Except (runExcept, throwError)
 import Control.Monad.Trans.Class (lift)
 
 import Data.Either (Either(..))
-import Data.Tuple (Tuple(..))
 import Data.Foldable (foldl)
 
 import Effect.Exception (Error)
@@ -26,7 +25,7 @@ import JSON as JSON
 import DB as DB
 
 entries :: DB.Table -> DB.Table
-entries table = "SELECT COUNT(DISTINCT EntryID) AS Entries FROM " <> table <> " GROUP BY LogID, SourceID" 
+entries table = "SELECT COUNT(DISTINCT EntryID) AS Entries FROM (" <> table <> ") GROUP BY LogID, SourceID" 
 
 sum :: DB.Database -> DB.Table -> DB.Request Number
 sum filename table = do

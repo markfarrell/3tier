@@ -24,6 +24,7 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad.Writer.Class (tell)
 import Control.Monad.Writer.Trans (WriterT, runWriterT)
 
+import Data.Array as Array
 import Data.Either (Either)
 import Data.Traversable (sequence)
 
@@ -105,7 +106,9 @@ schema filename table' params params' = do
   _        <- close database
   lift $ pure unit
   where
-     query   = "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> "," <> primaryKey <> ")"
+     query   = case Array.length params > 0 of
+       true  -> "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> "," <> primaryKey <> ")"
+       false -> "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> ")"
      columns                = (Arrays.join "," columns')
      columns'               = column <$> (params <> params')
      column param           = Arrays.join " " $ [fst param, columnType $ snd param]

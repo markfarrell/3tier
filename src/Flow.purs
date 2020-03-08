@@ -49,7 +49,7 @@ import Process as Process
 import Readline as Readline
 
 import UUIDv1 as UUIDv1
-import UUIDv3 as UUIDv3
+import UUIDv5 as UUIDv5
 
 import DB as DB
 
@@ -287,8 +287,8 @@ insert filename (Entry entry) req = do
     remoteAddress = Socket.remoteAddress $ HTTP.socket req
     remotePort    = Socket.remotePort $ HTTP.socket req
     remotePort'   = show remotePort
-    entryID       = UUIDv3.namespaceUUID sourceID $ HTTP.messageURL req
-    sourceID      = UUIDv3.namespaceUUID UUIDv1.defaultUUID $ remoteAddress
+    entryID       = UUIDv5.namespaceUUID sourceID $ HTTP.messageURL req
+    sourceID      = UUIDv5.namespaceUUID UUIDv1.defaultUUID $ remoteAddress
     logID         = UUIDv1.defaultUUID
 
 schema :: DB.Database -> DB.Request Unit
