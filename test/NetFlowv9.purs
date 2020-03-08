@@ -5,12 +5,16 @@ module Test.NetFlowv9
 import Prelude
 
 import Data.Array as Array 
+import Data.Either (Either(..))
 import Data.Traversable (sequence)
+import Data.Tuple (fst, snd)
 
 import Effect (Effect)
 import Effect.Console (log)
 
 import Buffer as Buffer
+
+import NetFlowv9 as NetFlowv9
 
 {-- Source: https://github.com/hroi/netflowv9/blob/master/src/tests.rs --}
 example :: Array Int
@@ -37,23 +41,15 @@ example =  [0x00, 0x09, 0x00, 0x04, 0x70, 0x59, 0x38, 0x38, 0x57, 0x8b, 0xe0, 0x
 
 main :: Effect Unit
 main = do
-  version'         <- pure $ Array.slice 0 2 $ example
-  count'           <- pure $ Array.slice 2 4 $ example
-  systemUptime'    <- pure $ Array.slice 4 8 $ example
-  unixSeconds'     <- pure $ Array.slice 8 12 $ example
-  packageSequence' <- pure $ Array.slice 12 16 $ example
-  sourceID'        <- pure $ Array.slice 16 20 $ example
-  body'            <- pure $ (\x -> Array.slice (x * 2) ((x + 1) * 2) example) <$> Array.range (5 * 2) (((Array.length example) - 1) / 2)
-  version          <- Buffer.readInt16BE =<< Buffer.from version'
-  count            <- Buffer.readInt16BE =<< Buffer.from count'
-  systemUptime     <- Buffer.readInt32BE =<< Buffer.from systemUptime'
-  unixSeconds      <- Buffer.readInt32BE =<< Buffer.from unixSeconds'
-  packageSequence  <- Buffer.readInt32BE =<< Buffer.from packageSequence'
-  sourceID         <- Buffer.readInt32BE =<< Buffer.from sourceID'
-  body'            <- sequence ((\x -> Buffer.readInt16BE =<< Buffer.from x) <$> body')
-  body             <- pure $ sequence body'
-  header           <- pure $ sequence [version, count, systemUptime, unixSeconds, packageSequence, sourceID]
-  _                <- log $ "Example: " <> show example
-  _                <- log $ "Header: "  <> show header
-  _                <- log $ "Body: "    <> show body
-  pure unit
+  packet   <- Buffer.toIntArray =<< Buffer.from example
+  result'  <- NetFlowv9.readRawHeader packet
+  header'  <- pure $ fst <$> result'
+  body'    <- pure $ snd <$> result'
+  case body' of
+    (Left _)     -> pure unit
+    (Right body) -> do
+      flowSets'  <- NetFlowv9.readRawFlowSets body
+      _  <- log $ "Raw Packet: "   <> show packet
+      _  <- log $ "Raw Header: "   <> show header'
+      _  <- log $ "Raw FlowSets: " <> show flowSets' 
+      pure unit

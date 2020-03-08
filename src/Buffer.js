@@ -17,3 +17,14 @@ exports.readInt32BEImpl = function(buffer) {
     return buffer.readInt32BE(0, 4);
   };
 };
+
+exports.toIntArray = function(buffer) {
+  return function() {
+    var x = Uint8Array.from(buffer);
+    var y = [];
+    for (var i = 0; i < x.length; i++) {
+      y.push(x[i]);
+    };
+    return y;
+  };
+};

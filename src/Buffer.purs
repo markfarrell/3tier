@@ -3,6 +3,7 @@ module Buffer
   , from
   , readInt16BE
   , readInt32BE
+  , toIntArray
   ) where
 
 import Prelude
@@ -21,6 +22,8 @@ foreign import from :: Array Int -> Effect Buffer
 foreign import readInt16BEImpl :: Buffer -> Effect Int
 
 foreign import readInt32BEImpl :: Buffer -> Effect Int
+
+foreign import toIntArray :: Buffer -> Effect (Array Int)
 
 readInt16BE :: Buffer -> Effect (Either Error Int)
 readInt16BE buffer = try $ readInt16BEImpl buffer
