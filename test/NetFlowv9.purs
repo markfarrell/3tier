@@ -4,11 +4,6 @@ module Test.NetFlowv9
 
 import Prelude
 
-import Data.Array as Array 
-import Data.Either (Either(..))
-import Data.Traversable (sequence)
-import Data.Tuple (fst, snd)
-
 import Effect (Effect)
 import Effect.Console (log)
 
@@ -42,14 +37,7 @@ example =  [0x00, 0x09, 0x00, 0x04, 0x70, 0x59, 0x38, 0x38, 0x57, 0x8b, 0xe0, 0x
 main :: Effect Unit
 main = do
   packet   <- Buffer.toIntArray =<< Buffer.from example
-  result'  <- NetFlowv9.readRawHeader packet
-  header'  <- pure $ fst <$> result'
-  body'    <- pure $ snd <$> result'
-  case body' of
-    (Left _)     -> pure unit
-    (Right body) -> do
-      flowSets'  <- NetFlowv9.readRawFlowSets body
-      _  <- log $ "Raw Packet: "   <> show packet
-      _  <- log $ "Raw Header: "   <> show header'
-      _  <- log $ "Raw FlowSets: " <> show flowSets' 
-      pure unit
+  result   <- NetFlowv9.readRawPacket packet
+  _        <- log $ show packet
+  _        <- log $ show result
+  pure unit

@@ -1,8 +1,8 @@
 module NetFlowv9
-  ( RawHeader
+  ( RawPacket
+  , RawHeader
   , RawFlowSet
-  , readRawHeader
-  , readRawFlowSets
+  , readRawPacket
   ) where
 
 import Prelude
@@ -18,7 +18,9 @@ import Effect.Exception as Exception
 
 import Buffer as Buffer
 
-type RawHeader =
+data RawPacket = RawPacket RawHeader (Array RawFlowSet)
+
+data RawHeader = RawHeader
   { version         :: Int
   , count           :: Int
   , systemUptime    :: Int
@@ -27,11 +29,18 @@ type RawHeader =
   , sourceID        :: Int
   }
 
-type RawFlowSet =
-  { flowSetID :: Int
-  , length    :: Int
-  , contents  :: Array Int
-  }
+data RawFlowSet = RawTemplateFlowSet { flowSetID :: Int, length :: Int, bytes :: Array Int }
+  | RawDataFlowSet { flowSetID :: Int, length :: Int, bytes :: Array Int }
+
+instance showRawPacket :: Show RawPacket where
+  show (RawPacket x y) = "(RawPacket " <> show x <> " " <> show y <> ")"
+
+instance showRawHeader :: Show RawHeader where
+  show (RawHeader x) = "(RawHeader " <> show x <> ")"
+
+instance showRawFlowSet :: Show RawFlowSet where
+  show (RawTemplateFlowSet x) = "(RawTemplateFlowSet " <> show x <> ")"
+  show (RawDataFlowSet x) = "(RawDataFlowSet " <> show x <> ")"
 
 readInt16BE' :: Int -> Array Int -> Effect (Either Error Int)
 readInt16BE' x y = do
@@ -57,7 +66,7 @@ readRawHeader packet = do
   case result of
     (Left error)          -> pure $ Left error
     (Right [u,v,w,x,y,z]) -> do
-      header <- pure $
+      header <- pure $ RawHeader
         { version         : u
         , count           : v
         , systemUptime    : w
@@ -79,11 +88,17 @@ readRawFlowSet body = do
     (Left error)  -> pure $ Left error
     (Right [x,y]) -> do
       z       <- pure $ Array.slice 4 y $ body
-      flowSet <- pure $
-        { flowSetID : x
-        , length    : y 
-        , contents  : z 
-        }
+      flowSet <- case x == 0 of
+        true  -> pure $ RawTemplateFlowSet $
+          { flowSetID : x
+          , length    : y 
+          , bytes     : z 
+          }
+        false -> pure $ RawDataFlowSet $
+          { flowSetID : x
+          , length    : y
+          , bytes     : z
+          }
       length  <- pure $ Array.length body
       body'   <- pure $ Array.slice y length $ body
       pure $ Right (Tuple flowSet body')
@@ -99,3 +114,14 @@ readRawFlowSets' acc body = do
 
 readRawFlowSets :: Array Int -> Effect (Either Error (Array RawFlowSet))
 readRawFlowSets = readRawFlowSets' []
+
+readRawPacket :: Array Int -> Effect (Either Error RawPacket)
+readRawPacket packet = do
+  header' <- readRawHeader packet
+  case header' of
+    (Left error)                -> pure $ Left error
+    (Right (Tuple header body)) -> do
+      flowSets' <- readRawFlowSets body
+      case flowSets' of
+        (Left error')    -> pure $ Left error'
+        (Right flowSets) -> pure $ Right (RawPacket header flowSets)
