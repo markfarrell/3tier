@@ -29,7 +29,7 @@ data RawHeader = RawHeader
   , sourceID        :: Int
   }
 
-data RawFlowSet = RawTemplateFlowSet { flowSetID :: Int, length :: Int, bytes :: Array Int }
+data RawFlowSet = RawTemplateFlowSet { flowSetID :: Int, length :: Int, templates :: Array Int }
   | RawDataFlowSet { flowSetID :: Int, length :: Int, bytes :: Array Int }
 
 instance showRawPacket :: Show RawPacket where
@@ -42,26 +42,33 @@ instance showRawFlowSet :: Show RawFlowSet where
   show (RawTemplateFlowSet x) = "(RawTemplateFlowSet " <> show x <> ")"
   show (RawDataFlowSet x) = "(RawDataFlowSet " <> show x <> ")"
 
-readInt16BE' :: Int -> Array Int -> Effect (Either Error Int)
-readInt16BE' x y = do
+readInt16BE :: Int -> Array Int -> Effect (Either Error Int)
+readInt16BE x y = do
   buffer <- Buffer.from $ Array.slice x (x + 2) y
   result <- Buffer.readInt16BE buffer
   pure $ result
 
-readInt32BE' :: Int -> Array Int -> Effect (Either Error Int)
-readInt32BE' x y = do
+readInt32BE :: Int -> Array Int -> Effect (Either Error Int)
+readInt32BE x y = do
   buffer <- Buffer.from $ Array.slice x (x + 4) y
   result <- Buffer.readInt32BE buffer
   pure $ result
 
+readInt16BEs :: Array Int -> Effect (Either Error (Array Int))
+readInt16BEs array = do
+  length   <- pure $ Array.length array
+  indices  <- pure $ ((*) 2) <$>  Array.range 0 ((length - 1) / 2)
+  results  <- sequence $ (flip readInt16BE array) <$> indices 
+  pure $ sequence results
+
 readRawHeader :: Array Int -> Effect (Either Error (Tuple RawHeader (Array Int)))
 readRawHeader packet = do
-  u'     <- readInt16BE' 0  $ packet
-  v'     <- readInt16BE' 2  $ packet
-  w'     <- readInt32BE' 4  $ packet
-  x'     <- readInt32BE' 8  $ packet
-  y'     <- readInt32BE' 12 $ packet
-  z'     <- readInt32BE' 16 $ packet
+  u'     <- readInt16BE 0  $ packet
+  v'     <- readInt16BE 2  $ packet
+  w'     <- readInt32BE 4  $ packet
+  x'     <- readInt32BE 8  $ packet
+  y'     <- readInt32BE 12 $ packet
+  z'     <- readInt32BE 16 $ packet
   result <- pure $ sequence [u',v',w',x',y',z']
   case result of
     (Left error)          -> pure $ Left error
@@ -81,27 +88,33 @@ readRawHeader packet = do
 
 readRawFlowSet :: Array Int -> Effect (Either Error (Tuple RawFlowSet (Array Int)))
 readRawFlowSet body = do
-  x' <- readInt16BE' 0 $ body
-  y' <- readInt16BE' 2 $ body
+  x' <- readInt16BE 0 $ body
+  y' <- readInt16BE 2 $ body
   result <- pure $ sequence [x',y'] 
   case result of
     (Left error)  -> pure $ Left error
     (Right [x,y]) -> do
-      z       <- pure $ Array.slice 4 y $ body
-      flowSet <- case x == 0 of
-        true  -> pure $ RawTemplateFlowSet $
-          { flowSetID : x
-          , length    : y 
-          , bytes     : z 
-          }
-        false -> pure $ RawDataFlowSet $
+      body'    <- pure $ Array.slice 4 y $ body
+      flowSet' <- case x == 0 of
+        true  -> do
+          result' <- readInt16BEs body'
+          case result' of
+            (Left error')  -> pure $ Left error'
+            (Right templates) -> pure $ Right $ RawTemplateFlowSet $
+              { flowSetID    : x
+              , length       : y 
+              , templates    : templates 
+              }
+        false -> pure $ Right $ RawDataFlowSet $
           { flowSetID : x
           , length    : y
-          , bytes     : z
+          , bytes     : body'
           }
       length  <- pure $ Array.length body
-      body'   <- pure $ Array.slice y length $ body
-      pure $ Right (Tuple flowSet body')
+      body''  <- pure $ Array.slice y length $ body
+      case flowSet' of
+        (Left error'')  -> pure $ Left error''
+        (Right flowSet) -> pure $ Right (Tuple flowSet body'') 
     (Right _) -> pure $ Left (Exception.error "Unexpected result.")
 
 readRawFlowSets' :: Array RawFlowSet -> Array Int -> Effect (Either Error (Array RawFlowSet))
