@@ -55,20 +55,16 @@ parseRoute = forward <|> report
       pure (Forward (Flow entry))
     report = reportFlow <|> reportAudit <|> reportAuditFailure <|> reportAuditSuccess
     reportFlow  = do
-      _  <- string "/report/statistics?q=FLOW"
-      _  <- eof
+      _  <- string "/report/statistics/flow"
       pure (Report (Statistics "Flow"))
     reportAudit = do
-      _ <- string "/report/statistics?q=AUDIT"
-      _ <- eof
+      _ <- string "/report/statistics/audit"
       pure (Report (Statistics "Audit"))
     reportAuditFailure = do
-      _  <- string "/report/statistics?q=AUDIT-FAILURE"
-      _  <- eof
+      _  <- string "/report/statistics/audit-failure"
       pure (Report (Statistics "SELECT * FROM Audit WHERE EventType='FAILURE'")) 
     reportAuditSuccess = do
-      _  <- string "/report/statistics?q=AUDIT-SUCCESS"
-      _  <- eof
+      _  <- string "/report/statistics/audit-success"
       pure (Report (Statistics "SELECT * FROM Audit WHERE EventType='SUCCESS'")) 
 
 data ContentType a = TextJSON a
