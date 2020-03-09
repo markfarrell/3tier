@@ -9,14 +9,23 @@ import Prelude
 
 import Data.Array as Array
 import Data.Either (Either(..))
+import Data.Foldable (foldMap)
 import Data.Traversable (sequence)
 import Data.Tuple(Tuple(..))
+import Data.List as List
 
 import Effect (Effect)
 import Effect.Exception (Error)
 import Effect.Exception as Exception
 
+import Text.Parsing.Parser (Parser, fail, runParser)
+import Text.Parsing.Parser.String (string)
+import Text.Parsing.Parser.Combinators (choice, sepBy)
+
+import Arrays as Arrays
 import Buffer as Buffer
+
+foreign import parseInt :: String -> Int
 
 data Packet = Packet Header (Array FlowSet)
 
@@ -29,8 +38,14 @@ data Header = Header
   , sourceID        :: Int
   }
 
-data FlowSet = TemplateFlowSet { flowSetID :: Int, length :: Int, templates :: Array Int }
+data FlowSet = TemplateFlowSet { flowSetID :: Int, length :: Int, templates :: Array Template }
   | DataFlowSet { flowSetID :: Int, length :: Int, bytes :: Array Int }
+
+data Template = Template
+  { templateID :: Int
+  , fieldCount :: Int
+  , fields     :: Array (Tuple Int Int)
+  }
 
 instance showPacket :: Show Packet where
   show (Packet x y) = "(Packet " <> show x <> " " <> show y <> ")"
@@ -41,6 +56,9 @@ instance showHeader :: Show Header where
 instance showFlowSet :: Show FlowSet where
   show (TemplateFlowSet x) = "(TemplateFlowSet " <> show x <> ")"
   show (DataFlowSet x) = "(DataFlowSet " <> show x <> ")"
+
+instance showTemplate :: Show Template where
+  show (Template x) = "(Template " <> show x <> ")"
 
 readInt16BE :: Int -> Array Int -> Effect (Either Error Int)
 readInt16BE x y = do
@@ -100,11 +118,15 @@ readFlowSet body = do
           result' <- readInt16BEs body'
           case result' of
             (Left error')  -> pure $ Left error'
-            (Right templates) -> pure $ Right $ TemplateFlowSet $
-              { flowSetID    : x
-              , length       : y 
-              , templates    : templates 
-              }
+            (Right templates''') -> do 
+              templates'' <- pure $ Arrays.join comma (show <$> templates''')
+              case runParser templates'' templates of
+                (Left _)          -> pure $ Left (Exception.error "Unexpected result (ParseError).")
+                (Right templates') -> pure $ Right $ TemplateFlowSet $
+                  { flowSetID    : x
+                  , length       : y 
+                  , templates    : templates' 
+                  }
         false -> pure $ Right $ DataFlowSet $
           { flowSetID : x
           , length    : y
@@ -138,3 +160,63 @@ readPacket packet = do
       case flowSets' of
         (Left error')    -> pure $ Left error'
         (Right flowSets) -> pure $ Right (Packet header flowSets)
+
+
+{-- Parses a valid digit, 0-9, or fails otherwise. --}
+digit :: Parser String String
+digit = choice (string <$> ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
+
+digits :: Parser String String
+digits = do
+  result <- List.many digit
+  pure $ foldMap identity result
+
+positiveInteger :: Parser String Int
+positiveInteger = do
+  result <- parseInt <$> digits
+  case result >= 0 of
+    true  -> pure result
+    false -> fail "Invalid positive integer."
+
+template :: Parser String Template
+template = do
+  templateID <- positiveInteger
+  _          <- separator
+  fieldCount <- positiveInteger
+  _          <- separator
+  fields''   <- fields fieldCount
+  pure $ Template $
+    { templateID : templateID
+    , fieldCount : fieldCount
+    , fields     : fields''
+    }
+  where
+    fields n = fields' [] 0 n
+    fields' acc m n = case (m == n) of
+      true  -> pure acc
+      false -> do
+        fieldType'  <- fieldType
+        _           <- separator
+        fieldLength <- positiveInteger
+        _           <- separator' m n
+        result <- fields' (acc <> [Tuple fieldType' fieldLength]) (m + 1) n
+        pure result
+    fieldType = do
+      result <- positiveInteger
+      case (result >= 0) && (result <= 127) of
+        true  -> pure result
+        false -> fail "Invalid field type." 
+    separator' m n = case m < (n - 1) of
+      true  -> do
+        result <- separator
+        pure result
+      false -> pure ""
+
+templates :: Parser String (Array Template)
+templates = Array.fromFoldable <$> sepBy template separator
+
+separator :: Parser String String
+separator = string comma
+
+comma :: String
+comma = ","
