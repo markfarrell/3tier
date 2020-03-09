@@ -1,8 +1,8 @@
 module NetFlowv9
-  ( RawPacket
-  , RawHeader
-  , RawFlowSet
-  , readRawPacket
+  ( Packet
+  , Header
+  , FlowSet
+  , readPacket
   ) where
 
 import Prelude
@@ -18,9 +18,9 @@ import Effect.Exception as Exception
 
 import Buffer as Buffer
 
-data RawPacket = RawPacket RawHeader (Array RawFlowSet)
+data Packet = Packet Header (Array FlowSet)
 
-data RawHeader = RawHeader
+data Header = Header
   { version         :: Int
   , count           :: Int
   , systemUptime    :: Int
@@ -29,18 +29,18 @@ data RawHeader = RawHeader
   , sourceID        :: Int
   }
 
-data RawFlowSet = RawTemplateFlowSet { flowSetID :: Int, length :: Int, templates :: Array Int }
-  | RawDataFlowSet { flowSetID :: Int, length :: Int, bytes :: Array Int }
+data FlowSet = TemplateFlowSet { flowSetID :: Int, length :: Int, templates :: Array Int }
+  | DataFlowSet { flowSetID :: Int, length :: Int, bytes :: Array Int }
 
-instance showRawPacket :: Show RawPacket where
-  show (RawPacket x y) = "(RawPacket " <> show x <> " " <> show y <> ")"
+instance showPacket :: Show Packet where
+  show (Packet x y) = "(Packet " <> show x <> " " <> show y <> ")"
 
-instance showRawHeader :: Show RawHeader where
-  show (RawHeader x) = "(RawHeader " <> show x <> ")"
+instance showHeader :: Show Header where
+  show (Header x) = "(Header " <> show x <> ")"
 
-instance showRawFlowSet :: Show RawFlowSet where
-  show (RawTemplateFlowSet x) = "(RawTemplateFlowSet " <> show x <> ")"
-  show (RawDataFlowSet x) = "(RawDataFlowSet " <> show x <> ")"
+instance showFlowSet :: Show FlowSet where
+  show (TemplateFlowSet x) = "(TemplateFlowSet " <> show x <> ")"
+  show (DataFlowSet x) = "(DataFlowSet " <> show x <> ")"
 
 readInt16BE :: Int -> Array Int -> Effect (Either Error Int)
 readInt16BE x y = do
@@ -61,8 +61,8 @@ readInt16BEs array = do
   results  <- sequence $ (flip readInt16BE array) <$> indices 
   pure $ sequence results
 
-readRawHeader :: Array Int -> Effect (Either Error (Tuple RawHeader (Array Int)))
-readRawHeader packet = do
+readHeader :: Array Int -> Effect (Either Error (Tuple Header (Array Int)))
+readHeader packet = do
   u'     <- readInt16BE 0  $ packet
   v'     <- readInt16BE 2  $ packet
   w'     <- readInt32BE 4  $ packet
@@ -73,7 +73,7 @@ readRawHeader packet = do
   case result of
     (Left error)          -> pure $ Left error
     (Right [u,v,w,x,y,z]) -> do
-      header <- pure $ RawHeader
+      header <- pure $ Header
         { version         : u
         , count           : v
         , systemUptime    : w
@@ -86,8 +86,8 @@ readRawHeader packet = do
       pure $ Right (Tuple header body)
     (Right _)             -> pure $ Left (Exception.error "Unexpected Result")
 
-readRawFlowSet :: Array Int -> Effect (Either Error (Tuple RawFlowSet (Array Int)))
-readRawFlowSet body = do
+readFlowSet :: Array Int -> Effect (Either Error (Tuple FlowSet (Array Int)))
+readFlowSet body = do
   x' <- readInt16BE 0 $ body
   y' <- readInt16BE 2 $ body
   result <- pure $ sequence [x',y'] 
@@ -100,12 +100,12 @@ readRawFlowSet body = do
           result' <- readInt16BEs body'
           case result' of
             (Left error')  -> pure $ Left error'
-            (Right templates) -> pure $ Right $ RawTemplateFlowSet $
+            (Right templates) -> pure $ Right $ TemplateFlowSet $
               { flowSetID    : x
               , length       : y 
               , templates    : templates 
               }
-        false -> pure $ Right $ RawDataFlowSet $
+        false -> pure $ Right $ DataFlowSet $
           { flowSetID : x
           , length    : y
           , bytes     : body'
@@ -117,24 +117,24 @@ readRawFlowSet body = do
         (Right flowSet) -> pure $ Right (Tuple flowSet body'') 
     (Right _) -> pure $ Left (Exception.error "Unexpected result.")
 
-readRawFlowSets' :: Array RawFlowSet -> Array Int -> Effect (Either Error (Array RawFlowSet))
-readRawFlowSets' acc body = do
-  result <- readRawFlowSet body
+readFlowSets' :: Array FlowSet -> Array Int -> Effect (Either Error (Array FlowSet))
+readFlowSets' acc body = do
+  result <- readFlowSet body
   case result of
     (Left error)                  -> pure $ Left error
     (Right (Tuple flowSet []))    -> pure $ Right (acc <> [flowSet]) 
-    (Right (Tuple flowSet body')) -> readRawFlowSets' (acc <> [flowSet]) body'
+    (Right (Tuple flowSet body')) -> readFlowSets' (acc <> [flowSet]) body'
 
-readRawFlowSets :: Array Int -> Effect (Either Error (Array RawFlowSet))
-readRawFlowSets = readRawFlowSets' []
+readFlowSets :: Array Int -> Effect (Either Error (Array FlowSet))
+readFlowSets = readFlowSets' []
 
-readRawPacket :: Array Int -> Effect (Either Error RawPacket)
-readRawPacket packet = do
-  header' <- readRawHeader packet
+readPacket :: Array Int -> Effect (Either Error Packet)
+readPacket packet = do
+  header' <- readHeader packet
   case header' of
     (Left error)                -> pure $ Left error
     (Right (Tuple header body)) -> do
-      flowSets' <- readRawFlowSets body
+      flowSets' <- readFlowSets body
       case flowSets' of
         (Left error')    -> pure $ Left error'
-        (Right flowSets) -> pure $ Right (RawPacket header flowSets)
+        (Right flowSets) -> pure $ Right (Packet header flowSets)

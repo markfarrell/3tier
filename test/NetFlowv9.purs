@@ -37,7 +37,7 @@ example =  [0x00, 0x09, 0x00, 0x04, 0x70, 0x59, 0x38, 0x38, 0x57, 0x8b, 0xe0, 0x
 main :: Effect Unit
 main = do
   packet   <- Buffer.toIntArray =<< Buffer.from example
-  result   <- NetFlowv9.readRawPacket packet
+  result   <- NetFlowv9.readPacket packet
   _        <- log $ show packet
   _        <- log $ show result
   pure unit
