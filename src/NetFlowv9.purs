@@ -1,7 +1,7 @@
 module NetFlowv9
   ( Packet
   , Header
-  , FlowSet
+  , TemplateFlowSet
   , readPacket
   ) where
 
@@ -11,7 +11,7 @@ import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Foldable (foldMap)
 import Data.Traversable (sequence)
-import Data.Tuple(Tuple(..))
+import Data.Tuple(Tuple(..), fst, snd)
 import Data.List as List
 
 import Effect (Effect)
@@ -27,7 +27,7 @@ import Buffer as Buffer
 
 foreign import parseInt :: String -> Int
 
-data Packet = Packet Header (Array FlowSet)
+data Packet = Packet Header (Array TemplateFlowSet) (Array DataFlowSet)
 
 data Header = Header
   { version         :: Int
@@ -38,8 +38,7 @@ data Header = Header
   , sourceID        :: Int
   }
 
-data FlowSet = TemplateFlowSet { flowSetID :: Int, length :: Int, templates :: Array Template }
-  | DataFlowSet { flowSetID :: Int, length :: Int, bytes :: Array Int }
+data TemplateFlowSet = TemplateFlowSet { flowSetID :: Int, length :: Int, templates :: Array Template }
 
 data Template = Template
   { templateID :: Int
@@ -47,15 +46,20 @@ data Template = Template
   , fields     :: Array (Tuple Int Int)
   }
 
+data DataFlowSet = DataFlowSet { flowSetID :: Int, length :: Int, bytes :: Array Int }
+
 instance showPacket :: Show Packet where
-  show (Packet x y) = "(Packet " <> show x <> " " <> show y <> ")"
+  show (Packet x y z) = "(Packet " <> (Arrays.join " " [show x, show y, show z]) <> ")"
 
 instance showHeader :: Show Header where
   show (Header x) = "(Header " <> show x <> ")"
 
-instance showFlowSet :: Show FlowSet where
+instance showTemplateFlowSet :: Show TemplateFlowSet where
   show (TemplateFlowSet x) = "(TemplateFlowSet " <> show x <> ")"
+
+instance showDataFlowSet :: Show DataFlowSet where
   show (DataFlowSet x) = "(DataFlowSet " <> show x <> ")"
+
 
 instance showTemplate :: Show Template where
   show (Template x) = "(Template " <> show x <> ")"
@@ -104,8 +108,8 @@ readHeader packet = do
       pure $ Right (Tuple header body)
     (Right _)             -> pure $ Left (Exception.error "Unexpected Result")
 
-readFlowSet :: Array Int -> Effect (Either Error (Tuple FlowSet (Array Int)))
-readFlowSet body = do
+readTemplateFlowSet :: Array Int -> Effect (Either Error (Tuple TemplateFlowSet (Array Int)))
+readTemplateFlowSet body = do
   x' <- readInt16BE 0 $ body
   y' <- readInt16BE 2 $ body
   result <- pure $ sequence [x',y'] 
@@ -127,11 +131,7 @@ readFlowSet body = do
                   , length       : y 
                   , templates    : templates' 
                   }
-        false -> pure $ Right $ DataFlowSet $
-          { flowSetID : x
-          , length    : y
-          , bytes     : body'
-          }
+        false -> pure $ Left (Exception.error $ "Invalid flowset ID (" <> show x <> ")")
       length  <- pure $ Array.length body
       body''  <- pure $ Array.slice y length $ body
       case flowSet' of
@@ -139,16 +139,66 @@ readFlowSet body = do
         (Right flowSet) -> pure $ Right (Tuple flowSet body'') 
     (Right _) -> pure $ Left (Exception.error "Unexpected result.")
 
-readFlowSets' :: Array FlowSet -> Array Int -> Effect (Either Error (Array FlowSet))
-readFlowSets' acc body = do
-  result <- readFlowSet body
+readTemplateFlowSets' :: Array TemplateFlowSet -> Array Int -> Effect (Tuple (Array TemplateFlowSet) (Array Int))
+readTemplateFlowSets' acc body = do
+  result <- readTemplateFlowSet body
   case result of
-    (Left error)                  -> pure $ Left error
-    (Right (Tuple flowSet []))    -> pure $ Right (acc <> [flowSet]) 
-    (Right (Tuple flowSet body')) -> readFlowSets' (acc <> [flowSet]) body'
+    (Left error)                  -> pure $ Tuple acc body
+    (Right (Tuple flowSet []))    -> pure $ Tuple (acc <> [flowSet]) [] 
+    (Right (Tuple flowSet body')) -> readTemplateFlowSets' (acc <> [flowSet]) body'
 
-readFlowSets :: Array Int -> Effect (Either Error (Array FlowSet))
-readFlowSets = readFlowSets' []
+readTemplateFlowSets :: Array Int -> Effect (Tuple (Array TemplateFlowSet) (Array Int))
+readTemplateFlowSets = readTemplateFlowSets' []
+
+readDataFlowSet :: Array Int -> Effect (Either Error (Tuple DataFlowSet (Array Int)))
+readDataFlowSet body = do
+  x' <- readInt16BE 0 $ body
+  y' <- readInt16BE 2 $ body
+  result <- pure $ sequence [x',y'] 
+  case result of
+    (Left error)  -> pure $ Left error
+    (Right [x,y]) -> do
+      body'    <- pure $ Array.slice 4 y $ body
+      flowSet' <- case x > 0 of
+        true  -> pure $ Right $ DataFlowSet
+          { flowSetID : x
+          , length    : y
+          , bytes     : body'
+          }
+        false -> pure $ Left (Exception.error $ "Invalid flowset ID (" <> show x <> ")")
+      length  <- pure $ Array.length body
+      body''  <- pure $ Array.slice y length $ body
+      case flowSet' of
+        (Left error'')  -> pure $ Left error''
+        (Right flowSet) -> pure $ Right (Tuple flowSet body'') 
+    (Right _) -> pure $ Left (Exception.error "Unexpected result.")
+
+readDataFlowSets' :: Array DataFlowSet -> Array Int -> Effect (Tuple (Array DataFlowSet) (Array Int))
+readDataFlowSets' acc body = do
+  result <- readDataFlowSet body
+  case result of
+    (Left error)                  -> pure $ Tuple acc body 
+    (Right (Tuple flowSet []))    -> pure $ Tuple (acc <> [flowSet]) []
+    (Right (Tuple flowSet body')) -> readDataFlowSets' (acc <> [flowSet]) body'
+
+readDataFlowSets :: Array Int -> Effect (Tuple (Array DataFlowSet) (Array Int))
+readDataFlowSets = readDataFlowSets' []
+
+readPacket'' :: Tuple (Array TemplateFlowSet) (Array DataFlowSet) -> Array Int -> Effect (Tuple (Array TemplateFlowSet) (Array DataFlowSet))
+readPacket'' acc body = do
+  templateFlowSets' <- readTemplateFlowSets body
+  case templateFlowSets' of
+    (Tuple templateFlowSets body') -> do
+      dataFlowSets' <- readDataFlowSets body'
+      case dataFlowSets' of
+        (Tuple dataFlowSets body'') -> do
+          acc'   <- pure $ Tuple (fst acc <> templateFlowSets) (snd acc <> dataFlowSets)
+          case (Array.length body'' >= 4) of
+            true  -> readPacket'' acc' body''
+            false -> pure acc'
+
+readPacket' :: Array Int -> Effect (Tuple (Array TemplateFlowSet) (Array DataFlowSet))
+readPacket' = readPacket'' (Tuple [] [])
 
 readPacket :: Array Int -> Effect (Either Error Packet)
 readPacket packet = do
@@ -156,11 +206,10 @@ readPacket packet = do
   case header' of
     (Left error)                -> pure $ Left error
     (Right (Tuple header body)) -> do
-      flowSets' <- readFlowSets body
-      case flowSets' of
-        (Left error')    -> pure $ Left error'
-        (Right flowSets) -> pure $ Right (Packet header flowSets)
-
+       flowSets <- readPacket' body
+       case flowSets of
+         (Tuple templateFlowSets dataFlowSets) -> pure $ Right $ 
+           Packet header templateFlowSets dataFlowSets
 
 {-- Parses a valid digit, 0-9, or fails otherwise. --}
 digit :: Parser String String
