@@ -11,7 +11,6 @@ import Control.Monad.Except (runExcept, throwError)
 import Control.Monad.Trans.Class (lift)
 
 import Data.Either (Either(..))
-import Data.Foldable (foldl)
 
 import Effect.Exception (Error)
 import Effect.Exception (error) as Exception
@@ -88,19 +87,6 @@ maximum filename table = do
     error = Exception.error "Unexpected results."
     query = "SELECT MAX(Entries) AS Maximum FROM (" <> (entries table) <> ")"
 
-totals :: DB.Database -> DB.Table -> DB.Request (Array Number)
-totals filename table = DB.select runResult filename query
-  where
-    runResult row = do
-      result' <- pure (runExcept $ runResult' row)
-      case result' of
-        (Left _)         -> pure 0.0
-        (Right result'') -> pure result''
-    runResult' row = do
-      total' <- row ! "Entries"  >>= Foreign.readNumber
-      pure total'
-    query = entries table
-
 total :: DB.Database  -> DB.Table -> DB.Request Number
 total filename table = do
   results <- DB.select runResult filename query
@@ -116,21 +102,21 @@ total filename table = do
     error = Exception.error "Unexpected results."
     query = "SELECT COUNT(*) as Total FROM (" <> (entries table) <> ")"
 
-variance :: DB.Database -> DB.Table -> DB.Request Number
-variance filename table = do
-  results <- totals filename table
+variance' :: DB.Database  -> DB.Table -> Number -> DB.Request Number
+variance' filename table = \average' -> do
+  results <- DB.select runResult filename $ query average'
   case results of
-    _     -> pure $ variance' results
+    [variance''] -> pure variance''
+    _            -> lift $ lift (throwError error)
   where
-    variance' results   = divide' (variance'' results) (sum'' results)
-    variance'' results  = foldl (+) 0.0 $ variance''' results (average' results)
-    variance''' results = \avg -> flip (<$>) results $ variance'''' avg
-    variance'''' avg    = \result -> (result - avg) * (result - avg)
-    average' results    = divide' (sum' results) (sum'' results)
-    sum' results      = foldl (+) 0.0 results
-    sum'' results     = foldl (+) 0.0 (sum''' results)
-    sum''' results    = flip (<$>) results $ \_ -> 1.0
-    divide' x y       = if y == 0.0 then 0.0 else x / y 
+    runResult row = do
+       result' <- pure (runExcept $ row ! "Variance" >>= Foreign.readNumber)
+       case result' of
+         (Left _)          -> pure 0.0
+         (Right variance'')    -> pure variance''
+    error = Exception.error "Unexpected results."
+    query average'  = "SELECT AVG(" <> query' average' <> " * " <> query' average' <> ") AS Variance FROM (" <> (entries table) <> ")"
+    query' average' = "(Entries - " <> show average' <> ")"
 
 data Entry = Entry
   { min                 :: Number
@@ -149,19 +135,19 @@ instance eqEntry :: Eq Entry where
 
 statistics :: DB.Database  -> DB.Table -> DB.Request Entry
 statistics filename table = do
-  min'      <- minimum filename table
-  max'      <- maximum filename table
-  sum'      <- sum filename table
-  total'    <- total filename table
-  average'  <- average filename table
-  variance' <- variance filename table
+  min'       <- minimum filename table
+  max'       <- maximum filename table
+  sum'       <- sum filename table
+  total'     <- total filename table
+  average'   <- average filename table
+  variance'' <- variance' filename table $ average'
   pure $ Entry $
     { min       : min'
     , max       : max'
     , sum       : sum'
     , total     : total'
     , average   : average'
-    , variance  : variance'
+    , variance  : variance''
     }
 
 report :: DB.Database -> DB.Table -> DB.Request String
