@@ -6,6 +6,7 @@ module DB
  , Database
  , Table
  , ColumnType(..)
+ , Schema(..)
  , close
  , connect
  , insert 
@@ -28,7 +29,7 @@ import Data.Array as Array
 import Data.Either (Either)
 import Data.Traversable (sequence)
 
-import Data.Tuple (Tuple, fst, snd)
+import Data.Tuple (Tuple(..), fst, snd)
 
 import Effect.Aff (Aff)
 import Effect.Exception (Error)
@@ -41,15 +42,19 @@ type Database = String
 
 type Table = String
 
+data Schema  = Audit | Flow
+
+data SelectType = All | Success | Failure | Duration
+
 data RequestDSL a = Close SQLite3.Database (Unit -> a)
   | Connect Database SQLite3.Mode (SQLite3.Database -> a) 
-  | Query Table SQLite3.Database (Array SQLite3.Row -> a)
+  | Execute Table SQLite3.Database (Array SQLite3.Row -> a)
 
 instance functorRequestDSL :: Functor RequestDSL where
   map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
   map f (Close database next)        = (Close database (f <<< next))
   map f (Connect filename mode next) = (Connect filename mode (f <<< next))
-  map f (Query query database next)  = (Query query database (f <<< next))
+  map f (Execute query database next)  = (Execute query database (f <<< next))
 
 type Interpreter = WriterT (Array String) Aff 
 
@@ -64,7 +69,7 @@ connect :: Database -> SQLite3.Mode -> Request SQLite3.Database
 connect filename mode = liftFreeT $ (Connect filename mode identity)
 
 all :: String -> SQLite3.Database -> Request (Array SQLite3.Row)
-all query database = liftFreeT $ (Query query database identity)
+all query database = liftFreeT $ (Execute query database identity)
 
 insert :: Database -> Table -> Array (Tuple String String) -> Request Unit
 insert filename table' params = do
@@ -78,6 +83,12 @@ insert filename table' params = do
      values   = "'" <> (Arrays.join "','" values') <> "'"
      columns' = fst <$> params
      values'  = snd <$> params
+
+--select' :: Selection -> String
+--select'  Audit Events    = "SELECT LogID, SourceID, EntryID, EventType, EventID, COUNT(*) as Events FROM Audit GROUP BY LogID, SourceID, EntryID"
+--select'  Audit Successes = "SELECT LogID, SourceID, EntryID, EventType, EventID, COUNT(*) as Events FROM (SELECT * FROM Audit WHERE EventType='Success') GROUP BY LogID, SourceID, EntryID"
+--select'  Audit Failures  = "SELECT LogID, SourceID, EntryID, EventType, EventID, COUNT(*) as Events FROM (SELECT * FROM Audit WHERE EventType='Failure') GROUP BY LogID, SourceID, EntryID"
+--select'  Flow  Events    = "SELECT LogID, SourceID, EntryID, E 
 
 select :: forall a. (SQLite3.Row -> Aff a) -> Database -> String -> Request (Array a)
 select runResult filename query = do
@@ -99,8 +110,8 @@ remove filename table' = do
   lift $ pure unit
   where query = "DROP TABLE IF EXISTS " <> table'
 
-schema :: Database -> Table -> Array Column -> Array Column -> Request Unit
-schema filename table' params params' = do
+schema' :: Database -> Table -> Array Column -> Array Column -> Request Unit
+schema' filename table' params params' = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
   _        <- close database
@@ -117,6 +128,35 @@ schema filename table' params params' = do
      primaryKey       = "PRIMARY KEY (" <> primaryKey' <> ")"
      primaryKey'      = Arrays.join "," (fst <$> params)
 
+schema :: Schema -> Database -> Request Unit
+schema Audit = \filename -> schema' filename "Audit" [] $
+  [ Tuple "LogID" Text
+  , Tuple "SourceID" Text
+  , Tuple "EntryID" Text
+  , Tuple "Timestamp" Text
+  , Tuple "SourceAddress" Text
+  , Tuple "SourcePort" Text
+  , Tuple "Duration" Real
+  , Tuple "EventType" Text
+  , Tuple "EventID" Text
+  , Tuple "Event" Text
+  ]
+schema Flow = \filename -> schema' filename "Flow" compositeKey $ 
+  [ Tuple "SIP" Text
+  , Tuple "DIP" Text
+  , Tuple "SPort" Text
+  , Tuple "DPort" Text
+  , Tuple "Protocol" Text
+  , Tuple "Packets" Text
+  , Tuple "Bytes" Text
+  , Tuple "Flags" Text
+  , Tuple "STime" Text
+  , Tuple "Duration" Text
+  , Tuple "ETime" Text
+  , Tuple "Sensor" Text
+  ]
+  where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
+
 touch :: Database -> Request Unit
 touch filename = do
   database <- connect filename SQLite3.OpenCreate
@@ -132,8 +172,8 @@ interpret (Connect filename mode next) = do
   _      <- tell ["CONNECT"]
   result <- lift $ next <$> SQLite3.connect filename mode
   lift $ pure result 
-interpret (Query query database next) = do
-  _      <- tell ["QUERY"]
+interpret (Execute query database next) = do
+  _      <- tell ["EXECUTE"]
   result <- lift $ next <$> SQLite3.all query database
   lift $ pure result
  

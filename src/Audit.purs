@@ -3,7 +3,6 @@ module Audit
   , EventID(..)
   , Entry(..)
   , insert
-  , schema
   , application
   ) where
 
@@ -73,20 +72,6 @@ insert filename duration (Entry eventType eventID msg) req = do
     eventType' = show eventType
     eventID' = show eventID
     duration' = show duration
-
-schema :: DB.Database -> DB.Request Unit
-schema filename = DB.schema filename table [] $
-  [ Tuple "LogID" DB.Text
-  , Tuple "SourceID" DB.Text
-  , Tuple "EntryID" DB.Text
-  , Tuple "Timestamp" DB.Text
-  , Tuple "SourceAddress" DB.Text
-  , Tuple "SourcePort" DB.Text
-  , Tuple "Duration" DB.Real
-  , Tuple "EventType" DB.Text
-  , Tuple "EventID" DB.Text
-  , Tuple "Event" DB.Text
-  ]
 
 {-- Audit an application-layer event associated with an incoming HTTP request. --}
 application :: DB.Database -> Number -> Entry -> HTTP.IncomingMessage -> Aff Unit

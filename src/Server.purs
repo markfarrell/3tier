@@ -22,7 +22,7 @@ import Effect.Class (liftEffect)
 import Data.Tuple (Tuple(..))
 
 import Text.Parsing.Parser (Parser, runParser)
-import Text.Parsing.Parser.String (string, eof)
+import Text.Parsing.Parser.String (string)
 
 import Strings as Strings
 
@@ -205,8 +205,8 @@ initialize = do
   pure filename
   where
     schemas filename =
-      [ Audit.schema filename
-      , Flow.schema filename
+      [ DB.schema DB.Audit $ filename 
+      , DB.schema DB.Flow  $ filename
       ]
     getFilename = pure $ UUIDv1.defaultUUID <> ".db"
 

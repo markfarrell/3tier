@@ -3,7 +3,6 @@ module Flow
   , parse
   , unparse
   , insert
-  , schema
   , createReader
   ) where
 
@@ -290,23 +289,6 @@ insert filename (Entry entry) req = do
     entryID       = UUIDv5.namespaceUUID sourceID $ HTTP.messageURL req
     sourceID      = UUIDv5.namespaceUUID UUIDv1.defaultUUID $ remoteAddress
     logID         = UUIDv1.defaultUUID
-
-schema :: DB.Database -> DB.Request Unit
-schema filename = DB.schema filename table params $
-  [ Tuple "SIP" DB.Text
-  , Tuple "DIP" DB.Text
-  , Tuple "SPort" DB.Text
-  , Tuple "DPort" DB.Text
-  , Tuple "Protocol" DB.Text
-  , Tuple "Packets" DB.Text
-  , Tuple "Bytes" DB.Text
-  , Tuple "Flags" DB.Text
-  , Tuple "STime" DB.Text
-  , Tuple "Duration" DB.Text
-  , Tuple "ETime" DB.Text
-  , Tuple "Sensor" DB.Text
-  ]
-  where params = [ Tuple "LogID" DB.Text, Tuple "SourceID" DB.Text, Tuple "EntryID" DB.Text ]
 
 table :: DB.Table
 table = "Flow"

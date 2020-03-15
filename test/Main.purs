@@ -21,7 +21,6 @@ import RSA as RSA
 import DB as DB
 import Strings as Strings
 
-import Audit as Audit
 import Flow as Flow
 import Server as Server
 import Statistics as Statistics
@@ -43,8 +42,8 @@ testSchema :: DB.Database -> Aff Unit
 testSchema filename = assert' label =<< try do
   _ <- testRequest "Test.DB.touch"          $ DB.touch filename
   _ <- testRequest "Test.DB.remove"         $ remove' filename
-  _ <- testRequest "Test.Flow.schema"       $ Flow.schema filename
-  _ <- testRequest "Test.Audit.schema"      $ Audit.schema filename
+  _ <- testRequest "Test.Flow.schema"       $ DB.schema DB.Flow filename
+  _ <- testRequest "Test.Audit.schema"      $ DB.schema DB.Audit filename
   pure unit
   where 
     remove' filename' = do
