@@ -38,12 +38,12 @@ import Statistics as Statistics
 
 data ForwardType = Flow Flow.Entry
 
-data ReportType = Statistics DB.Table
+data ReportType = Statistics DB.Schema
 
 data Route = Forward ForwardType | Report ReportType
 
 instance showRoute :: Show Route where
-  show (Report (Statistics table)) = "(Report (Statistics " <> show table <> "))" 
+  show (Report (Statistics schema)) = "(Report (Statistics " <> show schema <> "))" 
   show (Forward (Flow entry))      = "(Forward (Flow " <> show entry <> "))"
 
 parseRoute :: Parser String Route
@@ -56,17 +56,10 @@ parseRoute = forward <|> report
     report = reportFlow <|> reportAudit
     reportFlow  = do
       _  <- string "/report/flow"
-      pure (Report (Statistics "Flow"))
-    reportAudit = reportAuditSuccess <|> reportAuditFailure <|> reportAudit'
-    reportAudit' = do
+      pure (Report (Statistics DB.Flow))
+    reportAudit = do
       _ <- string "/report/audit"
-      pure (Report (Statistics "Audit"))
-    reportAuditFailure = do
-      _  <- string "/report/audit/failure"
-      pure (Report (Statistics "SELECT * FROM Audit WHERE EventType='FAILURE'")) 
-    reportAuditSuccess = do
-      _  <- string "/report/audit/success"
-      pure (Report (Statistics "SELECT * FROM Audit WHERE EventType='SUCCESS'")) 
+      pure (Report (Statistics DB.Audit))
 
 data ContentType a = TextJSON a
 
@@ -128,7 +121,7 @@ runRoute filename req  = do
       _ <- audit' duration Audit.Success result $ req
       case route of 
         (Forward (Flow entry))          -> (runRequest' filename $ insertFlow entry)        $ req
-        (Report (Statistics table))     -> (runRequest' filename $ reportStatistics table)  $ req
+        (Report (Statistics schema))     -> (runRequest' filename $ reportStatistics schema)  $ req
   where
     insertFlow        = Flow.insert filename
     reportStatistics  = const <<< Statistics.report filename

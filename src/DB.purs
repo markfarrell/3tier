@@ -44,6 +44,10 @@ type Table = String
 
 data Schema  = Audit | Flow
 
+instance showSchema :: Show Schema where
+  show Audit = "Audit"
+  show Flow  = "Flow"
+
 data SelectType = All | Success | Failure | Duration
 
 data RequestDSL a = Close SQLite3.Database (Unit -> a)

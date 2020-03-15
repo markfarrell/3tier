@@ -121,28 +121,27 @@ testInsertFlow :: DB.Database -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertFlow filename entry req = testRequest label $ Flow.insert filename entry req
   where label = "Test.Flow.insert"
 
-testStatistics :: Statistics.Entry -> DB.Database -> DB.Table -> Aff Statistics.Entry
-testStatistics expect filename table = do
-  entry  <- testRequest label $ Statistics.statistics filename table
+testStatistics :: Statistics.Entry -> DB.Database -> DB.Schema -> Aff Statistics.Entry
+testStatistics expect filename schema = do
+  entry  <- testRequest label $ Statistics.statistics filename schema
   _      <- assert label' expect $ entry
   pure entry
   where
-    label  = "Test.Statistics.statistics " <> table <> " (1)"
-    label' = "Test.Statistics.statistics " <> table <> " (2)"
+    label  = "Test.Statistics.statistics " <> show schema <> " (1)"
+    label' = "Test.Statistics.statistics " <> show schema <> " (2)"
 
 testFlow :: DB.Database -> Aff Unit
 testFlow filename = assert' label  =<< try do
   entry'  <- testParseFlow entry
   entry'' <- testUnparseFlow entry'
-  _       <- testStatistics expect filename table
+  _       <- testStatistics expect filename DB.Flow
   req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardFlow entry''
   _       <- testInsertFlow filename entry' $ req
-  _       <- testStatistics expect' filename table
+  _       <- testStatistics expect' filename DB.Flow
   pure unit
   where
     entry   = "0.0.0.0,0.12.123.255,0,65535,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
     label   = "Test.Flow"
-    table   = "Flow"
     expect = Statistics.Entry $ 
       { min       : 0.0
       , max       : 0.0
