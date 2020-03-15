@@ -1,5 +1,6 @@
 module Statistics
   ( Entry(..)
+  , ReportType(..)
   , statistics
   , report
   , unparse
@@ -23,15 +24,21 @@ import JSON as JSON
 
 import DB as DB
 
+{-- data ReportType = Events | Successes | Failures | Durations --}
+data ReportType = Events
+
+instance showReportType :: Show ReportType where
+  show Events = "Events"
+
 entries' :: DB.Table -> DB.Table
 entries' table = "SELECT COUNT(DISTINCT EntryID) AS Entries FROM (" <> table <> ") GROUP BY LogID, SourceID" 
 
-entries :: DB.Schema -> DB.Table
-entries DB.Audit = entries' "Audit"
-entries DB.Flow  = entries' "Flow"
+entries :: DB.Schema -> ReportType -> DB.Table
+entries DB.Audit Events = entries' "Audit"
+entries DB.Flow  Events = entries' "Flow"
 
-sum :: DB.Database -> DB.Schema -> DB.Request Number
-sum filename schema = do
+sum :: DB.Database -> DB.Schema -> ReportType ->  DB.Request Number
+sum filename schema ty = do
   results <- DB.select runResult filename query
   case results of
     [sum']   -> pure sum'
@@ -43,10 +50,10 @@ sum filename schema = do
         (Left _)     -> pure 0.0
         (Right sum') -> pure sum'
     error = Exception.error "Unexpected results."
-    query = "SELECT SUM(Entries) AS Result FROM (" <> (entries schema) <> ")"
+    query = "SELECT SUM(Entries) AS Result FROM (" <> (entries schema ty) <> ")"
 
-average :: DB.Database -> DB.Schema -> DB.Request Number
-average filename schema = do
+average :: DB.Database -> DB.Schema -> ReportType ->  DB.Request Number
+average filename schema ty = do
   results <- DB.select runResult filename query
   case results of
     []         -> pure 0.0
@@ -59,10 +66,10 @@ average filename schema = do
         (Left _)         -> pure 0.0
         (Right average') -> pure average'
     error = Exception.error "Unexpected results."
-    query = "SELECT AVG(Entries) AS Average FROM (" <> (entries schema) <> ")"
+    query = "SELECT AVG(Entries) AS Average FROM (" <> (entries schema ty) <> ")"
 
-minimum :: DB.Database  -> DB.Schema -> DB.Request Number
-minimum filename schema = do
+minimum :: DB.Database -> DB.Schema -> ReportType -> DB.Request Number
+minimum filename schema ty = do
   results <- DB.select runResult filename query
   case results of
     [min'] -> pure min'
@@ -74,10 +81,10 @@ minimum filename schema = do
         (Left _)         -> pure 0.0
         (Right min')     -> pure min'
     error = Exception.error "Unexpected results."
-    query = "SELECT MIN(Entries) AS Minimum FROM (" <> (entries schema) <> ")"
+    query = "SELECT MIN(Entries) AS Minimum FROM (" <> (entries schema ty) <> ")"
 
-maximum :: DB.Database -> DB.Schema -> DB.Request Number
-maximum filename schema = do
+maximum :: DB.Database -> DB.Schema -> ReportType -> DB.Request Number
+maximum filename schema ty = do
   results <- DB.select runResult filename query
   case results of
     [max'] -> pure max'
@@ -89,10 +96,10 @@ maximum filename schema = do
         (Left _)         -> pure 0.0
         (Right max')     -> pure max'
     error = Exception.error "Unexpected results."
-    query = "SELECT MAX(Entries) AS Maximum FROM (" <> (entries schema) <> ")"
+    query = "SELECT MAX(Entries) AS Maximum FROM (" <> (entries schema ty) <> ")"
 
-total :: DB.Database  -> DB.Schema -> DB.Request Number
-total filename schema = do
+total :: DB.Database -> DB.Schema -> ReportType -> DB.Request Number
+total filename schema ty = do
   results <- DB.select runResult filename query
   case results of
     [total'] -> pure total'
@@ -104,10 +111,10 @@ total filename schema = do
          (Left _)          -> pure 0.0
          (Right total')    -> pure total'
     error = Exception.error "Unexpected results."
-    query = "SELECT COUNT(*) as Total FROM (" <> (entries schema) <> ")"
+    query = "SELECT COUNT(*) as Total FROM (" <> (entries schema ty) <> ")"
 
-variance' :: DB.Database  -> DB.Schema -> Number -> DB.Request Number
-variance' filename schema = \average' -> do
+variance' :: DB.Database -> DB.Schema -> ReportType -> Number -> DB.Request Number
+variance' filename schema ty = \average' -> do
   results <- DB.select runResult filename $ query average'
   case results of
     [variance''] -> pure variance''
@@ -119,7 +126,7 @@ variance' filename schema = \average' -> do
          (Left _)          -> pure 0.0
          (Right variance'')    -> pure variance''
     error = Exception.error "Unexpected results."
-    query average'  = "SELECT AVG(" <> query' average' <> " * " <> query' average' <> ") AS Variance FROM (" <> (entries schema) <> ")"
+    query average'  = "SELECT AVG(" <> query' average' <> " * " <> query' average' <> ") AS Variance FROM (" <> (entries schema ty) <> ")"
     query' average' = "(Entries - " <> show average' <> ")"
 
 data Entry = Entry
@@ -137,14 +144,14 @@ instance showEntry :: Show Entry where
 instance eqEntry :: Eq Entry where
   eq (Entry x) (Entry y) = x == y
 
-statistics :: DB.Database  -> DB.Schema -> DB.Request Entry
-statistics filename schema = do
-  min'       <- minimum filename schema
-  max'       <- maximum filename schema
-  sum'       <- sum filename schema
-  total'     <- total filename schema
-  average'   <- average filename schema
-  variance'' <- variance' filename schema $ average'
+statistics :: DB.Database -> DB.Schema -> ReportType -> DB.Request Entry
+statistics filename schema ty = do
+  min'       <- minimum filename schema ty
+  max'       <- maximum filename schema ty
+  sum'       <- sum filename schema ty
+  total'     <- total filename schema ty
+  average'   <- average filename schema ty
+  variance'' <- variance' filename schema ty $ average'
   pure $ Entry $
     { min       : min'
     , max       : max'
@@ -154,9 +161,9 @@ statistics filename schema = do
     , variance  : variance''
     }
 
-report :: DB.Database -> DB.Schema-> DB.Request String
-report filename table = do
-  result  <- unparse <$> statistics filename table
+report :: DB.Database -> DB.Schema -> ReportType -> DB.Request String
+report filename schema ty  = do
+  result  <- unparse <$> statistics filename schema ty
   case result of
     (Left _)        -> throwError $ Exception.error "Unexpected behaviour."
     (Right result') -> pure result' 

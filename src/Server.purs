@@ -38,12 +38,12 @@ import Statistics as Statistics
 
 data ForwardType = Flow Flow.Entry
 
-data ReportType = Statistics DB.Schema
+data ReportType = Statistics DB.Schema Statistics.ReportType
 
 data Route = Forward ForwardType | Report ReportType
 
 instance showRoute :: Show Route where
-  show (Report (Statistics schema)) = "(Report (Statistics " <> show schema <> "))" 
+  show (Report (Statistics schema ty)) = "(Report (Statistics " <> show schema <> " " <> show ty <> "))" 
   show (Forward (Flow entry))      = "(Forward (Flow " <> show entry <> "))"
 
 parseRoute :: Parser String Route
@@ -56,10 +56,10 @@ parseRoute = forward <|> report
     report = reportFlow <|> reportAudit
     reportFlow  = do
       _  <- string "/report/flow"
-      pure (Report (Statistics DB.Flow))
+      pure (Report (Statistics DB.Flow Statistics.Events))
     reportAudit = do
       _ <- string "/report/audit"
-      pure (Report (Statistics DB.Audit))
+      pure (Report (Statistics DB.Audit Statistics.Events))
 
 data ContentType a = TextJSON a
 
@@ -120,16 +120,16 @@ runRoute filename req  = do
     (Right route) -> do
       _ <- audit' duration Audit.Success result $ req
       case route of 
-        (Forward (Flow entry))          -> (runRequest' filename $ insertFlow entry)        $ req
-        (Report (Statistics schema))     -> (runRequest' filename $ reportStatistics schema)  $ req
+        (Forward (Flow entry))              -> (runRequest' filename $ insertFlow entry)        $ req
+        (Report (Statistics schema ty))     -> (runRequest' filename $ reportStatistics schema ty)  $ req
   where
-    insertFlow        = Flow.insert filename
-    reportStatistics  = const <<< Statistics.report filename
+    insertFlow            = Flow.insert filename
+    reportStatistics  x y = const $ Statistics.report filename x y
     audit             = Audit.application filename
     audit' x y z      = audit x $ Audit.Entry y Audit.RoutingRequest (audit'' z)
     audit'' (Left _)                         = ""
-    audit'' (Right (Forward (Flow _)))       = "FORWARD-FLOW"
-    audit'' (Right (Report  (Statistics _))) = "REPORT-STATISTICS"
+    audit'' (Right (Forward (Flow _)))         = "FORWARD-FLOW"
+    audit'' (Right (Report  (Statistics _ _))) = "REPORT-STATISTICS"
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do

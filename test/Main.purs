@@ -123,7 +123,7 @@ testInsertFlow filename entry req = testRequest label $ Flow.insert filename ent
 
 testStatistics :: Statistics.Entry -> DB.Database -> DB.Schema -> Aff Statistics.Entry
 testStatistics expect filename schema = do
-  entry  <- testRequest label $ Statistics.statistics filename schema
+  entry  <- testRequest label $ Statistics.statistics filename schema Statistics.Events
   _      <- assert label' expect $ entry
   pure entry
   where
