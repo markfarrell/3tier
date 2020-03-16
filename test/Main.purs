@@ -118,8 +118,8 @@ testForwardFlow query = do
       
 
 testInsertFlow :: DB.Database -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
-testInsertFlow filename entry req = testRequest label $ Flow.insert filename entry req
-  where label = "Test.Flow.insert"
+testInsertFlow filename entry req = testRequest label $ DB.insertFlow filename entry req
+  where label = "Test.DB.insertFlow"
 
 testStatistics :: Statistics.Entry -> DB.Database -> DB.Schema -> Aff Statistics.Entry
 testStatistics expect filename schema = do

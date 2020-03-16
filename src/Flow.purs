@@ -2,7 +2,6 @@ module Flow
   ( Entry (..)
   , parse
   , unparse
-  , insert
   , createReader
   ) where
 
@@ -41,16 +40,9 @@ import Text.Parsing.Parser.String (char, eof, satisfy, string)
 import Text.Parsing.Parser.Combinators (choice)
 
 import Date as Date
-import HTTP as HTTP
-import Socket as Socket
 import Stream as Stream
 import Process as Process
 import Readline as Readline
-
-import UUIDv1 as UUIDv1
-import UUIDv5 as UUIDv5
-
-import DB as DB
 
 newtype Entry = Entry
   { sIP      :: String
@@ -260,38 +252,6 @@ parse = do
     , sensor   : sensor'
     }
   where comma = char delimiter
-
-insert :: DB.Database -> Entry -> HTTP.IncomingMessage -> DB.Request Unit
-insert filename (Entry entry) req = do
-  timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  DB.insert filename table $ params timestamp
-  where
-    params timestamp = 
-      [ Tuple "LogID" logID
-      , Tuple "SourceID" sourceID
-      , Tuple "EntryID" entryID
-      , Tuple "SIP" entry.sIP
-      , Tuple "DIP" entry.dIP
-      , Tuple "SPort" entry.sPort
-      , Tuple "DPort" entry.dPort
-      , Tuple "Protocol" entry.protocol
-      , Tuple "Packets" entry.packets
-      , Tuple "Bytes" entry.bytes
-      , Tuple "Flags" entry.flags
-      , Tuple "STime" entry.sTime
-      , Tuple "Duration" entry.duration
-      , Tuple "ETime" entry.eTime
-      , Tuple "Sensor" entry.sensor
-      ]
-    remoteAddress = Socket.remoteAddress $ HTTP.socket req
-    remotePort    = Socket.remotePort $ HTTP.socket req
-    remotePort'   = show remotePort
-    entryID       = UUIDv5.namespaceUUID sourceID $ HTTP.messageURL req
-    sourceID      = UUIDv5.namespaceUUID UUIDv1.defaultUUID $ remoteAddress
-    logID         = UUIDv1.defaultUUID
-
-table :: DB.Table
-table = "Flow"
 
 unparse'' :: Entry -> String
 unparse'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $

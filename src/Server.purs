@@ -102,7 +102,7 @@ runRequest' filename request req = do
       _ <- audit' duration Audit.Success result' $ req
       pure $ Ok (TextJSON (showJSON result''))
   where 
-    audit                 = Audit.application filename
+    audit                 = DB.audit filename
     audit' x y z          = audit x $ Audit.Entry y Audit.DatabaseRequest (audit'' z)
     audit'' (Left _)      = "" 
     audit'' (Right (Tuple _ steps)) = show steps
@@ -120,12 +120,12 @@ runRoute filename req  = do
     (Right route) -> do
       _ <- audit' duration Audit.Success result $ req
       case route of 
-        (Forward (Flow entry))              -> (runRequest' filename $ insertFlow entry)        $ req
+        (Forward (Flow entry))              -> (runRequest' filename $ insertFlow entry)            $ req
         (Report (Statistics schema ty))     -> (runRequest' filename $ reportStatistics schema ty)  $ req
   where
-    insertFlow            = Flow.insert filename
+    insertFlow            = DB.insertFlow filename
     reportStatistics  x y = const $ Statistics.report filename x y
-    audit             = Audit.application filename
+    audit             = DB.audit filename
     audit' x y z      = audit x $ Audit.Entry y Audit.RoutingRequest (audit'' z)
     audit'' (Left _)                         = ""
     audit'' (Right (Forward (Flow _)))         = "FORWARD-FLOW"
@@ -180,7 +180,7 @@ consumer filename = forever $ do
              (Right _)   -> lift $ audit duration' (Audit.Entry Audit.Success Audit.ResourceResponse (responseType ty)) $ req 
   where 
     runRoute' = runRoute filename
-    audit     = Audit.application filename
+    audit     = DB.audit filename
     default   = ""
     responseType (Ok _)                  = "OK"
     responseType (BadRequest _)          = "BAD-REQUEST"

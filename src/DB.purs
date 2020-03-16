@@ -10,6 +10,8 @@ module DB
  , close
  , connect
  , insert 
+ , insertFlow
+ , audit
  , select
  , schema
  , touch
@@ -32,11 +34,20 @@ import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 
 import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 
 import Arrays as Arrays
 
+import Date as Date
+import HTTP as HTTP
+import Socket as Socket
 import SQLite3 as SQLite3
+import UUIDv1 as UUIDv1
+import UUIDv5 as UUIDv5
+
+import Audit as Audit
+import Flow as Flow
 
 type Database = String
 
@@ -161,6 +172,64 @@ schema Flow = \filename -> schema' filename "Flow" compositeKey $
   ]
   where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
 
+insertAudit :: Database -> Number -> Audit.Entry -> HTTP.IncomingMessage -> Request Unit
+insertAudit filename duration (Audit.Entry eventType eventID msg) req = do
+  timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
+  insert filename table $ params timestamp
+  where 
+    params timestamp =
+      [ Tuple "LogID" logID
+      , Tuple "SourceID" sourceID
+      , Tuple "EntryID" entryID
+      , Tuple "Timestamp" timestamp 
+      , Tuple "SourceAddress" remoteAddress
+      , Tuple "SourcePort" remotePort'
+      , Tuple "Duration" duration'
+      , Tuple "EventType" eventType'
+      , Tuple "EventID" eventID'
+      , Tuple "Event" msg
+      ]
+    remoteAddress = Socket.remoteAddress $ HTTP.socket req
+    remotePort    = Socket.remotePort $ HTTP.socket req
+    remotePort'   = show remotePort
+    sourceID      = UUIDv5.namespaceUUID logID $ remoteAddress
+    entryID       = UUIDv5.namespaceUUID sourceID $ HTTP.messageURL req
+    logID         = UUIDv1.defaultUUID
+    eventType'    = show eventType
+    eventID'      = show eventID
+    duration'     = show duration
+    table         = "Audit"
+
+insertFlow :: Database -> Flow.Entry -> HTTP.IncomingMessage -> Request Unit
+insertFlow filename (Flow.Entry entry) req = do
+  timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
+  insert filename table $ params timestamp
+  where
+    params timestamp = 
+      [ Tuple "LogID" logID
+      , Tuple "SourceID" sourceID
+      , Tuple "EntryID" entryID
+      , Tuple "SIP" entry.sIP
+      , Tuple "DIP" entry.dIP
+      , Tuple "SPort" entry.sPort
+      , Tuple "DPort" entry.dPort
+      , Tuple "Protocol" entry.protocol
+      , Tuple "Packets" entry.packets
+      , Tuple "Bytes" entry.bytes
+      , Tuple "Flags" entry.flags
+      , Tuple "STime" entry.sTime
+      , Tuple "Duration" entry.duration
+      , Tuple "ETime" entry.eTime
+      , Tuple "Sensor" entry.sensor
+      ]
+    remoteAddress = Socket.remoteAddress $ HTTP.socket req
+    remotePort    = Socket.remotePort $ HTTP.socket req
+    remotePort'   = show remotePort
+    entryID       = UUIDv5.namespaceUUID sourceID $ HTTP.messageURL req
+    sourceID      = UUIDv5.namespaceUUID UUIDv1.defaultUUID $ remoteAddress
+    logID         = UUIDv1.defaultUUID
+    table         = "Flow"
+
 touch :: Database -> Request Unit
 touch filename = do
   database <- connect filename SQLite3.OpenCreate
@@ -183,3 +252,8 @@ interpret (Execute query database next) = do
  
 runRequest ::  forall a. Request a -> Aff (Result a)
 runRequest request = try $ runWriterT $ runFreeT interpret request
+
+audit :: Database -> Number -> Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
+audit filename duration entry req = do
+  _      <- runRequest (insertAudit filename duration entry $ req)
+  pure unit
