@@ -46,6 +46,9 @@ instance showRoute :: Show Route where
   show (Report (Statistics schema ty)) = "(Report (Statistics " <> show schema <> " " <> show ty <> "))" 
   show (Forward (Flow entry))      = "(Forward (Flow " <> show entry <> "))"
 
+audit :: DB.Database -> Audit.Entry -> HTTP.IncomingMessage -> Aff (DB.Result Unit)
+audit filename entry req = DB.runRequest $ DB.insert filename (DB.Audit' entry) req
+
 parseRoute :: Parser String Route
 parseRoute = forward <|> report
   where
@@ -96,14 +99,12 @@ runRequest' filename request req = do
   duration    <- pure $ endTime - startTime
   case result' of
     (Left error)             -> do 
-      _ <- audit' duration Audit.Failure result' $ req
+      _ <- audit filename (Audit.Entry Audit.Failure Audit.DatabaseRequest duration (audit'' result')) $ req
       pure $ InternalServerError ""
     (Right (Tuple result'' steps)) -> do
-      _ <- audit' duration Audit.Success result' $ req
+      _ <- audit filename (Audit.Entry Audit.Success Audit.DatabaseRequest duration (audit'' result')) $ req
       pure $ Ok (TextJSON (showJSON result''))
   where 
-    audit                 = DB.audit filename
-    audit' x y z          = audit x $ Audit.Entry y Audit.DatabaseRequest (audit'' z)
     audit'' (Left _)      = "" 
     audit'' (Right (Tuple _ steps)) = show steps
 
@@ -115,18 +116,15 @@ runRoute filename req  = do
   duration  <- pure $ endTime - startTime
   case result of
     (Left _     ) -> do 
-      _ <- audit' duration Audit.Failure result $ req
+      _ <- audit filename (Audit.Entry Audit.Failure Audit.RoutingRequest duration (audit'' result)) $ req
       pure $ BadRequest (HTTP.messageURL req)
     (Right route) -> do
-      _ <- audit' duration Audit.Success result $ req
+      _ <- audit filename (Audit.Entry Audit.Success Audit.RoutingRequest duration (audit'' result)) $ req
       case route of 
-        (Forward (Flow entry))              -> (runRequest' filename $ insertFlow entry)            $ req
+        (Forward (Flow entry))              -> (runRequest' filename $ DB.insert filename (DB.Flow' entry)) $ req
         (Report (Statistics schema ty))     -> (runRequest' filename $ reportStatistics schema ty)  $ req
   where
-    insertFlow            = DB.insertFlow filename
     reportStatistics  x y = const $ Statistics.report filename x y
-    audit             = DB.audit filename
-    audit' x y z      = audit x $ Audit.Entry y Audit.RoutingRequest (audit'' z)
     audit'' (Left _)                         = ""
     audit'' (Right (Forward (Flow _)))         = "FORWARD-FLOW"
     audit'' (Right (Report  (Statistics _ _))) = "REPORT-STATISTICS"
@@ -166,21 +164,20 @@ consumer filename = forever $ do
       endTime     <- lift $ liftEffect $ Date.currentTime
       duration    <- lift $ pure (endTime - startTime)
       case routeResult of
-        (Left  error)        -> lift $ audit duration (Audit.Entry Audit.Failure Audit.ResourceRequest default) $ req
+        (Left  error)        -> lift $ audit filename (Audit.Entry Audit.Failure Audit.ResourceRequest duration default) $ req
         (Right ty) -> do
            _ <- case ty of
-                  (Ok _) -> lift $ audit duration (Audit.Entry Audit.Success Audit.ResourceRequest default) $ req
-                  _      -> lift $ audit duration (Audit.Entry Audit.Failure Audit.ResourceRequest default) $ req
+                  (Ok _) -> lift $ audit filename (Audit.Entry Audit.Success Audit.ResourceRequest duration default) $ req
+                  _      -> lift $ audit filename (Audit.Entry Audit.Failure Audit.ResourceRequest duration default) $ req
            startTime'     <- lift $ liftEffect $ Date.currentTime
            responseResult <- lift $ try (respondResource ty res)
            endTime'       <- lift $ liftEffect $ Date.currentTime
            duration'      <- lift $ pure (endTime' - startTime')
            case responseResult of
-             (Left  _)   -> lift $ audit duration' (Audit.Entry Audit.Failure Audit.ResourceResponse default)   $ req
-             (Right _)   -> lift $ audit duration' (Audit.Entry Audit.Success Audit.ResourceResponse (responseType ty)) $ req 
+             (Left  _)   -> lift $ audit filename (Audit.Entry Audit.Failure Audit.ResourceResponse duration' default)   $ req
+             (Right _)   -> lift $ audit filename (Audit.Entry Audit.Success Audit.ResourceResponse duration' (responseType ty)) $ req 
   where 
     runRoute' = runRoute filename
-    audit     = DB.audit filename
     default   = ""
     responseType (Ok _)                  = "OK"
     responseType (BadRequest _)          = "BAD-REQUEST"

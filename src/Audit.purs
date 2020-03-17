@@ -6,18 +6,11 @@ module Audit
 
 import Prelude
 
-import Control.Monad.Trans.Class (lift)
-
-import Data.Tuple (Tuple(..))
-
-import Effect.Aff (Aff)
-import Effect.Class (liftEffect)
-
 data EventType = Success | Failure
 
 data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest
 
-data Entry = Entry EventType EventID String
+data Entry = Entry EventType EventID Number String
 
 instance showEventType :: Show EventType where
   show Success = "SUCCESS"
@@ -30,4 +23,4 @@ instance showEventID :: Show EventID where
   show RoutingRequest   = "ROUTING-REQUEST"
 
 instance showEntry :: Show Entry where
-  show (Entry eventType eventID msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show msg <> ")"
+  show (Entry eventType eventID duration msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show duration <> " " <> show msg <> ")"

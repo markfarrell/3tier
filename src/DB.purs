@@ -7,11 +7,10 @@ module DB
  , Table
  , ColumnType(..)
  , Schema(..)
+ , Insert(..)
  , close
  , connect
- , insert 
- , insertFlow
- , audit
+ , insert
  , select
  , schema
  , touch
@@ -55,6 +54,8 @@ type Table = String
 
 data Schema  = Audit | Flow
 
+data Insert  = Audit' Audit.Entry | Flow' Flow.Entry
+
 instance showSchema :: Show Schema where
   show Audit = "Audit"
   show Flow  = "Flow"
@@ -86,8 +87,8 @@ connect filename mode = liftFreeT $ (Connect filename mode identity)
 all :: String -> SQLite3.Database -> Request (Array SQLite3.Row)
 all query database = liftFreeT $ (Execute query database identity)
 
-insert :: Database -> Table -> Array (Tuple String String) -> Request Unit
-insert filename table' params = do
+insert' :: Database -> Table -> Array (Tuple String String) -> Request Unit
+insert' filename table' params = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
   _        <- close database
@@ -172,10 +173,10 @@ schema Flow = \filename -> schema' filename "Flow" compositeKey $
   ]
   where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
 
-insertAudit :: Database -> Number -> Audit.Entry -> HTTP.IncomingMessage -> Request Unit
-insertAudit filename duration (Audit.Entry eventType eventID msg) req = do
+insertAudit :: Database -> Audit.Entry -> HTTP.IncomingMessage -> Request Unit
+insertAudit filename (Audit.Entry eventType eventID duration msg) req = do
   timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
-  insert filename table $ params timestamp
+  insert' filename table $ params timestamp
   where 
     params timestamp =
       [ Tuple "LogID" logID
@@ -200,10 +201,14 @@ insertAudit filename duration (Audit.Entry eventType eventID msg) req = do
     duration'     = show duration
     table         = "Audit"
 
+insert :: Database -> Insert -> HTTP.IncomingMessage -> Request Unit
+insert filename (Audit' entry) req = insertAudit filename entry req
+insert filename (Flow'  entry) req = insertFlow filename entry req
+
 insertFlow :: Database -> Flow.Entry -> HTTP.IncomingMessage -> Request Unit
 insertFlow filename (Flow.Entry entry) req = do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  insert filename table $ params timestamp
+  insert' filename table $ params timestamp
   where
     params timestamp = 
       [ Tuple "LogID" logID
@@ -252,8 +257,3 @@ interpret (Execute query database next) = do
  
 runRequest ::  forall a. Request a -> Aff (Result a)
 runRequest request = try $ runWriterT $ runFreeT interpret request
-
-audit :: Database -> Number -> Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
-audit filename duration entry req = do
-  _      <- runRequest (insertAudit filename duration entry $ req)
-  pure unit
