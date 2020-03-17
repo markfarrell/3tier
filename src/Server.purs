@@ -112,21 +112,25 @@ runRoute filename req  = do
   duration  <- pure $ endTime - startTime
   case result of
     (Left _     ) -> do 
-      _ <- audit filename (Audit.Entry Audit.Failure Audit.RoutingRequest duration (audit'' result)) $ req
+      _ <- audit filename (Audit.Entry Audit.Failure Audit.RoutingRequest duration (route' result)) $ req
       pure $ BadRequest (HTTP.messageURL req)
     (Right route) -> do
-      _ <- audit filename (Audit.Entry Audit.Success Audit.RoutingRequest duration (audit'' result)) $ req
+      _ <- audit filename (Audit.Entry Audit.Success Audit.RoutingRequest duration (route' result)) $ req
       case route of 
         (Forward (Flow entry))              -> (runRequest' filename $ DB.insert filename (DB.Flow' entry)) $ req
         (Report (Statistics schema))        -> (runRequest' filename $ reportStatistics schema)  $ req
   where
     reportStatistics schema = const $ Statistics.report filename schema
-    audit'' (Left _)                                                                           = "ANY"
-    audit'' (Right (Forward (Flow _)))                                                         = "FORWARD-FLOW"
-    audit'' (Right (Report  (Statistics (Statistics.Flow Statistics.Events))))                 = "REPORT-FLOW"
-    audit'' (Right (Report  (Statistics (Statistics.Audit Statistics.Events))))                = "REPORT-AUDIT"
-    audit'' (Right (Report  (Statistics (Statistics.Audit' Statistics.Events Audit.Success)))) = "REPORT-AUDIT-SUCCESS"
-    audit'' (Right (Report  (Statistics (Statistics.Audit' Statistics.Events Audit.Failure)))) = "REPORT-AUDIT-FAILURE"
+    route' (Left _)                                                                              = "ANY"
+    route' (Right (Forward (Flow _)))                                                            = "FORWARD-FLOW"
+    route' (Right (Report  (Statistics (Statistics.Flow Statistics.Events))))                    = "REPORT-FLOW"
+    route' (Right (Report  (Statistics (Statistics.Audit Statistics.Events))))                   = "REPORT-AUDIT"
+    route' (Right (Report  (Statistics (Statistics.Audit' Statistics.Events Audit.Success))))    = "REPORT-AUDIT-SUCCESS"
+    route' (Right (Report  (Statistics (Statistics.Audit' Statistics.Events Audit.Failure))))    = "REPORT-AUDIT-FAILURE"
+    route' (Right (Report  (Statistics (Statistics.Flow Statistics.Durations))))                 = "REPORT-FLOW-DURATION"
+    route' (Right (Report  (Statistics (Statistics.Audit Statistics.Durations))))                = "REPORT-AUDIT-DURATION"
+    route' (Right (Report  (Statistics (Statistics.Audit' Statistics.Durations Audit.Success)))) = "REPORT-AUDIT-DURATION-SUCCESS"
+    route' (Right (Report  (Statistics (Statistics.Audit' Statistics.Durations Audit.Failure)))) = "REPORT-AUDIT-DURATION-FAILURE"
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
