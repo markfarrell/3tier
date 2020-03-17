@@ -24,3 +24,6 @@ instance showEventID :: Show EventID where
 
 instance showEntry :: Show Entry where
   show (Entry eventType eventID duration msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show duration <> " " <> show msg <> ")"
+
+eventType :: EventType -> String
+eventType = show

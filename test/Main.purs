@@ -118,12 +118,12 @@ testForwardFlow query = do
       
 
 testInsertFlow :: DB.Database -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
-testInsertFlow filename entry req = testRequest label $ DB.insertFlow filename entry req
-  where label = "Test.DB.insertFlow"
+testInsertFlow filename entry req = testRequest label $ DB.insert filename (DB.Flow' entry) req
+  where label = "Test.DB.insert"
 
-testStatistics :: Statistics.Entry -> DB.Database -> DB.Schema -> Aff Statistics.Entry
+testStatistics :: Statistics.Entry -> DB.Database -> Statistics.Schema -> Aff Statistics.Entry
 testStatistics expect filename schema = do
-  entry  <- testRequest label $ Statistics.statistics filename schema Statistics.Events
+  entry  <- testRequest label $ Statistics.statistics filename schema
   _      <- assert label' expect $ entry
   pure entry
   where
@@ -134,10 +134,10 @@ testFlow :: DB.Database -> Aff Unit
 testFlow filename = assert' label  =<< try do
   entry'  <- testParseFlow entry
   entry'' <- testUnparseFlow entry'
-  _       <- testStatistics expect filename DB.Flow
+  _       <- testStatistics expect filename (Statistics.Flow Statistics.Events)
   req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardFlow entry''
   _       <- testInsertFlow filename entry' $ req
-  _       <- testStatistics expect' filename DB.Flow
+  _       <- testStatistics expect' filename (Statistics.Flow Statistics.Events)
   pure unit
   where
     entry   = "0.0.0.0,0.12.123.255,0,65535,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
