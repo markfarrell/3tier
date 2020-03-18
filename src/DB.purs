@@ -8,6 +8,7 @@ module DB
  , ColumnType(..)
  , Schema(..)
  , Insert(..)
+ , Select(..)
  , close
  , connect
  , insert
@@ -20,6 +21,7 @@ module DB
 
 import Prelude
 
+import Control.Monad.Except (runExcept, throwError)
 import Control.Monad.Free.Trans (FreeT, liftFreeT, runFreeT)
 import Control.Monad.Error.Class (try)
 import Control.Monad.Trans.Class (lift)
@@ -27,7 +29,7 @@ import Control.Monad.Writer.Class (tell)
 import Control.Monad.Writer.Trans (WriterT, runWriterT)
 
 import Data.Array as Array
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Data.Traversable (sequence)
 
 import Data.Tuple (Tuple(..), fst, snd)
@@ -35,6 +37,10 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
+import Effect.Exception as Exception
+
+import Foreign (readNumber) as Foreign
+import Foreign.Index ((!))
 
 import Arrays as Arrays
 
@@ -48,6 +54,8 @@ import UUIDv5 as UUIDv5
 import Audit as Audit
 import Flow as Flow
 
+import Report as Report
+
 type Database = String
 
 type Table = String
@@ -56,11 +64,11 @@ data Schema  = Audit | Flow
 
 data Insert  = InsertAudit Audit.Entry | InsertFlow Flow.Entry
 
+type Select  = Report.Report
+
 instance showSchema :: Show Schema where
   show Audit = "Audit"
   show Flow  = "Flow"
-
-data SelectType = All | Success | Failure | Duration
 
 data RequestDSL a = Close SQLite3.Database (Unit -> a)
   | Connect Database SQLite3.Mode (SQLite3.Database -> a) 
@@ -100,14 +108,8 @@ insert' filename table' params = do
      columns' = fst <$> params
      values'  = snd <$> params
 
---select' :: Selection -> String
---select'  Audit Events    = "SELECT LogID, SourceID, EntryID, EventType, EventID, COUNT(*) as Events FROM Audit GROUP BY LogID, SourceID, EntryID"
---select'  Audit Successes = "SELECT LogID, SourceID, EntryID, EventType, EventID, COUNT(*) as Events FROM (SELECT * FROM Audit WHERE EventType='Success') GROUP BY LogID, SourceID, EntryID"
---select'  Audit Failures  = "SELECT LogID, SourceID, EntryID, EventType, EventID, COUNT(*) as Events FROM (SELECT * FROM Audit WHERE EventType='Failure') GROUP BY LogID, SourceID, EntryID"
---select'  Flow  Events    = "SELECT LogID, SourceID, EntryID, E 
-
-select :: forall a. (SQLite3.Row -> Aff a) -> Database -> String -> Request (Array a)
-select runResult filename query = do
+select' :: forall a. (SQLite3.Row -> Aff a) -> Database -> String -> Request (Array a)
+select' runResult filename query = do
   database <- connect filename SQLite3.OpenReadOnly
   rows     <- all query $ database
   _        <- close database
@@ -270,3 +272,119 @@ interpret (Execute query database next) = do
  
 runRequest ::  forall a. Request a -> Aff (Result a)
 runRequest request = try $ runWriterT $ runFreeT interpret request
+
+sample' :: Report.ReportType -> Table -> Table
+sample' Report.Events    = \table -> "SELECT COUNT(DISTINCT EntryID) AS X FROM (" <> table <> ") GROUP BY LogID, SourceID" 
+sample' Report.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
+
+sample :: Select -> Table
+sample (Report.Audit eventID eventType reportType) = sample' reportType $ "SELECT * FROM Audit WHERE EventID='" <> show eventID <> "' AND EventType='" <> show eventType <> "'"
+
+sum :: Database -> Select -> Request Number
+sum filename report = do
+  results <- select' runResult filename query
+  case results of
+    [sum']   -> pure sum'
+    _        -> lift $ lift (throwError error)
+  where
+    runResult row = do
+      result' <- pure (runExcept $ row ! "Result" >>= Foreign.readNumber)
+      case result' of
+        (Left _)     -> pure 0.0
+        (Right sum') -> pure sum'
+    error = Exception.error "Unexpected results."
+    query = "SELECT SUM(X) AS Result FROM (" <> (sample report) <> ")"
+
+average :: Database -> Select ->  Request Number
+average filename report = do
+  results <- select' runResult filename query
+  case results of
+    []         -> pure 0.0
+    [average'] -> pure average'
+    _          -> lift $ lift (throwError error)
+  where
+    runResult row = do
+      result' <- pure (runExcept $ row ! "Average" >>= Foreign.readNumber)
+      case result' of
+        (Left _)         -> pure 0.0
+        (Right average') -> pure average'
+    error = Exception.error "Unexpected results."
+    query = "SELECT AVG(X) AS Average FROM (" <> (sample report) <> ")"
+
+minimum :: Database -> Select -> Request Number
+minimum filename report = do
+  results <- select' runResult filename query
+  case results of
+    [min'] -> pure min'
+    _      -> lift $ lift (throwError error)
+  where
+    runResult row = do
+      result' <- pure (runExcept $ row ! "Minimum" >>= Foreign.readNumber)
+      case result' of
+        (Left _)         -> pure 0.0
+        (Right min')     -> pure min'
+    error = Exception.error "Unexpected results."
+    query = "SELECT MIN(X) AS Minimum FROM (" <> (sample report) <> ")"
+
+maximum :: Database -> Select -> Request Number
+maximum filename report = do
+  results <- select' runResult filename query
+  case results of
+    [max'] -> pure max'
+    _      -> lift $ lift (throwError error)
+  where
+    runResult row = do
+      result' <- pure (runExcept $ row ! "Maximum" >>= Foreign.readNumber)
+      case result' of
+        (Left _)         -> pure 0.0
+        (Right max')     -> pure max'
+    error = Exception.error "Unexpected results."
+    query = "SELECT MAX(X) AS Maximum FROM (" <> (sample report) <> ")"
+
+total :: Database -> Select -> Request Number
+total filename report = do
+  results <- select' runResult filename query
+  case results of
+    [total'] -> pure total'
+    _        -> lift $ lift (throwError error)
+  where
+    runResult row = do
+       result' <- pure (runExcept $ row ! "Total" >>= Foreign.readNumber)
+       case result' of
+         (Left _)          -> pure 0.0
+         (Right total')    -> pure total'
+    error = Exception.error "Unexpected results."
+    query = "SELECT COUNT(*) as Total FROM (" <> (sample report) <> ")"
+
+variance' :: Database -> Select -> Number -> Request Number
+variance' filename report = \average' -> do
+  results <- select' runResult filename $ query average'
+  case results of
+    [variance''] -> pure variance''
+    _            -> lift $ lift (throwError error)
+  where
+    runResult row = do
+       result' <- pure (runExcept $ row ! "Variance" >>= Foreign.readNumber)
+       case result' of
+         (Left _)          -> pure 0.0
+         (Right variance'')    -> pure variance''
+    error = Exception.error "Unexpected results."
+    query average'  = "SELECT AVG(" <> query' average' <> " * " <> query' average' <> ") AS Variance FROM (" <> (sample report) <> ")"
+    query' average' = "(X - " <> show average' <> ")"
+
+select :: Database -> Select -> Request Report.Entry
+select filename report = do
+  min'       <- minimum filename report
+  max'       <- maximum filename report
+  sum'       <- sum filename report
+  total'     <- total filename report
+  average'   <- average filename report
+  variance'' <- variance' filename report $ average'
+  pure $ Report.Entry $
+    { min       : min'
+    , max       : max'
+    , sum       : sum'
+    , total     : total'
+    , average   : average'
+    , variance  : variance''
+    }
