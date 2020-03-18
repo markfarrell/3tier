@@ -3,7 +3,7 @@ module Tier3
  , Interpreter
  , Request
  , Result
- , Database
+ , Settings
  , Table
  , ColumnType(..)
  , Schema(..)
@@ -59,7 +59,7 @@ import Flow as Flow
 
 import Report as Report
 
-type Database = String
+type Settings = String
 
 type Table = String
 
@@ -78,7 +78,7 @@ instance showSchema :: Show Schema where
   show Flow  = "Flow"
 
 data RequestDSL a = Close SQLite3.Database (Unit -> a)
-  | Connect Database SQLite3.Mode (SQLite3.Database -> a) 
+  | Connect Settings SQLite3.Mode (SQLite3.Database -> a) 
   | Execute String SQLite3.Database (Array SQLite3.Row -> a)
 
 instance functorRequestDSL :: Functor RequestDSL where
@@ -96,13 +96,13 @@ type Result a = Either Error (Tuple a (Array String))
 close :: SQLite3.Database -> Request Unit
 close database = liftFreeT $ (Close database identity)
 
-connect :: Database -> SQLite3.Mode -> Request SQLite3.Database
+connect :: Settings -> SQLite3.Mode -> Request SQLite3.Database
 connect filename mode = liftFreeT $ (Connect filename mode identity)
 
 all :: String -> SQLite3.Database -> Request (Array SQLite3.Row)
 all query database = liftFreeT $ (Execute query database identity)
 
-insert' :: Database -> Table -> Array (Tuple String String) -> Request Unit
+insert' :: Settings -> Table -> Array (Tuple String String) -> Request Unit
 insert' filename table' params = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
@@ -115,7 +115,7 @@ insert' filename table' params = do
      columns' = fst <$> params
      values'  = snd <$> params
 
-select' :: forall a. (SQLite3.Row -> Aff a) -> Database -> String -> Request (Array a)
+select' :: forall a. (SQLite3.Row -> Aff a) -> Settings -> String -> Request (Array a)
 select' runResult filename query = do
   database <- connect filename SQLite3.OpenReadOnly
   rows     <- all query $ database
@@ -127,7 +127,7 @@ type Column = Tuple String ColumnType
  
 data ColumnType = Text | Real
 
-remove :: Database -> Table -> Request Unit
+remove :: Settings -> Table -> Request Unit
 remove filename table' = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
@@ -135,7 +135,7 @@ remove filename table' = do
   lift $ pure unit
   where query = "DROP TABLE IF EXISTS " <> table'
 
-schema' :: Database -> Table -> Array Column -> Array Column -> Request Unit
+schema' :: Settings -> Table -> Array Column -> Array Column -> Request Unit
 schema' filename table' params params' = do
   database <- connect filename SQLite3.OpenReadWrite
   _        <- all query $ database
@@ -153,7 +153,7 @@ schema' filename table' params params' = do
      primaryKey       = "PRIMARY KEY (" <> primaryKey' <> ")"
      primaryKey'      = Arrays.join "," (fst <$> params)
 
-schema :: Schema -> Database -> Request Unit
+schema :: Schema -> Settings -> Request Unit
 schema Audit = \filename -> schema' filename "Audit" [] $
   [ Tuple "LogID" Text
   , Tuple "SourceID" Text
@@ -182,7 +182,7 @@ schema Flow = \filename -> schema' filename "Flow" compositeKey $
   ]
   where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
 
-insertAudit :: Database -> Audit.Entry -> HTTP.IncomingMessage -> Request ResultSet
+insertAudit :: Settings -> Audit.Entry -> HTTP.IncomingMessage -> Request ResultSet
 insertAudit filename (Audit.Entry eventType eventID duration msg) req = do
   timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
   result    <- insert' filename table $ params timestamp
@@ -211,7 +211,7 @@ insertAudit filename (Audit.Entry eventType eventID duration msg) req = do
     duration'     = show duration
     table         = "Audit"
 
-insertFlow :: Database -> Flow.Entry -> HTTP.IncomingMessage -> Request ResultSet
+insertFlow :: Settings -> Flow.Entry -> HTTP.IncomingMessage -> Request ResultSet
 insertFlow filename (Flow.Entry entry) req = do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
   result    <- insert' filename table $ params timestamp
@@ -242,11 +242,11 @@ insertFlow filename (Flow.Entry entry) req = do
     logID         = UUIDv1.defaultUUID
     table         = "Flow"
 
-insert :: Database -> Insert -> HTTP.IncomingMessage -> Request ResultSet
+insert :: Settings -> Insert -> HTTP.IncomingMessage -> Request ResultSet
 insert filename (InsertAudit entry) req = insertAudit filename entry req
 insert filename (InsertFlow  entry) req = insertFlow filename entry req
 
-touch :: Database -> Request Unit
+touch :: Settings -> Request Unit
 touch filename = do
   database <- connect filename SQLite3.OpenCreate
   _        <- close database
@@ -274,7 +274,7 @@ sample' Report.Durations = \table -> "SELECT Duration as X FROM (" <> table <> "
 sample :: Select -> Table
 sample (Report.Audit eventID eventType reportType) = sample' reportType $ "SELECT * FROM Audit WHERE EventID='" <> show eventID <> "' AND EventType='" <> show eventType <> "'"
 
-sum :: Database -> Select -> Request Number
+sum :: Settings -> Select -> Request Number
 sum filename report = do
   results <- select' runResult filename query
   case results of
@@ -289,7 +289,7 @@ sum filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT SUM(X) AS Result FROM (" <> (sample report) <> ")"
 
-average :: Database -> Select ->  Request Number
+average :: Settings -> Select ->  Request Number
 average filename report = do
   results <- select' runResult filename query
   case results of
@@ -305,7 +305,7 @@ average filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT AVG(X) AS Average FROM (" <> (sample report) <> ")"
 
-minimum :: Database -> Select -> Request Number
+minimum :: Settings -> Select -> Request Number
 minimum filename report = do
   results <- select' runResult filename query
   case results of
@@ -320,7 +320,7 @@ minimum filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT MIN(X) AS Minimum FROM (" <> (sample report) <> ")"
 
-maximum :: Database -> Select -> Request Number
+maximum :: Settings -> Select -> Request Number
 maximum filename report = do
   results <- select' runResult filename query
   case results of
@@ -335,7 +335,7 @@ maximum filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT MAX(X) AS Maximum FROM (" <> (sample report) <> ")"
 
-total :: Database -> Select -> Request Number
+total :: Settings -> Select -> Request Number
 total filename report = do
   results <- select' runResult filename query
   case results of
@@ -350,7 +350,7 @@ total filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT COUNT(*) as Total FROM (" <> (sample report) <> ")"
 
-variance' :: Database -> Select -> Number -> Request Number
+variance' :: Settings -> Select -> Number -> Request Number
 variance' filename report = \average' -> do
   results <- select' runResult filename $ query average'
   case results of
@@ -366,7 +366,7 @@ variance' filename report = \average' -> do
     query average'  = "SELECT AVG(" <> query' average' <> " * " <> query' average' <> ") AS Variance FROM (" <> (sample report) <> ")"
     query' average' = "(X - " <> show average' <> ")"
 
-select :: Database -> Select -> HTTP.IncomingMessage -> Request ResultSet
+select :: Settings -> Select -> HTTP.IncomingMessage -> Request ResultSet
 select filename report _ = do
   min'       <- minimum filename report
   max'       <- maximum filename report
@@ -383,7 +383,7 @@ select filename report _ = do
     , variance  : variance''
     }
 
-request :: Database -> Query -> HTTP.IncomingMessage -> Request ResultSet
+request :: Settings -> Query -> HTTP.IncomingMessage -> Request ResultSet
 request filename (InsertQuery query') req = insert filename query' req
 request filename (SelectQuery query') req = select filename query' req
 

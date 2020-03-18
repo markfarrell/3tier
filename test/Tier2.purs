@@ -37,7 +37,7 @@ testRequest label request = do
     (Left error)            -> throwError error
     (Right (Tuple x steps)) -> pure x
 
-testSchema :: Tier3.Database -> Aff Unit
+testSchema :: Tier3.Settings -> Aff Unit
 testSchema filename = assert' label =<< try do
   _ <- testRequest "[Test.Tier2] Tier3.touch"          $ Tier3.touch filename
   _ <- testRequest "[Test.Tier2] Tier3.remove"         $ remove' filename
@@ -116,11 +116,11 @@ testForwardFlow query = do
     statusCode' (HTTP.IncomingResponse _ req) = HTTP.statusCode req
       
 
-testInsertFlow :: Tier3.Database -> Flow.Entry -> HTTP.IncomingMessage -> Aff Tier3.ResultSet
+testInsertFlow :: Tier3.Settings -> Flow.Entry -> HTTP.IncomingMessage -> Aff Tier3.ResultSet
 testInsertFlow filename entry req = testRequest label $ Tier3.insert filename (Tier3.InsertFlow entry) req
   where label = "[Test.Tier2] Tier3.insert"
 
-testFlow :: Tier3.Database -> Aff Unit
+testFlow :: Tier3.Settings -> Aff Unit
 testFlow filename = assert' label  =<< try do
   entry'  <- testParseFlow entry
   entry'' <- testUnparseFlow entry'

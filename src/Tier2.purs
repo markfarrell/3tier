@@ -39,7 +39,7 @@ import Flow as Flow
 
 data Route = Forward Tier3.Insert
 
-audit :: Tier3.Database -> Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
+audit :: Tier3.Settings -> Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
 audit filename entry req = do
   _ <- Tier3.execute $ Tier3.insert filename (Tier3.InsertAudit entry) req
   pure unit
@@ -80,7 +80,7 @@ instance contentJSONUnit :: ContentJSON Tier3.ResultSet where
 instance contentJSONString :: ContentJSON String where
   showJSON x = x
 
-runRequest' :: forall a. ContentJSON a => Tier3.Database -> (HTTP.IncomingMessage -> Tier3.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runRequest' :: forall a. ContentJSON a => Tier3.Settings -> (HTTP.IncomingMessage -> Tier3.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRequest' filename request req = do
   startTime   <- liftEffect $ Date.currentTime
   result'     <- Tier3.execute $ request req
@@ -97,7 +97,7 @@ runRequest' filename request req = do
     audit'' (Left _)      = "" 
     audit'' (Right (Tuple _ steps)) = show steps
 
-runRoute :: Tier3.Database -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runRoute :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute filename req  = do
   startTime <- liftEffect $ Date.currentTime
   result    <- pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
@@ -141,7 +141,7 @@ producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
 producer server = produce \emitter -> do
   HTTP.onRequest (\req res -> emit emitter $ HTTP.IncomingRequest req res) $ server
 
-consumer :: Tier3.Database -> Consumer HTTP.IncomingRequest Aff Unit
+consumer :: Tier3.Settings -> Consumer HTTP.IncomingRequest Aff Unit
 consumer filename = forever $ do
   request <- await
   case request of
@@ -171,10 +171,10 @@ consumer filename = forever $ do
     responseType (Forbidden _ _)         = "FORBIDDEN"
     responseType (InternalServerError _) = "INTERNAL-SERVER-ERROR"
 
-process :: Tier3.Database -> HTTP.Server -> Process Aff Unit
+process :: Tier3.Settings -> HTTP.Server -> Process Aff Unit
 process filename server = pullFrom (consumer filename) (producer server)
 
-initialize :: Tier3.Request Tier3.Database
+initialize :: Tier3.Request Tier3.Settings
 initialize = do
   filename <- lift $ getFilename
   _        <- Tier3.touch filename
