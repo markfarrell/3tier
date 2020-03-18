@@ -9,8 +9,10 @@ module Tier3
  , Schema(..)
  , Insert(..)
  , Select(..)
+ , Query(..)
  , ResultSet(..)
  , request
+ , execute
  , close
  , connect
  , insert
@@ -18,7 +20,6 @@ module Tier3
  , schema
  , touch
  , remove
- , runRequest
  ) where
 
 import Prelude
@@ -265,8 +266,6 @@ interpret (Execute query database next) = do
   result <- lift $ next <$> SQLite3.all query database
   lift $ pure result
  
-runRequest ::  forall a. Request a -> Aff (Result a)
-runRequest request' = try $ runWriterT $ runFreeT interpret request'
 
 sample' :: Report.ReportType -> Table -> Table
 sample' Report.Events    = \table -> "SELECT COUNT(DISTINCT EntryID) AS X FROM (" <> table <> ") GROUP BY LogID, SourceID" 
@@ -387,3 +386,6 @@ select filename report _ = do
 request :: Database -> Query -> HTTP.IncomingMessage -> Request ResultSet
 request filename (InsertQuery query') req = insert filename query' req
 request filename (SelectQuery query') req = select filename query' req
+
+execute ::  forall a. Request a -> Aff (Result a)
+execute request' = try $ runWriterT $ runFreeT interpret request'

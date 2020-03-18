@@ -41,7 +41,7 @@ data Route = Forward Tier3.Insert
 
 audit :: Tier3.Database -> Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
 audit filename entry req = do
-  _ <- Tier3.runRequest $ Tier3.insert filename (Tier3.InsertAudit entry) req
+  _ <- Tier3.execute $ Tier3.insert filename (Tier3.InsertAudit entry) req
   pure unit
 
 parseRoute :: Parser String Route
@@ -83,7 +83,7 @@ instance contentJSONString :: ContentJSON String where
 runRequest' :: forall a. ContentJSON a => Tier3.Database -> (HTTP.IncomingMessage -> Tier3.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRequest' filename request req = do
   startTime   <- liftEffect $ Date.currentTime
-  result'     <- Tier3.runRequest $ request req
+  result'     <- Tier3.execute $ request req
   endTime     <- liftEffect $ Date.currentTime
   duration    <- pure $ endTime - startTime
   case result' of
@@ -189,7 +189,7 @@ initialize = do
 
 start :: HTTP.Server -> Aff (Fiber Unit)
 start server = do
-  result <- Tier3.runRequest initialize
+  result <- Tier3.execute initialize
   case result of
     (Left error)                -> forkAff $ pure unit
     (Right (Tuple filename _))  -> forkAff $ start' filename

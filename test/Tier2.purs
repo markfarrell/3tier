@@ -31,7 +31,7 @@ assert' label result = assert label true $ isRight result
 
 testRequest :: forall a. String -> Tier3.Request a -> Aff a
 testRequest label request = do
-  result <- Tier3.runRequest request
+  result <- Tier3.execute request
   _      <- assert' label result
   case result of
     (Left error)            -> throwError error
