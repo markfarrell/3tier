@@ -54,7 +54,7 @@ type Table = String
 
 data Schema  = Audit | Flow
 
-data Insert  = Audit' Audit.Entry | Flow' Flow.Entry
+data Insert  = InsertAudit Audit.Entry | InsertFlow Flow.Entry
 
 instance showSchema :: Show Schema where
   show Audit = "Audit"
@@ -157,8 +157,11 @@ schema Audit = \filename -> schema' filename "Audit" [] $
   , Tuple "EventID" Text
   , Tuple "Event" Text
   ]
-schema Flow = \filename -> schema' filename "Flow" compositeKey $ 
-  [ Tuple "SIP" Text
+schema Flow = \filename -> schema' filename "Flow" [] $ 
+  [ Tuple "LogID" Text
+  , Tuple "SourceID" Text
+  , Tuple "EntryID" Text
+  , Tuple "SIP" Text
   , Tuple "DIP" Text
   , Tuple "SPort" Text
   , Tuple "DPort" Text
@@ -171,7 +174,12 @@ schema Flow = \filename -> schema' filename "Flow" compositeKey $
   , Tuple "ETime" Text
   , Tuple "Sensor" Text
   ]
-  where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
+  --where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
+
+assertAudit :: Database -> Audit.Entry -> HTTP.IncomingMessage -> Request Unit
+assertAudit filename entry _ = do
+  _ <- schema Audit $ filename
+  pure unit
 
 insertAudit :: Database -> Audit.Entry -> HTTP.IncomingMessage -> Request Unit
 insertAudit filename (Audit.Entry eventType eventID duration msg) req = do
@@ -201,9 +209,10 @@ insertAudit filename (Audit.Entry eventType eventID duration msg) req = do
     duration'     = show duration
     table         = "Audit"
 
-insert :: Database -> Insert -> HTTP.IncomingMessage -> Request Unit
-insert filename (Audit' entry) req = insertAudit filename entry req
-insert filename (Flow'  entry) req = insertFlow filename entry req
+assertFlow :: Database -> Flow.Entry -> HTTP.IncomingMessage -> Request Unit
+assertFlow filename entry _ = do
+  _ <- schema Flow $ filename
+  pure unit
 
 insertFlow :: Database -> Flow.Entry -> HTTP.IncomingMessage -> Request Unit
 insertFlow filename (Flow.Entry entry) req = do
@@ -234,6 +243,10 @@ insertFlow filename (Flow.Entry entry) req = do
     sourceID      = UUIDv5.namespaceUUID UUIDv1.defaultUUID $ remoteAddress
     logID         = UUIDv1.defaultUUID
     table         = "Flow"
+
+insert :: Database -> Insert -> HTTP.IncomingMessage -> Request Unit
+insert filename (InsertAudit entry) req = insertAudit filename entry req
+insert filename (InsertFlow  entry) req = insertFlow filename entry req
 
 touch :: Database -> Request Unit
 touch filename = do

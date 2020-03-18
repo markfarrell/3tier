@@ -43,7 +43,7 @@ data ReportType = Statistics Statistics.Schema
 data Route = Forward ForwardType | Report ReportType
 
 audit :: DB.Database -> Audit.Entry -> HTTP.IncomingMessage -> Aff (DB.Result Unit)
-audit filename entry req = DB.runRequest $ DB.insert filename (DB.Audit' entry) req
+audit filename entry req = DB.runRequest $ DB.insert filename (DB.InsertAudit entry) req
 
 parseRoute :: Parser String Route
 parseRoute = forward <|> report
@@ -117,7 +117,7 @@ runRoute filename req  = do
     (Right route) -> do
       _ <- audit filename (Audit.Entry Audit.Success Audit.RoutingRequest duration (route' result)) $ req
       case route of 
-        (Forward (Flow entry))              -> (runRequest' filename $ DB.insert filename (DB.Flow' entry)) $ req
+        (Forward (Flow entry))              -> (runRequest' filename $ DB.insert filename (DB.InsertFlow entry)) $ req
         (Report (Statistics schema))        -> (runRequest' filename $ reportStatistics schema)  $ req
   where
     reportStatistics schema = const $ Statistics.report filename schema
