@@ -1,4 +1,4 @@
-module Test.Main where
+module Test.Tier2 where
 
 import Prelude
 
@@ -18,38 +18,38 @@ import Text.Parsing.Parser (runParser)
 import HTTP as HTTP
 import RSA as RSA
 
-import DB as DB
+import Tier3 as Tier3
 import Strings as Strings
 
 import Flow as Flow
-import Server as Server
+import Tier2 as Tier2
 
 import Assert (assert)
 
 assert' :: forall a b. String -> Either a b -> Aff Unit
 assert' label result = assert label true $ isRight result
 
-testRequest :: forall a. String -> DB.Request a -> Aff a
+testRequest :: forall a. String -> Tier3.Request a -> Aff a
 testRequest label request = do
-  result <- DB.runRequest request
+  result <- Tier3.runRequest request
   _      <- assert' label result
   case result of
     (Left error)            -> throwError error
     (Right (Tuple x steps)) -> pure x
 
-testSchema :: DB.Database -> Aff Unit
+testSchema :: Tier3.Database -> Aff Unit
 testSchema filename = assert' label =<< try do
-  _ <- testRequest "Test.DB.touch"          $ DB.touch filename
-  _ <- testRequest "Test.DB.remove"         $ remove' filename
-  _ <- testRequest "Test.Flow.schema"       $ DB.schema DB.Flow filename
-  _ <- testRequest "Test.Audit.schema"      $ DB.schema DB.Audit filename
+  _ <- testRequest "[Test.Tier2] Tier3.touch"          $ Tier3.touch filename
+  _ <- testRequest "[Test.Tier2] Tier3.remove"         $ remove' filename
+  _ <- testRequest "[Test.Tier2] Flow.schema"       $ Tier3.schema Tier3.Flow filename
+  _ <- testRequest "[Test.Tier2] Audit.schema"      $ Tier3.schema Tier3.Audit filename
   pure unit
   where 
     remove' filename' = do
-      _ <- DB.remove filename' $ "Flow"
-      _ <- DB.remove filename' $ "Audit"
+      _ <- Tier3.remove filename' $ "Flow"
+      _ <- Tier3.remove filename' $ "Audit"
       pure unit
-    label = "Test.DB.schema"
+    label = "[Test.Tier2] Tier3.schema"
 
 testServer' :: Aff Unit
 testServer' = assert' label =<< try do
@@ -59,19 +59,19 @@ testServer' = assert' label =<< try do
   pure unit
   where
     port  = 4000
-    label = "Test.HTTP.Server" 
+    label = "[Test.Tier2] HTTP.Server" 
 
 testServer :: Aff Unit
 testServer = assert' label =<< try do
   server <- liftEffect (HTTP.createServer)
-  fiber  <- Server.start server
+  fiber  <- Tier2.start server
   _      <- liftEffect (HTTP.listen port $ server)
   _      <- flip killFiber fiber $ error "Expected behaviour."
   _      <- liftEffect (HTTP.close server)
   pure unit
   where
     port  = 4000
-    label = "Test.Server"
+    label = "[Test.Tier2] Server"
 
 testParseFlow :: String -> Aff Flow.Entry
 testParseFlow entry = do
@@ -80,7 +80,7 @@ testParseFlow entry = do
   case result of
     (Left _)       -> throwError $ error "Unexpected behaviour."
     (Right entry') -> pure entry'
-  where label = "Test.Flow.parse"
+  where label = "[Test.Tier2] Flow.parse"
 
 testUnparseFlow :: Flow.Entry -> Aff String
 testUnparseFlow entry = do
@@ -89,7 +89,7 @@ testUnparseFlow entry = do
   case result of
     (Left _)       -> throwError $ error "Unexpected behaviour."
     (Right entry') -> pure entry'
-  where label = "Test.Flow.unparse"
+  where label = "[Test.Tier2] Flow.unparse"
 
 forwardFlow :: String -> String -> Aff HTTP.IncomingResponse
 forwardFlow host query = do
@@ -101,7 +101,7 @@ forwardFlow host query = do
 testForwardFlow :: String -> Aff HTTP.IncomingResponse
 testForwardFlow query = do
   server <- liftEffect (HTTP.createServer)
-  fiber  <- Server.start server
+  fiber  <- Tier2.start server
   _      <- liftEffect (HTTP.listen port $ server)
   result <- forwardFlow host query
   _      <- assert label ok $ statusCode' result
@@ -112,15 +112,15 @@ testForwardFlow query = do
     ok   = 200
     port = 4000
     host = "127.0.0.1:4000"
-    label = "Test.Test.Forwarder.forwardFlow"
+    label = "[Test.Tier2] /forward/flow"
     statusCode' (HTTP.IncomingResponse _ req) = HTTP.statusCode req
       
 
-testInsertFlow :: DB.Database -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
-testInsertFlow filename entry req = testRequest label $ DB.insert filename (DB.InsertFlow entry) req
-  where label = "Test.DB.insert"
+testInsertFlow :: Tier3.Database -> Flow.Entry -> HTTP.IncomingMessage -> Aff Tier3.ResultSet
+testInsertFlow filename entry req = testRequest label $ Tier3.insert filename (Tier3.InsertFlow entry) req
+  where label = "[Test.Tier2] Tier3.insert"
 
-testFlow :: DB.Database -> Aff Unit
+testFlow :: Tier3.Database -> Aff Unit
 testFlow filename = assert' label  =<< try do
   entry'  <- testParseFlow entry
   entry'' <- testUnparseFlow entry'
@@ -129,7 +129,7 @@ testFlow filename = assert' label  =<< try do
   pure unit
   where
     entry   = "0.0.0.0,0.12.123.255,0,65535,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
-    label   = "Test.Flow"
+    label   = "[Test.Tier2] Flow"
 
 testRSA :: Aff Unit
 testRSA = do
@@ -140,8 +140,8 @@ testRSA = do
   pure unit
   where
     expect = "test"
-    label  = "Test.RSA.defaultEncrypt"
-    label' = "Test.RSA.defaultSign"
+    label  = "[Test.Tier2] RSA.defaultEncrypt"
+    label' = "[Test.Tier2] RSA.defaultSign"
 
 main :: Effect Unit
 main = void $ launchAff $ do

@@ -1,4 +1,4 @@
-module Server 
+module Tier2 
   ( start
   , main
   ) where 
@@ -23,9 +23,12 @@ import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
 
-import Strings as Strings
+import Unsafe.Coerce (unsafeCoerce)
 
-import DB as DB
+import Strings as Strings
+import JSON as JSON
+
+import Tier3 as Tier3
 
 import Date as Date
 import HTTP as HTTP
@@ -34,10 +37,12 @@ import UUIDv1 as UUIDv1
 import Audit as Audit
 import Flow as Flow
 
-data Route = Forward DB.Insert
+data Route = Forward Tier3.Insert
 
-audit :: DB.Database -> Audit.Entry -> HTTP.IncomingMessage -> Aff (DB.Result Unit)
-audit filename entry req = DB.runRequest $ DB.insert filename (DB.InsertAudit entry) req
+audit :: Tier3.Database -> Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
+audit filename entry req = do
+  _ <- Tier3.runRequest $ Tier3.insert filename (Tier3.InsertAudit entry) req
+  pure unit
 
 parseRoute :: Parser String Route
 parseRoute = forward
@@ -45,7 +50,7 @@ parseRoute = forward
     forward = do
       _     <- string "/forward/flow?q="
       entry <- Flow.parse
-      pure (Forward (DB.InsertFlow entry))
+      pure (Forward (Tier3.InsertFlow entry))
 
 data ContentType a = TextJSON a
 
@@ -68,16 +73,17 @@ instance showResponseType :: (Show a) => Show (ResponseType a) where
 class ContentJSON a where
   showJSON :: a -> String
 
-instance contentJSONUnit :: ContentJSON Unit where
-  showJSON _ = ""
+instance contentJSONUnit :: ContentJSON Tier3.ResultSet where
+  showJSON (Tier3.InsertResult _) = ""
+  showJSON (Tier3.SelectResult x) = JSON.stringify $ unsafeCoerce x
 
 instance contentJSONString :: ContentJSON String where
   showJSON x = x
 
-runRequest' :: forall a. ContentJSON a => DB.Database -> (HTTP.IncomingMessage -> DB.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runRequest' :: forall a. ContentJSON a => Tier3.Database -> (HTTP.IncomingMessage -> Tier3.Request a) -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRequest' filename request req = do
   startTime   <- liftEffect $ Date.currentTime
-  result'     <- DB.runRequest $ request req
+  result'     <- Tier3.runRequest $ request req
   endTime     <- liftEffect $ Date.currentTime
   duration    <- pure $ endTime - startTime
   case result' of
@@ -91,7 +97,7 @@ runRequest' filename request req = do
     audit'' (Left _)      = "" 
     audit'' (Right (Tuple _ steps)) = show steps
 
-runRoute :: DB.Database -> HTTP.IncomingMessage -> Aff (ResponseType String)
+runRoute :: Tier3.Database -> HTTP.IncomingMessage -> Aff (ResponseType String)
 runRoute filename req  = do
   startTime <- liftEffect $ Date.currentTime
   result    <- pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
@@ -104,11 +110,11 @@ runRoute filename req  = do
     (Right route) -> do
       _ <- audit filename (Audit.Entry Audit.Success Audit.RoutingRequest duration (route' result)) $ req
       case route of 
-        (Forward insertQuery) -> (runRequest' filename $ DB.insert filename insertQuery) $ req
+        (Forward insertQuery) -> (runRequest' filename $ Tier3.insert filename insertQuery) $ req
   where
     route' (Left _)                               = "ANY"               
-    route' (Right (Forward (DB.InsertFlow _)))    = "FORWARD-FLOW"
-    route' (Right (Forward (DB.InsertAudit _)))   = "FORWARD-AUDIT"
+    route' (Right (Forward (Tier3.InsertFlow _)))    = "FORWARD-FLOW"
+    route' (Right (Forward (Tier3.InsertAudit _)))   = "FORWARD-AUDIT"
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
@@ -135,7 +141,7 @@ producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
 producer server = produce \emitter -> do
   HTTP.onRequest (\req res -> emit emitter $ HTTP.IncomingRequest req res) $ server
 
-consumer :: DB.Database -> Consumer HTTP.IncomingRequest Aff Unit
+consumer :: Tier3.Database -> Consumer HTTP.IncomingRequest Aff Unit
 consumer filename = forever $ do
   request <- await
   case request of
@@ -165,25 +171,25 @@ consumer filename = forever $ do
     responseType (Forbidden _ _)         = "FORBIDDEN"
     responseType (InternalServerError _) = "INTERNAL-SERVER-ERROR"
 
-process :: DB.Database -> HTTP.Server -> Process Aff Unit
+process :: Tier3.Database -> HTTP.Server -> Process Aff Unit
 process filename server = pullFrom (consumer filename) (producer server)
 
-initialize :: DB.Request DB.Database
+initialize :: Tier3.Request Tier3.Database
 initialize = do
   filename <- lift $ getFilename
-  _        <- DB.touch filename
+  _        <- Tier3.touch filename
   _        <- sequence $ schemas filename
   pure filename
   where
     schemas filename =
-      [ DB.schema DB.Audit $ filename 
-      , DB.schema DB.Flow  $ filename
+      [ Tier3.schema Tier3.Audit $ filename 
+      , Tier3.schema Tier3.Flow  $ filename
       ]
     getFilename = pure $ UUIDv1.defaultUUID <> ".db"
 
 start :: HTTP.Server -> Aff (Fiber Unit)
 start server = do
-  result <- DB.runRequest initialize
+  result <- Tier3.runRequest initialize
   case result of
     (Left error)                -> forkAff $ pure unit
     (Right (Tuple filename _))  -> forkAff $ start' filename

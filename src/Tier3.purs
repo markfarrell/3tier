@@ -1,4 +1,4 @@
-module DB
+module Tier3
  ( RequestDSL
  , Interpreter
  , Request
@@ -9,6 +9,8 @@ module DB
  , Schema(..)
  , Insert(..)
  , Select(..)
+ , ResultSet(..)
+ , request
  , close
  , connect
  , insert
@@ -66,13 +68,17 @@ data Insert  = InsertAudit Audit.Entry | InsertFlow Flow.Entry
 
 type Select  = Report.Report
 
+data Query   = InsertQuery Insert | SelectQuery Select
+
+data ResultSet = InsertResult Unit | SelectResult Report.Entry
+
 instance showSchema :: Show Schema where
   show Audit = "Audit"
   show Flow  = "Flow"
 
 data RequestDSL a = Close SQLite3.Database (Unit -> a)
   | Connect Database SQLite3.Mode (SQLite3.Database -> a) 
-  | Execute Table SQLite3.Database (Array SQLite3.Row -> a)
+  | Execute String SQLite3.Database (Array SQLite3.Row -> a)
 
 instance functorRequestDSL :: Functor RequestDSL where
   map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
@@ -159,11 +165,8 @@ schema Audit = \filename -> schema' filename "Audit" [] $
   , Tuple "EventID" Text
   , Tuple "Event" Text
   ]
-schema Flow = \filename -> schema' filename "Flow" [] $ 
-  [ Tuple "LogID" Text
-  , Tuple "SourceID" Text
-  , Tuple "EntryID" Text
-  , Tuple "SIP" Text
+schema Flow = \filename -> schema' filename "Flow" compositeKey $ 
+  [ Tuple "SIP" Text
   , Tuple "DIP" Text
   , Tuple "SPort" Text
   , Tuple "DPort" Text
@@ -176,17 +179,13 @@ schema Flow = \filename -> schema' filename "Flow" [] $
   , Tuple "ETime" Text
   , Tuple "Sensor" Text
   ]
-  --where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
+  where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
 
-assertAudit :: Database -> Audit.Entry -> HTTP.IncomingMessage -> Request Unit
-assertAudit filename entry _ = do
-  _ <- schema Audit $ filename
-  pure unit
-
-insertAudit :: Database -> Audit.Entry -> HTTP.IncomingMessage -> Request Unit
+insertAudit :: Database -> Audit.Entry -> HTTP.IncomingMessage -> Request ResultSet
 insertAudit filename (Audit.Entry eventType eventID duration msg) req = do
   timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
-  insert' filename table $ params timestamp
+  result    <- insert' filename table $ params timestamp
+  pure $ InsertResult result
   where 
     params timestamp =
       [ Tuple "LogID" logID
@@ -211,15 +210,11 @@ insertAudit filename (Audit.Entry eventType eventID duration msg) req = do
     duration'     = show duration
     table         = "Audit"
 
-assertFlow :: Database -> Flow.Entry -> HTTP.IncomingMessage -> Request Unit
-assertFlow filename entry _ = do
-  _ <- schema Flow $ filename
-  pure unit
-
-insertFlow :: Database -> Flow.Entry -> HTTP.IncomingMessage -> Request Unit
+insertFlow :: Database -> Flow.Entry -> HTTP.IncomingMessage -> Request ResultSet
 insertFlow filename (Flow.Entry entry) req = do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  insert' filename table $ params timestamp
+  result    <- insert' filename table $ params timestamp
+  pure $ InsertResult result
   where
     params timestamp = 
       [ Tuple "LogID" logID
@@ -246,7 +241,7 @@ insertFlow filename (Flow.Entry entry) req = do
     logID         = UUIDv1.defaultUUID
     table         = "Flow"
 
-insert :: Database -> Insert -> HTTP.IncomingMessage -> Request Unit
+insert :: Database -> Insert -> HTTP.IncomingMessage -> Request ResultSet
 insert filename (InsertAudit entry) req = insertAudit filename entry req
 insert filename (InsertFlow  entry) req = insertFlow filename entry req
 
@@ -271,7 +266,7 @@ interpret (Execute query database next) = do
   lift $ pure result
  
 runRequest ::  forall a. Request a -> Aff (Result a)
-runRequest request = try $ runWriterT $ runFreeT interpret request
+runRequest request' = try $ runWriterT $ runFreeT interpret request'
 
 sample' :: Report.ReportType -> Table -> Table
 sample' Report.Events    = \table -> "SELECT COUNT(DISTINCT EntryID) AS X FROM (" <> table <> ") GROUP BY LogID, SourceID" 
@@ -372,15 +367,15 @@ variance' filename report = \average' -> do
     query average'  = "SELECT AVG(" <> query' average' <> " * " <> query' average' <> ") AS Variance FROM (" <> (sample report) <> ")"
     query' average' = "(X - " <> show average' <> ")"
 
-select :: Database -> Select -> Request Report.Entry
-select filename report = do
+select :: Database -> Select -> HTTP.IncomingMessage -> Request ResultSet
+select filename report _ = do
   min'       <- minimum filename report
   max'       <- maximum filename report
   sum'       <- sum filename report
   total'     <- total filename report
   average'   <- average filename report
   variance'' <- variance' filename report $ average'
-  pure $ Report.Entry $
+  pure $ SelectResult $ Report.Entry $
     { min       : min'
     , max       : max'
     , sum       : sum'
@@ -388,3 +383,7 @@ select filename report = do
     , average   : average'
     , variance  : variance''
     }
+
+request :: Database -> Query -> HTTP.IncomingMessage -> Request ResultSet
+request filename (InsertQuery query') req = insert filename query' req
+request filename (SelectQuery query') req = select filename query' req
