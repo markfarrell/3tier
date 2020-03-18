@@ -23,7 +23,6 @@ import Strings as Strings
 
 import Flow as Flow
 import Server as Server
-import Statistics as Statistics
 
 import Assert (assert)
 
@@ -121,43 +120,16 @@ testInsertFlow :: DB.Database -> Flow.Entry -> HTTP.IncomingMessage -> Aff Unit
 testInsertFlow filename entry req = testRequest label $ DB.insert filename (DB.InsertFlow entry) req
   where label = "Test.DB.insert"
 
-testStatistics :: Statistics.Entry -> DB.Database -> Statistics.Schema -> Aff Statistics.Entry
-testStatistics expect filename schema = do
-  entry  <- testRequest label $ Statistics.statistics filename schema
-  _      <- assert label' expect $ entry
-  pure entry
-  where
-    label  = "Test.Statistics.statistics " <> show schema <> " (1)"
-    label' = "Test.Statistics.statistics " <> show schema <> " (2)"
-
 testFlow :: DB.Database -> Aff Unit
 testFlow filename = assert' label  =<< try do
   entry'  <- testParseFlow entry
   entry'' <- testUnparseFlow entry'
-  _       <- testStatistics expect filename (Statistics.Flow Statistics.Events)
   req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardFlow entry''
   _       <- testInsertFlow filename entry' $ req
-  _       <- testStatistics expect' filename (Statistics.Flow Statistics.Events)
   pure unit
   where
     entry   = "0.0.0.0,0.12.123.255,0,65535,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"
     label   = "Test.Flow"
-    expect = Statistics.Entry $ 
-      { min       : 0.0
-      , max       : 0.0
-      , sum       : 0.0
-      , total     : 0.0
-      , average   : 0.0
-      , variance  : 0.0
-      }
-    expect' = Statistics.Entry $ 
-      { min       : 1.0
-      , max       : 1.0
-      , sum       : 1.0
-      , total     : 1.0
-      , average   : 1.0
-      , variance  : 0.0
-      }
 
 testRSA :: Aff Unit
 testRSA = do

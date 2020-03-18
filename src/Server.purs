@@ -5,7 +5,6 @@ module Server
   
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Coroutine (Producer, Consumer, Process, pullFrom, await, runProcess)
 import Control.Coroutine.Aff (produce, emit)
 import Control.Monad.Error.Class (try)
@@ -34,31 +33,19 @@ import UUIDv1 as UUIDv1
 
 import Audit as Audit
 import Flow as Flow
-import Statistics as Statistics
 
-data ForwardType = Flow Flow.Entry
-
-data ReportType = Statistics Statistics.Schema
-
-data Route = Forward ForwardType | Report ReportType
+data Route = Forward DB.Insert
 
 audit :: DB.Database -> Audit.Entry -> HTTP.IncomingMessage -> Aff (DB.Result Unit)
 audit filename entry req = DB.runRequest $ DB.insert filename (DB.InsertAudit entry) req
 
 parseRoute :: Parser String Route
-parseRoute = forward <|> report
+parseRoute = forward
   where
     forward = do
       _     <- string "/forward/flow?q="
       entry <- Flow.parse
-      pure (Forward (Flow entry))
-    report = reportFlow <|> reportAudit
-    reportFlow  = do
-      _  <- string "/report/flow"
-      pure (Report (Statistics (Statistics.Flow Statistics.Events)))
-    reportAudit = do
-      _ <- string "/report/audit"
-      pure (Report (Statistics (Statistics.Audit Statistics.Events)))
+      pure (Forward (DB.InsertFlow entry))
 
 data ContentType a = TextJSON a
 
@@ -117,20 +104,11 @@ runRoute filename req  = do
     (Right route) -> do
       _ <- audit filename (Audit.Entry Audit.Success Audit.RoutingRequest duration (route' result)) $ req
       case route of 
-        (Forward (Flow entry))              -> (runRequest' filename $ DB.insert filename (DB.InsertFlow entry)) $ req
-        (Report (Statistics schema))        -> (runRequest' filename $ reportStatistics schema)  $ req
+        (Forward insertQuery) -> (runRequest' filename $ DB.insert filename insertQuery) $ req
   where
-    reportStatistics schema = const $ Statistics.report filename schema
-    route' (Left _)                                                                              = "ANY"
-    route' (Right (Forward (Flow _)))                                                            = "FORWARD-FLOW"
-    route' (Right (Report  (Statistics (Statistics.Flow Statistics.Events))))                    = "REPORT-FLOW"
-    route' (Right (Report  (Statistics (Statistics.Audit Statistics.Events))))                   = "REPORT-AUDIT"
-    route' (Right (Report  (Statistics (Statistics.Audit' Statistics.Events Audit.Success))))    = "REPORT-AUDIT-SUCCESS"
-    route' (Right (Report  (Statistics (Statistics.Audit' Statistics.Events Audit.Failure))))    = "REPORT-AUDIT-FAILURE"
-    route' (Right (Report  (Statistics (Statistics.Flow Statistics.Durations))))                 = "REPORT-FLOW-DURATION"
-    route' (Right (Report  (Statistics (Statistics.Audit Statistics.Durations))))                = "REPORT-AUDIT-DURATION"
-    route' (Right (Report  (Statistics (Statistics.Audit' Statistics.Durations Audit.Success)))) = "REPORT-AUDIT-DURATION-SUCCESS"
-    route' (Right (Report  (Statistics (Statistics.Audit' Statistics.Durations Audit.Failure)))) = "REPORT-AUDIT-DURATION-FAILURE"
+    route' (Left _)                               = "ANY"               
+    route' (Right (Forward (DB.InsertFlow _)))    = "FORWARD-FLOW"
+    route' (Right (Forward (DB.InsertAudit _)))   = "FORWARD-AUDIT"
 
 respondResource :: ResponseType String -> HTTP.ServerResponse -> Aff Unit
 respondResource (Ok (TextJSON body)) = \res -> liftEffect $ do
