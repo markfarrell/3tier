@@ -63,31 +63,46 @@ audit settings entry req = do
   _ <- Tier3.execute $ Tier3.insert settings (Tier3.InsertAudit entry) req
   pure unit
 
-
-parseRoute :: Parser String Route
-parseRoute = forward
+route :: Parser String Route
+route = forward
   where
     forward = do
       _     <- string "/forward/flow?q="
       entry <- Flow.parse
       pure (Forward (Tier3.InsertFlow entry))
 
-runRequest' :: forall a. ContentJSON a => Tier3.Settings -> (HTTP.IncomingMessage -> Tier3.Request a) -> HTTP.IncomingMessage -> Aff (Resource String)
-runRequest' settings request req = do
-  startTime   <- liftEffect $ Date.currentTime
-  result'     <- Tier3.execute $ request req
-  endTime     <- liftEffect $ Date.currentTime
-  duration    <- pure $ endTime - startTime
-  case result' of
-    (Left error)             -> do 
-      _ <- audit settings (Audit.Entry Audit.Failure Audit.DatabaseRequest duration (audit'' result')) $ req
-      pure $ InternalServerError ""
-    (Right (Tuple result'' steps)) -> do
-      _ <- audit settings (Audit.Entry Audit.Success Audit.DatabaseRequest duration (audit'' result')) $ req
-      pure $ Ok (TextJSON (showJSON result''))
-  where 
-    audit'' (Left _)      = "" 
-    audit'' (Right (Tuple _ steps)) = show steps
+databaseRequest' :: forall a. Tier3.Result a -> Number -> Audit.Entry
+databaseRequest' (Left _)                = \duration -> Audit.Entry Audit.Failure Audit.DatabaseRequest duration ""
+databaseRequest' (Right (Tuple _ steps)) = \duration -> Audit.Entry Audit.Success Audit.DatabaseRequest duration (show steps)
+
+databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String) 
+databaseRequest settings (Forward insertQuery) req = do
+  startTime <- liftEffect $ Date.currentTime
+  result    <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery insertQuery) req
+  endTime   <- liftEffect $ Date.currentTime
+  duration  <- pure $ endTime - startTime
+  entry     <- pure $ databaseRequest' result duration
+  _         <- audit settings entry req 
+  case result of 
+    (Left _)  -> pure  $ InternalServerError ""
+    (Right _) -> pure  $ Ok (TextJSON "")
+
+routingRequest' :: forall a. Either a Route -> Number -> Audit.Entry
+routingRequest' (Left _)                                = \duration -> Audit.Entry Audit.Failure Audit.RoutingRequest duration ""               
+routingRequest' (Right (Forward (Tier3.InsertFlow _)))  = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "FORWARD-FLOW"
+routingRequest' (Right (Forward (Tier3.InsertAudit _))) = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "FORWARD-AUDIT"
+
+routingRequest :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Either HTTP.IncomingMessage Route)
+routingRequest settings req = do 
+  startTime <- liftEffect $ Date.currentTime
+  result    <- pure $ flip runParser route $ Strings.decodeURIComponent (HTTP.messageURL req)
+  endTime   <- liftEffect $ Date.currentTime
+  duration  <- pure $ endTime - startTime
+  entry     <- pure $ routingRequest' result duration
+  _         <- audit settings entry req 
+  case result of
+    (Left _)      -> pure $ Left req
+    (Right route') -> pure $ Right route'
 
 resourceRequest''' :: forall a b. Either a (Resource b) -> Number -> Audit.Entry
 resourceRequest''' (Left _)                         = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration  ""
@@ -98,22 +113,10 @@ resourceRequest''' (Right (Forbidden _ _))          = \duration -> Audit.Entry A
 
 resourceRequest'' :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Resource String)
 resourceRequest'' settings req  = do
-  startTime <- liftEffect $ Date.currentTime
-  result    <- pure $ flip runParser parseRoute $ Strings.decodeURIComponent (HTTP.messageURL req)
-  endTime   <- liftEffect $ Date.currentTime
-  duration  <- pure $ endTime - startTime
+  result <- routingRequest settings req
   case result of
-    (Left _     ) -> do 
-      _ <- audit settings (Audit.Entry Audit.Failure Audit.RoutingRequest duration (route' result)) $ req
-      pure $ BadRequest (HTTP.messageURL req)
-    (Right route) -> do
-      _ <- audit settings (Audit.Entry Audit.Success Audit.RoutingRequest duration (route' result)) $ req
-      case route of 
-        (Forward insertQuery) -> (runRequest' settings $ Tier3.insert settings insertQuery) $ req
-  where
-    route' (Left _)                               = "ANY"               
-    route' (Right (Forward (Tier3.InsertFlow _)))    = "FORWARD-FLOW"
-    route' (Right (Forward (Tier3.InsertAudit _)))   = "FORWARD-AUDIT"
+    (Left req')    -> pure $ BadRequest (HTTP.messageURL req')
+    (Right route') -> databaseRequest settings route' req
 
 resourceRequest' :: Tier3.Settings -> HTTP.IncomingRequest -> Aff (Resource String)
 resourceRequest' settings (HTTP.IncomingRequest req res) = do
