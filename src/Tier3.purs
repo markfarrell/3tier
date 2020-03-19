@@ -57,6 +57,7 @@ import UUIDv5 as UUIDv5
 import Audit as Audit
 import Flow as Flow
 
+import Report (Report)
 import Report as Report
 
 type Settings = String
@@ -67,7 +68,7 @@ data Schema  = Audit | Flow
 
 data Insert  = InsertAudit Audit.Entry | InsertFlow Flow.Entry
 
-type Select  = Report.Report
+type Select  = Report
 
 data Query   = InsertQuery Insert | SelectQuery Select
 

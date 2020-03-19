@@ -8,7 +8,7 @@ import Prelude
 
 data EventType = Success | Failure
 
-data EventID = DatabaseRequest | ResourceRequest | ResourceResponse | RoutingRequest
+data EventID = DatabaseRequest | ResourceRequest | RoutingRequest
 
 data Entry = Entry EventType EventID Number String
 
@@ -19,11 +19,7 @@ instance showEventType :: Show EventType where
 instance showEventID :: Show EventID where
   show DatabaseRequest  = "DATABASE-REQUEST"
   show ResourceRequest  = "RESOURCE-REQUEST"
-  show ResourceResponse = "RESOURCE-RESPONSE"
   show RoutingRequest   = "ROUTING-REQUEST"
 
 instance showEntry :: Show Entry where
   show (Entry eventType eventID duration msg) = "(Entry " <> show eventType <> " " <> show eventID <> " " <> show duration <> " " <> show msg <> ")"
-
-eventType :: EventType -> String
-eventType = show
