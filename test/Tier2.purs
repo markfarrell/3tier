@@ -114,18 +114,12 @@ testForwardFlow query = do
     host = "127.0.0.1:4000"
     label = "[Test.Tier2] /forward/flow"
     statusCode' (HTTP.IncomingResponse _ req) = HTTP.statusCode req
-      
-
-testInsertFlow :: Tier3.Settings -> Flow.Entry -> HTTP.IncomingMessage -> Aff Tier3.ResultSet
-testInsertFlow filename entry req = testRequest label $ Tier3.insert filename (Tier3.InsertFlow entry) req
-  where label = "[Test.Tier2] Tier3.insert"
 
 testFlow :: Tier3.Settings -> Aff Unit
 testFlow filename = assert' label  =<< try do
   entry'  <- testParseFlow entry
   entry'' <- testUnparseFlow entry'
   req     <- (\(HTTP.IncomingResponse _ req) -> req) <$> testForwardFlow entry''
-  _       <- testInsertFlow filename entry' $ req
   pure unit
   where
     entry   = "0.0.0.0,0.12.123.255,0,65535,6,32,2888,FSPA,2019/12/28T18:58:08.804,0.084,2019/12/28T18:58:08.888,local"

@@ -37,7 +37,7 @@ import UUIDv1 as UUIDv1
 import Audit as Audit
 import Flow as Flow
 
-data Route = Forward Tier3.Insert
+data Route = Forward Tier3.Query
 
 data ContentType a = TextJSON a
 
@@ -60,7 +60,7 @@ instance contentJSONUnit :: ContentJSON Tier3.ResultSet where
 
 audit :: Tier3.Settings -> Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
 audit settings entry req = do
-  _ <- Tier3.execute $ Tier3.insert settings (Tier3.InsertAudit entry) req
+  _ <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery $ Tier3.InsertAudit entry) req
   pure unit
 
 route :: Parser String Route
@@ -69,16 +69,16 @@ route = forward
     forward = do
       _     <- string "/forward/flow?q="
       entry <- Flow.parse
-      pure (Forward (Tier3.InsertFlow entry))
+      pure (Forward (Tier3.InsertQuery $ Tier3.InsertFlow entry))
 
 databaseRequest' :: forall a. Tier3.Result a -> Number -> Audit.Entry
-databaseRequest' (Left _)                = \duration -> Audit.Entry Audit.Failure Audit.DatabaseRequest duration ""
+databaseRequest' (Left _)                = \duration -> Audit.Entry Audit.Failure Audit.DatabaseRequest duration "???"
 databaseRequest' (Right (Tuple _ steps)) = \duration -> Audit.Entry Audit.Success Audit.DatabaseRequest duration (show steps)
 
 databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String) 
-databaseRequest settings (Forward insertQuery) req = do
+databaseRequest settings (Forward query) req = do
   startTime <- liftEffect $ Date.currentTime
-  result    <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery insertQuery) req
+  result    <- Tier3.execute $ Tier3.request settings query req
   endTime   <- liftEffect $ Date.currentTime
   duration  <- pure $ endTime - startTime
   entry     <- pure $ databaseRequest' result duration
@@ -88,9 +88,9 @@ databaseRequest settings (Forward insertQuery) req = do
     (Right _) -> pure  $ Ok (TextJSON "")
 
 routingRequest' :: forall a. Either a Route -> Number -> Audit.Entry
-routingRequest' (Left _)                                = \duration -> Audit.Entry Audit.Failure Audit.RoutingRequest duration ""               
-routingRequest' (Right (Forward (Tier3.InsertFlow _)))  = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "FORWARD-FLOW"
-routingRequest' (Right (Forward (Tier3.InsertAudit _))) = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "FORWARD-AUDIT"
+routingRequest' (Left _)                                                    = \duration -> Audit.Entry Audit.Failure Audit.RoutingRequest duration "???"               
+routingRequest' (Right (Forward (Tier3.InsertQuery (Tier3.InsertFlow _))))  = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "FORWARD-FLOW"
+routingRequest' (Right (Forward _))                                         = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "???"
 
 routingRequest :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Either HTTP.IncomingMessage Route)
 routingRequest settings req = do 
@@ -101,11 +101,11 @@ routingRequest settings req = do
   entry     <- pure $ routingRequest' result duration
   _         <- audit settings entry req 
   case result of
-    (Left _)      -> pure $ Left req
+    (Left _)       -> pure $ Left req
     (Right route') -> pure $ Right route'
 
 resourceRequest''' :: forall a b. Either a (Resource b) -> Number -> Audit.Entry
-resourceRequest''' (Left _)                         = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration  ""
+resourceRequest''' (Left _)                         = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration  "???"
 resourceRequest''' (Right (Ok _))                   = \duration -> Audit.Entry Audit.Success Audit.ResourceRequest duration "200-OK" 
 resourceRequest''' (Right (InternalServerError _))  = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration "500-INTERNAL-SERVER-ERROR"
 resourceRequest''' (Right (BadRequest _))           = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration "400-BAD-REQUEST"

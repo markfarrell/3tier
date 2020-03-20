@@ -100,29 +100,8 @@ close database = liftFreeT $ (Close database identity)
 connect :: Settings -> SQLite3.Mode -> Request SQLite3.Database
 connect filename mode = liftFreeT $ (Connect filename mode identity)
 
-all :: String -> SQLite3.Database -> Request (Array SQLite3.Row)
-all query database = liftFreeT $ (Execute query database identity)
-
-insert' :: Settings -> Table -> Array (Tuple String String) -> Request Unit
-insert' filename table' params = do
-  database <- connect filename SQLite3.OpenReadWrite
-  _        <- all query $ database
-  _        <- close database
-  lift $ pure unit
-  where
-     query = "INSERT INTO " <> table' <> " (" <> columns <> ") VALUES (" <> values <> ")"
-     columns  = "'" <> (Arrays.join "','" columns') <> "'"
-     values   = "'" <> (Arrays.join "','" values') <> "'"
-     columns' = fst <$> params
-     values'  = snd <$> params
-
-select' :: forall a. (SQLite3.Row -> Aff a) -> Settings -> String -> Request (Array a)
-select' runResult filename query = do
-  database <- connect filename SQLite3.OpenReadOnly
-  rows     <- all query $ database
-  _        <- close database
-  results  <- lift (lift $ sequence (runResult <$> rows))
-  lift $ pure results
+all :: SQLite3.Database -> String -> Request (Array SQLite3.Row)
+all database query = liftFreeT $ (Execute query database identity)
 
 type Column = Tuple String ColumnType
  
@@ -131,7 +110,7 @@ data ColumnType = Text | Real
 remove :: Settings -> Table -> Request Unit
 remove filename table' = do
   database <- connect filename SQLite3.OpenReadWrite
-  _        <- all query $ database
+  _        <- all database query
   _        <- close database
   lift $ pure unit
   where query = "DROP TABLE IF EXISTS " <> table'
@@ -139,7 +118,7 @@ remove filename table' = do
 schema' :: Settings -> Table -> Array Column -> Array Column -> Request Unit
 schema' filename table' params params' = do
   database <- connect filename SQLite3.OpenReadWrite
-  _        <- all query $ database
+  _        <- all database query
   _        <- close database
   lift $ pure unit
   where
@@ -183,10 +162,10 @@ schema Flow = \filename -> schema' filename "Flow" compositeKey $
   ]
   where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
 
-insertAudit :: Settings -> Audit.Entry -> HTTP.IncomingMessage -> Request ResultSet
-insertAudit filename (Audit.Entry eventType eventID duration msg) req = do
+insertAudit :: SQLite3.Database -> Audit.Entry -> HTTP.IncomingMessage -> Request ResultSet
+insertAudit database (Audit.Entry eventType eventID duration msg) req = do
   timestamp <- lift $ liftEffect $ (Date.toISOString <$> Date.current)
-  result    <- insert' filename table $ params timestamp
+  result    <- insert' database table $ params timestamp
   pure $ InsertResult result
   where 
     params timestamp =
@@ -212,10 +191,10 @@ insertAudit filename (Audit.Entry eventType eventID duration msg) req = do
     duration'     = show duration
     table         = "Audit"
 
-insertFlow :: Settings -> Flow.Entry -> HTTP.IncomingMessage -> Request ResultSet
-insertFlow filename (Flow.Entry entry) req = do
+insertFlow :: SQLite3.Database -> Flow.Entry -> HTTP.IncomingMessage -> Request ResultSet
+insertFlow database (Flow.Entry entry) req = do
   timestamp <- lift $ liftEffect (Date.toISOString <$> Date.current)
-  result    <- insert' filename table $ params timestamp
+  result    <- insert' database table $ params timestamp
   pure $ InsertResult result
   where
     params timestamp = 
@@ -243,9 +222,20 @@ insertFlow filename (Flow.Entry entry) req = do
     logID         = UUIDv1.defaultUUID
     table         = "Flow"
 
-insert :: Settings -> Insert -> HTTP.IncomingMessage -> Request ResultSet
-insert filename (InsertAudit entry) req = insertAudit filename entry req
-insert filename (InsertFlow  entry) req = insertFlow filename entry req
+insert' :: SQLite3.Database -> Table -> Array (Tuple String String) -> Request Unit
+insert' database table' params = do
+  _  <- all database query
+  lift $ pure unit
+  where
+     query = "INSERT INTO " <> table' <> " (" <> columns <> ") VALUES (" <> values <> ")"
+     columns  = "'" <> (Arrays.join "','" columns') <> "'"
+     values   = "'" <> (Arrays.join "','" values') <> "'"
+     columns' = fst <$> params
+     values'  = snd <$> params
+
+insert :: SQLite3.Database -> Insert -> HTTP.IncomingMessage -> Request ResultSet
+insert database (InsertAudit entry) req = insertAudit database entry req
+insert database (InsertFlow  entry) req = insertFlow database entry req
 
 touch :: Settings -> Request Unit
 touch filename = do
@@ -266,7 +256,6 @@ interpret (Execute query database next) = do
   _      <- tell ["EXECUTE"]
   result <- lift $ next <$> SQLite3.all query database
   lift $ pure result
- 
 
 sample' :: Report.ReportType -> Table -> Table
 sample' Report.Events    = \table -> "SELECT COUNT(DISTINCT EntryID) AS X FROM (" <> table <> ") GROUP BY LogID, SourceID" 
@@ -275,9 +264,9 @@ sample' Report.Durations = \table -> "SELECT Duration as X FROM (" <> table <> "
 sample :: Select -> Table
 sample (Report.Audit eventID eventType reportType) = sample' reportType $ "SELECT * FROM Audit WHERE EventID='" <> show eventID <> "' AND EventType='" <> show eventType <> "'"
 
-sum :: Settings -> Select -> Request Number
-sum filename report = do
-  results <- select' runResult filename query
+sum :: SQLite3.Database -> Select -> Request Number
+sum database report = do
+  results <- select' runResult database query
   case results of
     [sum']   -> pure sum'
     _        -> lift $ lift (throwError error)
@@ -290,9 +279,9 @@ sum filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT SUM(X) AS Result FROM (" <> (sample report) <> ")"
 
-average :: Settings -> Select ->  Request Number
-average filename report = do
-  results <- select' runResult filename query
+average :: SQLite3.Database -> Select ->  Request Number
+average database report = do
+  results <- select' runResult database query
   case results of
     []         -> pure 0.0
     [average'] -> pure average'
@@ -306,9 +295,9 @@ average filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT AVG(X) AS Average FROM (" <> (sample report) <> ")"
 
-minimum :: Settings -> Select -> Request Number
-minimum filename report = do
-  results <- select' runResult filename query
+minimum :: SQLite3.Database -> Select -> Request Number
+minimum database report = do
+  results <- select' runResult database query
   case results of
     [min'] -> pure min'
     _      -> lift $ lift (throwError error)
@@ -321,9 +310,9 @@ minimum filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT MIN(X) AS Minimum FROM (" <> (sample report) <> ")"
 
-maximum :: Settings -> Select -> Request Number
-maximum filename report = do
-  results <- select' runResult filename query
+maximum :: SQLite3.Database -> Select -> Request Number
+maximum database report = do
+  results <- select' runResult database query
   case results of
     [max'] -> pure max'
     _      -> lift $ lift (throwError error)
@@ -336,9 +325,9 @@ maximum filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT MAX(X) AS Maximum FROM (" <> (sample report) <> ")"
 
-total :: Settings -> Select -> Request Number
-total filename report = do
-  results <- select' runResult filename query
+total :: SQLite3.Database -> Select -> Request Number
+total database report = do
+  results <- select' runResult database query
   case results of
     [total'] -> pure total'
     _        -> lift $ lift (throwError error)
@@ -351,9 +340,9 @@ total filename report = do
     error = Exception.error "Unexpected results."
     query = "SELECT COUNT(*) as Total FROM (" <> (sample report) <> ")"
 
-variance' :: Settings -> Select -> Number -> Request Number
-variance' filename report = \average' -> do
-  results <- select' runResult filename $ query average'
+variance' :: SQLite3.Database -> Select -> Number -> Request Number
+variance' database report = \average' -> do
+  results <- select' runResult database $ query average'
   case results of
     [variance''] -> pure variance''
     _            -> lift $ lift (throwError error)
@@ -367,14 +356,14 @@ variance' filename report = \average' -> do
     query average'  = "SELECT AVG(" <> query' average' <> " * " <> query' average' <> ") AS Variance FROM (" <> (sample report) <> ")"
     query' average' = "(X - " <> show average' <> ")"
 
-select :: Settings -> Select -> HTTP.IncomingMessage -> Request ResultSet
-select filename report _ = do
-  min'       <- minimum filename report
-  max'       <- maximum filename report
-  sum'       <- sum filename report
-  total'     <- total filename report
-  average'   <- average filename report
-  variance'' <- variance' filename report $ average'
+select :: SQLite3.Database -> Select -> HTTP.IncomingMessage -> Request ResultSet
+select database report _ = do
+  min'       <- minimum database report
+  max'       <- maximum database report
+  sum'       <- sum database report
+  total'     <- total database report
+  average'   <- average database report
+  variance'' <- variance' database report $ average'
   pure $ SelectResult $ Report.Entry $
     { min       : min'
     , max       : max'
@@ -384,9 +373,23 @@ select filename report _ = do
     , variance  : variance''
     }
 
+select' :: forall a. (SQLite3.Row -> Aff a) -> SQLite3.Database -> String -> Request (Array a)
+select' runResult database query = do
+  rows     <- all database query
+  results  <- lift (lift $ sequence (runResult <$> rows))
+  lift $ pure results
+
 request :: Settings -> Query -> HTTP.IncomingMessage -> Request ResultSet
-request filename (InsertQuery query') req = insert filename query' req
-request filename (SelectQuery query') req = select filename query' req
+request filename (InsertQuery query') req = do 
+  database <- connect filename SQLite3.OpenReadWrite
+  result   <- insert database  query' req
+  _        <- close database
+  lift $ pure result
+request filename (SelectQuery query') req = do
+  database <- connect filename SQLite3.OpenReadOnly
+  result   <- select database query' req
+  _        <- close database
+  lift $ pure result
 
 execute ::  forall a. Request a -> Aff (Result a)
 execute request' = try $ runWriterT $ runFreeT interpret request'
