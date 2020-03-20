@@ -13,13 +13,6 @@ module Tier3
  , ResultSet(..)
  , request
  , execute
- , close
- , connect
- , insert
- , select
- , schema
- , touch
- , remove
  ) where
 
 import Prelude
@@ -161,6 +154,12 @@ schema Flow = \filename -> schema' filename "Flow" compositeKey $
   , Tuple "Sensor" Text
   ]
   where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
+
+schemas :: Settings -> Request Unit
+schemas filename = do
+  _ <- schema Flow $ filename
+  _ <- schema Audit $ filename
+  pure unit
 
 insertAudit :: SQLite3.Database -> Audit.Entry -> HTTP.IncomingMessage -> Request ResultSet
 insertAudit database (Audit.Entry eventType eventID duration msg) req = do
@@ -381,11 +380,15 @@ select' runResult database query = do
 
 request :: Settings -> Query -> HTTP.IncomingMessage -> Request ResultSet
 request filename (InsertQuery query') req = do 
+  _        <- touch filename
+  _        <- schemas filename
   database <- connect filename SQLite3.OpenReadWrite
   result   <- insert database  query' req
   _        <- close database
   lift $ pure result
 request filename (SelectQuery query') req = do
+  _        <- touch filename
+  _        <- schemas filename
   database <- connect filename SQLite3.OpenReadOnly
   result   <- select database query' req
   _        <- close database
