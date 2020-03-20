@@ -41,7 +41,7 @@ data ContentType a = TextJSON a
 
 data AuthenticationType = Bearer
 
-data Resource a = Ok (ContentType a) | InternalServerError a | BadRequest String | Forbidden AuthenticationType String
+data Resource a = Ok (ContentType a) | InternalServerError a | BadRequest a | Forbidden AuthenticationType a
 
 instance showContentType :: (Show a) => Show (ContentType a) where
   show (TextJSON x) = "(TextJSON (" <> show x <> "))"
