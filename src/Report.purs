@@ -8,7 +8,7 @@ import Prelude
 
 import Audit as Audit
 
-data ReportType = Events | Durations
+data ReportType = Sources | Durations
 
 data Report = Audit Audit.EventID Audit.EventType ReportType
 
@@ -22,7 +22,7 @@ data Entry = Entry
   }
 
 instance showReportType :: Show ReportType where
-  show Events    = "Events"
+  show Sources   = "Sources"
   show Durations = "Durations"
 
 instance showReport :: Show Report where

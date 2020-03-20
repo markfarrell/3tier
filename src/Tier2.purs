@@ -21,6 +21,7 @@ import Data.Tuple (Tuple(..))
 
 import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
+import Text.Parsing.Parser.Combinators (choice)
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -34,8 +35,9 @@ import HTTP as HTTP
 
 import Audit as Audit
 import Flow as Flow
+import Report as Report
 
-data Route = Forward Tier3.Query
+data Route = Forward Tier3.Query | Report Tier3.Query
 
 data ContentType a = TextJSON a
 
@@ -61,34 +63,71 @@ audit settings entry req = do
   _ <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery $ Tier3.InsertAudit entry) req
   pure unit
 
-route :: Parser String Route
-route = forward
+reportAudit'' :: Audit.EventID -> String
+reportAudit'' Audit.DatabaseRequest = "database-request"
+reportAudit'' Audit.ResourceRequest = "resource-request"
+reportAudit'' Audit.RoutingRequest  = "routing-request"
+
+reportAudit' :: Audit.EventID -> Parser String Route
+reportAudit' eventID = choice [w, x, y, z] 
   where
-    forward = do
-      _     <- string "/forward/flow?q="
-      entry <- Flow.parse
-      pure (Forward (Tier3.InsertQuery $ Tier3.InsertFlow entry))
+    w = do
+      _ <- string ("/report/audit/" <> reportAudit'' eventID <> "/success/sources")
+      pure (Report (Tier3.SelectQuery $ Report.Audit eventID Audit.Success Report.Sources))
+    x = do
+      _ <- string ("/report/audit/" <> reportAudit'' eventID <> "/failure/sources")
+      pure (Report (Tier3.SelectQuery $ Report.Audit eventID Audit.Failure Report.Sources))
+    y = do
+      _ <- string ("/report/audit/" <> reportAudit'' eventID <> "/success/durations")
+      pure (Report (Tier3.SelectQuery $ Report.Audit eventID Audit.Success Report.Durations))
+    z = do
+      _ <- string ("/report/audit/" <> reportAudit'' eventID <> "/failure/durations")
+      pure (Report (Tier3.SelectQuery $ Report.Audit eventID Audit.Failure Report.Durations))
 
-databaseRequest' :: forall a. Tier3.Result a -> Number -> Audit.Entry
-databaseRequest' (Left _)                = \duration -> Audit.Entry Audit.Failure Audit.DatabaseRequest duration "???"
-databaseRequest' (Right (Tuple _ steps)) = \duration -> Audit.Entry Audit.Success Audit.DatabaseRequest duration (show steps)
+reportAudit :: Parser String Route
+reportAudit = choice $ reportAudit' <$> [Audit.DatabaseRequest, Audit.ResourceRequest, Audit.RoutingRequest] 
 
-databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String) 
-databaseRequest settings (Forward query) req = do
+report :: Parser String Route
+report = choice [reportAudit]
+
+forwardFlow :: Parser String Route
+forwardFlow = do
+  _     <- string "/forward/flow?q="
+  entry <- Flow.parse
+  pure (Forward (Tier3.InsertQuery $ Tier3.InsertFlow entry))
+
+forward :: Parser String Route
+forward = choice [forwardFlow] 
+
+route :: Parser String Route
+route = choice [forward, report]
+
+databaseRequest'' :: forall a. Tier3.Result a -> Number -> Audit.Entry
+databaseRequest'' (Left _)                = \duration -> Audit.Entry Audit.Failure Audit.DatabaseRequest duration "???"
+databaseRequest'' (Right (Tuple _ steps)) = \duration -> Audit.Entry Audit.Success Audit.DatabaseRequest duration (show steps)
+
+databaseRequest':: Tier3.Settings -> Tier3.Query -> HTTP.IncomingMessage -> Aff (Resource String) 
+databaseRequest' settings query req = do
   startTime <- liftEffect $ Date.currentTime
   result    <- Tier3.execute $ Tier3.request settings query req
   endTime   <- liftEffect $ Date.currentTime
   duration  <- pure $ endTime - startTime
-  entry     <- pure $ databaseRequest' result duration
+  entry     <- pure $ databaseRequest'' result duration
   _         <- audit settings entry req 
   case result of 
     (Left _)  -> pure  $ InternalServerError ""
     (Right _) -> pure  $ Ok (TextJSON "")
 
+databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String)
+databaseRequest settings (Forward query) req = databaseRequest' settings query req
+databaseRequest settings (Report query) req  = databaseRequest' settings query req
+
 routingRequest' :: forall a. Either a Route -> Number -> Audit.Entry
 routingRequest' (Left _)                                                    = \duration -> Audit.Entry Audit.Failure Audit.RoutingRequest duration "???"               
 routingRequest' (Right (Forward (Tier3.InsertQuery (Tier3.InsertFlow _))))  = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "FORWARD-FLOW"
 routingRequest' (Right (Forward _))                                         = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "???"
+routingRequest' (Right (Report (Tier3.SelectQuery (Report.Audit _ _ _))))   = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "REPORT-AUDIT"
+routingRequest' (Right (Report _))                                          = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "???"
 
 routingRequest :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Either HTTP.IncomingMessage Route)
 routingRequest settings req = do 

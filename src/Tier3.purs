@@ -259,7 +259,7 @@ interpret (Execute query database next) = do
   lift $ pure result
 
 sample' :: Report.ReportType -> Table -> Table
-sample' Report.Events    = \table -> "SELECT COUNT(DISTINCT EntryID) AS X FROM (" <> table <> ") GROUP BY LogID, SourceID" 
+sample' Report.Sources   = \table -> "SELECT COUNT(DISTINCT EntryID) AS X FROM (" <> table <> ") GROUP BY LogID, SourceID" 
 sample' Report.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 sample :: Select -> Table
