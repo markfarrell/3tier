@@ -12,11 +12,8 @@ import Control.Alt ((<|>))
 import Control.Coroutine (Producer)
 import Control.Coroutine.Aff (produce, emit)
 
-import Control.Monad.Trans.Class (lift)
-
 import Effect (Effect)
 import Effect.Aff (Aff)
-import Effect.Class (liftEffect)
 
 import Effect.Exception (Error)
 import Effect.Exception (error) as Exception
@@ -24,7 +21,6 @@ import Effect.Exception (error) as Exception
 import Data.Array as Array
 import Data.List as List
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
 
 import Data.Either (Either(..))
 

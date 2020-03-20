@@ -53,6 +53,8 @@ import Flow as Flow
 import Report (Report)
 import Report as Report
 
+type Connection = SQLite3.Database
+
 type Settings = String
 
 type Table = String
@@ -383,7 +385,7 @@ request filename (InsertQuery query') req = do
   _        <- touch filename
   _        <- schemas filename
   database <- connect filename SQLite3.OpenReadWrite
-  result   <- insert database  query' req
+  result   <- insert database query' req
   _        <- close database
   lift $ pure result
 request filename (SelectQuery query') req = do

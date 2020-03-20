@@ -12,10 +12,9 @@ import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
 
 import Data.Either (Either(..))
-import Data.Traversable (sequence)
 
 import Effect (Effect)
-import Effect.Aff (Aff, Fiber, launchAff, forkAff)
+import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
 
 import Data.Tuple (Tuple(..))
@@ -32,7 +31,6 @@ import Tier3 as Tier3
 
 import Date as Date
 import HTTP as HTTP
-import UUIDv1 as UUIDv1
 
 import Audit as Audit
 import Flow as Flow
@@ -168,33 +166,15 @@ consumer settings = forever $ do
 process :: Tier3.Settings -> HTTP.Server -> Process Aff Unit
 process settings server = pullFrom (consumer settings) (producer server)
 
-initialize :: Tier3.Request Tier3.Settings
-initialize = do
-  settings <- lift $ getFilename
-  _        <- Tier3.touch settings
-  _        <- sequence $ schemas settings
-  pure settings
-  where
-    schemas settings =
-      [ Tier3.schema Tier3.Audit $ settings 
-      , Tier3.schema Tier3.Flow  $ settings
-      ]
-    getFilename = pure $ UUIDv1.defaultUUID <> ".db"
-
-start :: HTTP.Server -> Aff (Fiber Unit)
-start server = do
-  result <- Tier3.execute initialize
-  case result of
-    (Left error)                -> forkAff $ pure unit
-    (Right (Tuple settings _))  -> forkAff $ start' settings
-  where 
-    start' settings = do
-      runProcess $ process settings server
+start :: Tier3.Settings -> HTTP.Server -> Aff Unit
+start settings server = runProcess $ process settings server
 
 main :: Effect Unit
 main = do
   server <- HTTP.createServer
-  _ <- void $ launchAff $ start server
+  _ <- void $ launchAff $ start settings server
   _ <- HTTP.listen port server
   pure unit
-  where port = 3000
+  where 
+    port = 3000
+    settings = "Tier2.db"
