@@ -115,8 +115,8 @@ databaseRequest' settings query req = do
   entry     <- pure $ databaseRequest'' result duration
   _         <- audit settings entry req 
   case result of 
-    (Left _)  -> pure  $ InternalServerError ""
-    (Right _) -> pure  $ Ok (TextJSON "")
+    (Left _)                    -> pure  $ InternalServerError ""
+    (Right (Tuple resultSet _)) -> pure  $ Ok (TextJSON (showJSON resultSet))
 
 databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String)
 databaseRequest settings (Forward query) req = databaseRequest' settings query req
