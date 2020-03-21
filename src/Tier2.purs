@@ -1,5 +1,7 @@
 module Tier2 
-  ( start
+  ( Settings(..)
+  , start
+  , forwardFlow
   , main
   ) where 
   
@@ -16,12 +18,14 @@ import Data.Either (Either(..))
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
+import Effect.Exception (Error)
 
 import Data.Tuple (Tuple(..))
 
 import Unsafe.Coerce (unsafeCoerce)
 
 import JSON as JSON
+import Strings as Strings
 
 import Tier3 as Tier3
 
@@ -29,9 +33,12 @@ import Date as Date
 import HTTP as HTTP
 
 import Audit as Audit
+import Flow as Flow
 
 import Tier2.Route (Route(..))
 import Tier2.Route as Route
+
+data Settings = Settings { host :: String, port :: Int }
 
 data ContentType a = TextJSON a
 
@@ -143,6 +150,20 @@ process settings server = pullFrom (consumer settings) (producer server)
 
 start :: Tier3.Settings -> HTTP.Server -> Aff Unit
 start settings server = runProcess $ process settings server
+
+forwardFlow :: Settings -> Flow.Entry -> Aff (Either Error HTTP.IncomingResponse)
+forwardFlow (Settings settings) = \entry -> do
+  result <- pure $ Flow.write entry
+  case result of
+    (Left error)       -> pure (Left error)
+    (Right identifier) -> do
+      req <- HTTP.createRequest HTTP.Post $ url identifier
+      res <- try $ HTTP.endRequest req
+      pure res
+  where 
+    url identifier = location <> forwardRoute <> "/" <> Strings.encodeURIComponent identifier
+    location      = "http://" <> settings.host <> ":" <> show settings.port
+    forwardRoute  = "/forward/flow"
 
 main :: Effect Unit
 main = do
