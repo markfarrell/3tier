@@ -1,7 +1,7 @@
 module Flow
   ( Entry (..)
-  , parse
-  , unparse
+  , flow
+  , write
   ) where
 
 import Prelude
@@ -104,8 +104,8 @@ sensor = foldMap identity <$> List.many whitelist
     whitelist = Parser.lowercase <|> Parser.uppercase <|> Parser.digit <|> other
 
 {-- Parses a valid SiLk flow record based on the parsers defined for its fields, or fails otherwise. --}
-parse :: Parser String Entry
-parse = do
+flow :: Parser String Entry
+flow = do
   sIP       <- ipv4
   _         <- comma
   dIP       <- ipv4
@@ -146,8 +146,8 @@ parse = do
     }
   where comma = char delimiter
 
-unparse'' :: Entry -> String
-unparse'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
+write'' :: Entry -> String
+write'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
   [ entry.dIP
   , entry.sPort
   , entry.dPort
@@ -162,16 +162,16 @@ unparse'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
   ]
   where delimiter' = singleton delimiter
 
-unparse' :: Entry -> Identity (Either Error String)
-unparse' entry = do
-  expect     <- pure $ unparse'' entry
-  result'    <- pure $ flip runParser parse $ (unparse'' entry)
+write' :: Entry -> Identity (Either Error String)
+write' entry = do
+  expect     <- pure $ write'' entry
+  result'    <- pure $ flip runParser flow $ (write'' entry)
   case result' of
     (Left error) -> do
       let result'' = { error : error, expect : expect, entry : entry }
       pure $ Left (Exception.error $ show result'')
     (Right entry')    -> do
-      check <- pure $ unparse'' entry'
+      check <- pure $ write'' entry'
       let result'' = { check  : check, expect : expect, entry : entry }
       case check == expect of
         true -> do
@@ -179,5 +179,5 @@ unparse' entry = do
         false -> do
           pure $ Left (Exception.error $ show result'')
 
-unparse :: Entry -> Either Error String
-unparse entry = unwrap $ unparse' entry
+write :: Entry -> Either Error String
+write entry = unwrap $ write' entry

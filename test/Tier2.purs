@@ -18,7 +18,7 @@ forwardFlow host query = do
   req <- HTTP.createRequest HTTP.Post url
   res <- HTTP.endRequest req
   pure res
-  where url = "http://" <> host <> "/forward/flow?q=" <> (Strings.encodeURIComponent query)
+  where url = "http://" <> host <> "/forward/flow/" <> (Strings.encodeURIComponent query)
 
 testForwardFlow' :: String -> Aff HTTP.IncomingResponse
 testForwardFlow' query = do
