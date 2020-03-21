@@ -2,18 +2,11 @@ module Flow
   ( Entry (..)
   , parse
   , unparse
-  , createReader
   ) where
 
 import Prelude
 
 import Control.Alt ((<|>))
-
-import Control.Coroutine (Producer)
-import Control.Coroutine.Aff (produce, emit)
-
-import Effect (Effect)
-import Effect.Aff (Aff)
 
 import Effect.Exception (Error)
 import Effect.Exception (error) as Exception
@@ -32,13 +25,10 @@ import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
 
 import Text.Parsing.Parser (Parser, fail, runParser)
-import Text.Parsing.Parser.String (char, eof, satisfy, string)
+import Text.Parsing.Parser.String (char, eof, string)
 import Text.Parsing.Parser.Combinators (choice)
 
-import Date as Date
-import Stream as Stream
-import Process as Process
-import Readline as Readline
+import Parser as Parser
 
 newtype Entry = Entry
   { sIP      :: String
@@ -50,7 +40,7 @@ newtype Entry = Entry
   , bytes    :: String
   , flags    :: String
   , sTime    :: String
-  , duration :: String
+  , duration :: Number
   , eTime    :: String
   , sensor   :: String
   }
@@ -61,17 +51,10 @@ instance showEntry :: Show Entry where
 delimiter :: Char
 delimiter = ','
 
-parseValue :: Parser String String
-parseValue = foldMap singleton <$> List.many (satisfy $ not <<< eq delimiter)
-
-{-- Parses a valid digit, 0-9, or fails otherwise. --}
-digit :: Parser String String
-digit = choice (string <$> ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
-
 {-- Parses a valid octet, 0-255, or fails otherwise. --}
 octet :: Parser String String
 octet = do
-  w <- Array.many digit
+  w <- Array.many Parser.digit
   case w of
     [x, y, z] -> pure (x <> y <> z)
     [x, y]    -> pure (x <> y)
@@ -91,13 +74,10 @@ ipv4 = do
   pure (w <> dot <> x <> dot <> y <> dot <> z)
   where dot = "."
 
-id :: forall a. a -> a
-id x = x
-
 {-- Parses a valid port number, 0-65535, or failw otherwise. --}
 port :: Parser String String
 port = do
-  w <- foldMap id <$> List.many digit
+  w <- foldMap identity <$> List.many Parser.digit
   case Array.elemIndex w ports of
     (Just _)  -> pure w
     (Nothing) -> fail "Invalid port."
@@ -113,98 +93,15 @@ flags = do
   elems <- List.many flag
   count <- pure $ List.length elems
   case (count >= 0) && (count <= 6) of
-    true  -> pure $ foldMap id elems
+    true  -> pure $ foldMap identity elems
     false -> fail "Invalid number of TCP flags."
-
-{-- Parses a valid string of digits. --}
-digits :: Parser String String
-digits = foldMap id <$> List.many digit
-
-{-- Parses a valid duration for SiLk flow record. --}
-duration :: Parser String String
-duration = do
-  w <- digit
-  _ <- string dot
-  x <- digit
-  y <- digit
-  z <- digit
-  pure (w <> dot <> x <> y <> z)
-  where dot = "." 
-
-{-- Parses a valid sTime or eTime for a SiLk flow record (assume UTC time). --}
-time :: Parser String String
-time = do
-  year   <- digits
-  _      <- string "/"
-  month  <- digits
-  _      <- string "/"
-  day    <- digits
-  _      <- string "T"
-  hour   <- digits
-  _      <- string ":"
-  minute <- digits
-  _      <- string ":"
-  second <- digits
-  _      <- string "."
-  millis <- digits
-  case Date.isValid (format year month day hour minute second millis) of
-    true  -> pure $ format' year month day hour minute second millis
-    false -> fail "Invalid sTime or eTime."
-  where
-    format year month day hour minute second millis = foldl (<>) year $
-      [ "-"
-      , month
-      , "-"
-      , day
-      , "T"
-      , hour
-      , ":"
-      , minute
-      , ":"
-      , second
-      , "."
-      , millis
-      , "Z"
-      ]
-    format' year month day hour minute second millis = foldl (<>) year $
-      [ "/"
-      , month
-      , "/"
-      , day
-      , "T"
-      , hour
-      , ":"
-      , minute
-      , ":"
-      , second
-      , "."
-      , millis
-      ]
-
-{-- Parses a valid lowercase letter, or fails otherwise. --}
-lowercase :: Parser String String
-lowercase = choice (string <$> letters)
-  where 
-    letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
-      <> ["i", "j", "k", "l", "m", "n", "o", "p"] 
-      <> ["q", "r", "s", "t", "u", "v", "w", "x"]
-      <> ["y", "z"]
-
-{-- Parses a valid uppercase letter, or fails otherwise. --}
-uppercase :: Parser String String
-uppercase = choice (string <$> letters)
-  where 
-    letters = ["A", "B", "C", "D", "E", "F", "G", "H"]
-      <> ["I", "J", "K", "L", "M", "N", "O", "P"] 
-      <> ["Q", "R", "S", "T", "U", "V", "W", "Z"]
-      <> ["Y", "Z"]
 
 {-- Parses a valid name for a SiLk sensor from a set of whitelisted characters. --}
 sensor :: Parser String String
-sensor = foldMap id <$> List.many whitelist
+sensor = foldMap identity <$> List.many whitelist
   where  
     other     = choice (string <$> ["-", "_", "."])
-    whitelist = lowercase <|> uppercase <|> digit <|> other
+    whitelist = Parser.lowercase <|> Parser.uppercase <|> Parser.digit <|> other
 
 {-- Parses a valid SiLk flow record based on the parsers defined for its fields, or fails otherwise. --}
 parse :: Parser String Entry
@@ -219,17 +116,17 @@ parse = do
   _         <- comma
   protocol  <- octet
   _         <- comma
-  packets   <- digits
+  packets   <- Parser.digits
   _         <- comma
-  bytes     <- digits
+  bytes     <- Parser.digits
   _         <- comma
   flags'    <- flags
   _         <- comma
-  sTime     <- time
+  sTime     <- Parser.timestamp
   _         <- comma
-  duration' <- duration
+  duration' <- Parser.positiveFloat
   _         <- comma
-  eTime     <- time
+  eTime     <- Parser.timestamp
   _         <- comma
   sensor'   <- sensor
   _         <- eof
@@ -259,7 +156,7 @@ unparse'' (Entry entry) = foldl (\x y -> x <> delimiter' <> y) entry.sIP $
   , entry.bytes
   , entry.flags
   , entry.sTime
-  , entry.duration
+  , show entry.duration
   , entry.eTime
   , entry.sensor
   ]
@@ -284,18 +181,3 @@ unparse' entry = do
 
 unparse :: Entry -> Either Error String
 unparse entry = unwrap $ unparse' entry
-
-createReader' :: Readline.Interface -> Producer Entry Aff Unit
-createReader' interface = produce \emitter -> do
-  Readline.onLine (\line -> emit' emitter $ line) $ interface
-  where
-    emit' emitter = \line -> do
-      result <- pure $ flip runParser parse $ line
-      case result of
-        (Left error)  -> pure unit
-        (Right entry) -> emit emitter $ entry
-
-createReader :: Stream.Readable -> Effect (Producer Entry Aff Unit)
-createReader readable = do
-  interface <- Readline.createInterface readable Process.stdout false 
-  pure $ createReader' interface

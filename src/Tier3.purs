@@ -151,7 +151,7 @@ schema Flow = \filename -> schema' filename "Flow" compositeKey $
   , Tuple "Bytes" Text
   , Tuple "Flags" Text
   , Tuple "STime" Text
-  , Tuple "Duration" Text
+  , Tuple "Duration" Real
   , Tuple "ETime" Text
   , Tuple "Sensor" Text
   ]
@@ -211,7 +211,7 @@ insertFlow database (Flow.Entry entry) req = do
       , Tuple "Bytes" entry.bytes
       , Tuple "Flags" entry.flags
       , Tuple "STime" entry.sTime
-      , Tuple "Duration" entry.duration
+      , Tuple "Duration" (show entry.duration)
       , Tuple "ETime" entry.eTime
       , Tuple "Sensor" entry.sensor
       ]

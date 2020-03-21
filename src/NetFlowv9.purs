@@ -9,10 +9,8 @@ import Prelude
 
 import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Foldable (foldMap)
 import Data.Traversable (sequence)
 import Data.Tuple(Tuple(..))
-import Data.List as List
 
 import Effect (Effect)
 import Effect.Exception (Error)
@@ -20,12 +18,11 @@ import Effect.Exception as Exception
 
 import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.String (string)
-import Text.Parsing.Parser.Combinators (choice, sepBy)
+import Text.Parsing.Parser.Combinators (sepBy)
 
 import Arrays as Arrays
 import Buffer as Buffer
-
-foreign import parseInt :: String -> Int
+import Parser as Parser
 
 data Packet = Packet Header FlowSets
 
@@ -219,27 +216,11 @@ readPacket packet = do
        flowSets <- readFlowSets body
        pure $ Right (Packet header flowSets)
 
-{-- Parses a valid digit, 0-9, or fails otherwise. --}
-digit :: Parser String String
-digit = choice (string <$> ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
-
-digits :: Parser String String
-digits = do
-  result <- List.many digit
-  pure $ foldMap identity result
-
-positiveInteger :: Parser String Int
-positiveInteger = do
-  result <- parseInt <$> digits
-  case result >= 0 of
-    true  -> pure result
-    false -> fail "Invalid positive integer."
-
 template :: Parser String Template
 template = do
-  templateID <- positiveInteger
+  templateID <- Parser.positiveInteger
   _          <- separator
-  fieldCount <- positiveInteger
+  fieldCount <- Parser.positiveInteger
   _          <- separator
   fields''   <- fields fieldCount
   pure $ Template $
@@ -254,12 +235,12 @@ template = do
       false -> do
         fieldType'  <- fieldType
         _           <- separator
-        fieldLength <- positiveInteger
+        fieldLength <- Parser.positiveInteger
         _           <- separator' m n
         result <- fields' (acc <> [Tuple fieldType' fieldLength]) (m + 1) n
         pure result
     fieldType = do
-      result <- positiveInteger
+      result <- Parser.positiveInteger
       case (result >= 0) && (result <= 127) of
         true  -> pure result
         false -> fail "Invalid field type." 
