@@ -33,9 +33,10 @@ import Date as Date
 import HTTP as HTTP
 
 import Audit as Audit
+import Forward as Forward
 import Flow as Flow
 
-import Tier2.Route (Route(..))
+import Tier2.Route (Route)
 import Tier2.Route as Route
 
 data Settings = Settings { host :: String, port :: Int }
@@ -81,8 +82,8 @@ databaseRequest' settings query req = do
     (Right (Tuple resultSet _)) -> pure  $ Ok (TextJSON (showJSON resultSet))
 
 databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String)
-databaseRequest settings (Forward query) req = databaseRequest' settings query req
-databaseRequest settings (Report query) req  = databaseRequest' settings query req
+databaseRequest settings (Route.Forward (Forward.Flow entry)) req = databaseRequest' settings (Tier3.InsertQuery $ Tier3.InsertFlow entry) req
+databaseRequest settings (Route.Report report) req                = databaseRequest' settings (Tier3.SelectQuery $ report) req
 
 resourceRequest''' :: forall a b. Either a (Resource b) -> Number -> Audit.Entry
 resourceRequest''' (Left _)                         = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration  "???"
