@@ -1,7 +1,7 @@
 module Tier2 
   ( Settings(..)
+  , execute
   , process
-  , forwardFlow
   ) where 
   
 import Prelude
@@ -33,6 +33,8 @@ import HTTP as HTTP
 import Audit as Audit
 import Forward as Forward
 import Flow as Flow
+import Report (Report)
+import Report as Report
 
 import Tier2.Route (Route)
 import Tier2.Route as Route
@@ -147,16 +149,40 @@ consumer settings = forever $ do
 process :: Tier3.Settings -> HTTP.Server -> Process Aff Unit
 process settings server = pullFrom (consumer settings) (producer server)
 
-forwardFlow :: Settings -> Flow.Entry -> Aff (Either Error HTTP.IncomingResponse)
-forwardFlow (Settings settings) = \entry -> do
+url' :: Settings -> String -> String
+url' (Settings settings) uri = location <> uri
+  where location = "http://" <> settings.host <> ":" <> show settings.port
+
+executeForwardFlow :: Settings -> Flow.Entry -> Aff (Either Error HTTP.IncomingResponse)
+executeForwardFlow settings entry = do
   result <- pure $ Flow.write entry
   case result of
     (Left error)       -> pure (Left error)
     (Right identifier) -> do
-      req <- HTTP.createRequest HTTP.Post $ url identifier
+      req <- HTTP.createRequest HTTP.Post $ url' settings ("/forward/flow/" <> Strings.encodeURIComponent identifier)
       res <- try $ HTTP.endRequest req
       pure res
-  where 
-    url identifier = location <> forwardRoute <> "/" <> Strings.encodeURIComponent identifier
-    location      = "http://" <> settings.host <> ":" <> show settings.port
-    forwardRoute  = "/forward/flow"
+
+executeReport' :: Settings -> Report -> String
+executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Success Report.Sources)   = url' settings "/executeReport/audit/database-request/success/sources"  
+executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Failure Report.Sources)   = url' settings "/executeReport/audit/database-request/success/sources"  
+executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Success Report.Durations) = url' settings "/executeReport/audit/database-request/success/durations"  
+executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Failure Report.Durations) = url' settings "/executeReport/audit/database-request/success/durations"  
+executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Success Report.Sources)   = url' settings "/executeReport/audit/resource-request/success/sources"  
+executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Failure Report.Sources)   = url' settings "/executeReport/audit/resource-request/success/sources"  
+executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Success Report.Durations) = url' settings "/executeReport/audit/resource-request/success/durations"  
+executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Failure Report.Durations) = url' settings "/executeReport/audit/resource-request/success/durations"  
+executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Success Report.Sources)    = url' settings "/executeReport/audit/routing-request/success/sources"  
+executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Failure Report.Sources)    = url' settings "/executeReport/audit/routing-request/success/sources"  
+executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Success Report.Durations)  = url' settings "/executeReport/audit/routing-request/success/durations"  
+executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Failure Report.Durations)  = url' settings "/executeReport/audit/routing-request/success/durations"  
+
+executeReport :: Settings -> Report -> Aff (Either Error HTTP.IncomingResponse)
+executeReport settings request = do
+  req <- HTTP.createRequest HTTP.Get $ executeReport' settings request
+  res <- try $ HTTP.endRequest req
+  pure res
+
+execute :: Settings -> Route -> Aff (Either Error HTTP.IncomingResponse)
+execute settings (Route.Forward (Forward.Flow entry)) = executeForwardFlow settings entry
+execute settings (Route.Report request)               = executeReport settings request
