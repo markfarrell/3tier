@@ -2,8 +2,9 @@ module Test.Tier2 where
 
 import Prelude
 
+import Control.Coroutine as Coroutine
+
 import Data.Either(Either)
-import Data.Traversable (sequence)
 
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff, forkAff, killFiber)
@@ -17,12 +18,12 @@ import Flow as Flow
 import Tier2 as Tier2
 import Tier3 as Tier3
 
-import Test.Assert as Assert
+import Test.UnitTest as UnitTest
 
 forwardFlow :: Tier3.Settings -> Tier2.Settings -> Flow.Entry -> Aff (Either Error HTTP.IncomingResponse)
 forwardFlow settings (Tier2.Settings tier2) entry = do
   server <- liftEffect (HTTP.createServer)
-  fiber  <- forkAff $ Tier2.start settings server
+  fiber  <- forkAff (Coroutine.runProcess $ Tier2.process settings server)
   _      <- liftEffect (HTTP.listen tier2.port $ server)
   result <- Tier2.forwardFlow (Tier2.Settings tier2) entry
   _      <- flip killFiber fiber $ error "Expected behaviour."
@@ -32,8 +33,8 @@ forwardFlow settings (Tier2.Settings tier2) entry = do
 forwardFlow' :: Flow.Entry -> Aff (Either Error HTTP.IncomingResponse)
 forwardFlow' = forwardFlow "Test.Tier2.db" (Tier2.Settings { host : "localhost", port : 4000 })
 
-flows :: Array Flow.Entry
-flows =
+testCases :: Array Flow.Entry
+testCases =
   [ Flow.Entry $
     { sIP : "0.0.0.0"
     , dIP : "0.0.0.0"
@@ -66,6 +67,5 @@ flows =
 
 main :: Effect Unit
 main = void $ launchAff $ do
-  result <- sequence <$> (sequence (forwardFlow' <$> flows))
-  _      <- Assert.assert "/forward/flow" result
+  _ <- UnitTest.execute "Test.Tier2" "/forward/flow" forwardFlow' $ testCases
   pure unit

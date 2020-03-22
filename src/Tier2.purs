@@ -1,13 +1,12 @@
 module Tier2 
   ( Settings(..)
-  , start
+  , process
   , forwardFlow
-  , main
   ) where 
   
 import Prelude
 
-import Control.Coroutine (Producer, Consumer, Process, pullFrom, await, runProcess)
+import Control.Coroutine (Producer, Consumer, Process, pullFrom, await)
 import Control.Coroutine.Aff (produce, emit)
 import Control.Monad.Error.Class (try)
 import Control.Monad.Rec.Class (forever)
@@ -15,8 +14,7 @@ import Control.Monad.Trans.Class (lift)
 
 import Data.Either (Either(..))
 
-import Effect (Effect)
-import Effect.Aff (Aff, launchAff)
+import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 
@@ -149,9 +147,6 @@ consumer settings = forever $ do
 process :: Tier3.Settings -> HTTP.Server -> Process Aff Unit
 process settings server = pullFrom (consumer settings) (producer server)
 
-start :: Tier3.Settings -> HTTP.Server -> Aff Unit
-start settings server = runProcess $ process settings server
-
 forwardFlow :: Settings -> Flow.Entry -> Aff (Either Error HTTP.IncomingResponse)
 forwardFlow (Settings settings) = \entry -> do
   result <- pure $ Flow.write entry
@@ -165,13 +160,3 @@ forwardFlow (Settings settings) = \entry -> do
     url identifier = location <> forwardRoute <> "/" <> Strings.encodeURIComponent identifier
     location      = "http://" <> settings.host <> ":" <> show settings.port
     forwardRoute  = "/forward/flow"
-
-main :: Effect Unit
-main = do
-  server <- HTTP.createServer
-  _ <- void $ launchAff $ start settings server
-  _ <- HTTP.listen port server
-  pure unit
-  where 
-    port = 3000
-    settings = "Tier2.db"
