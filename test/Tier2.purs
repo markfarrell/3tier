@@ -24,6 +24,7 @@ import Tier2.Route as Route
 
 import Tier3 as Tier3
 
+import Test.UnitTest (UnitTest(..))
 import Test.UnitTest as UnitTest
 
 execute :: Tier3.Settings -> Tier2.Settings -> Route -> Aff (Either Error HTTP.IncomingResponse)
@@ -39,12 +40,16 @@ execute settings (Tier2.Settings tier2) request = do
 execute' :: Route -> Aff (Either Error HTTP.IncomingResponse)
 execute' = execute "Test.Tier2.db" (Tier2.Settings { host : "localhost", port : 4000 })
 
-executeForwardFlow :: Aff Unit
-executeForwardFlow = do
-  _ <- UnitTest.execute "Test.Tier2" "/forward/flow/*" execute' $ testCases
-  pure unit
+forwardFlow :: UnitTest Route Error HTTP.IncomingResponse
+forwardFlow = UnitTest $
+  { testSuite    : "Test.Tier2"
+  , testName     : "Tier2.execute"
+  , testCase     : "/forward/flow/*"
+  , testFunction : execute'
+  , testInputs   : testInputs
+  }
   where
-    testCases =
+    testInputs =
       [ Route.Forward $ Forward.Flow $ Flow.Entry $
         { sIP : "0.0.0.0"
         , dIP : "0.0.0.0"
@@ -75,12 +80,16 @@ executeForwardFlow = do
         }
       ]
 
-executeReportAudit :: Aff Unit
-executeReportAudit =  do
-  _ <- UnitTest.execute "Test.Tier2" "/report/audit/*/*/*" execute' $ testCases
-  pure unit
+reportAudit :: UnitTest Route Error HTTP.IncomingResponse
+reportAudit = UnitTest $
+  { testSuite    : "Test.Tier2"
+  , testName     : "Tier2.execute"
+  , testCase     : "/report/audit/*/*/*"
+  , testFunction : execute'
+  , testInputs   : testInputs
+  }
   where
-    testCases = 
+    testInputs = 
       [ Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Success Report.Sources
       , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Failure Report.Sources
       , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Success Report.Durations
@@ -97,6 +106,6 @@ executeReportAudit =  do
 
 main :: Effect Unit
 main = void $ launchAff $ do
-  _ <- executeForwardFlow
-  _ <- executeReportAudit
+  _ <- UnitTest.execute forwardFlow
+  _ <- UnitTest.execute reportAudit
   pure unit
