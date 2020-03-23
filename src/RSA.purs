@@ -1,14 +1,16 @@
 module RSA
-  ( defaultEncrypt
-  , defaultDecrypt
-  , defaultSign
-  , defaultVerify
+  ( Key
+  , generateKeyPair
+  , sign
+  , verify 
   ) where
 
-foreign import defaultEncrypt :: String -> String
+import Effect (Effect)
 
-foreign import defaultDecrypt :: String -> String
+foreign import data Key :: Type
 
-foreign import defaultSign :: String -> String
+foreign import generateKeyPair :: Effect Key
 
-foreign import defaultVerify :: String -> String -> Boolean
+foreign import sign :: Key -> String -> String
+
+foreign import verify :: Key -> String -> String -> Boolean
