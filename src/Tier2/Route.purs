@@ -75,7 +75,7 @@ routingRequest (Right (Report (Report.Audit _ _ _))) =  \duration -> Audit.Entry
 audit :: Tier3.Settings -> Either Error Route -> Number -> HTTP.IncomingMessage -> Aff Unit
 audit settings result duration req = do
   entry <- pure $ routingRequest result duration
-  _ <- Tier3.execute settings $ Tier3.request (Tier3.InsertQuery $ Tier3.InsertAudit entry) req
+  _ <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery $ Tier3.InsertAudit entry) req
   pure unit
 
 execute' :: HTTP.IncomingMessage -> Aff (Either Error Route)

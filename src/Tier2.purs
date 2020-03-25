@@ -62,7 +62,7 @@ instance contentJSONUnit :: ContentJSON Tier3.ResultSet where
 
 audit :: Tier3.Settings -> Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
 audit settings entry req = do
-  _ <- Tier3.execute settings $ Tier3.request (Tier3.InsertQuery $ Tier3.InsertAudit entry) req
+  _ <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery $ Tier3.InsertAudit entry) req
   pure unit
 
 databaseRequest'' :: forall a. Tier3.Result a -> Number -> Audit.Entry
@@ -72,7 +72,7 @@ databaseRequest'' (Right (Tuple _ steps)) = \duration -> Audit.Entry Audit.Succe
 databaseRequest':: Tier3.Settings -> Tier3.Query -> HTTP.IncomingMessage -> Aff (Resource String) 
 databaseRequest' settings query req = do
   startTime <- liftEffect $ Date.currentTime
-  result    <- Tier3.execute settings $ Tier3.request query req
+  result    <- Tier3.execute $ Tier3.request settings query req
   endTime   <- liftEffect $ Date.currentTime
   duration  <- pure $ endTime - startTime
   entry     <- pure $ databaseRequest'' result duration

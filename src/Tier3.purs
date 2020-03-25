@@ -73,12 +73,12 @@ instance showSchema :: Show Schema where
   show Audit = "Audit"
   show Flow  = "Flow"
 
-data RequestDSL a = InsertRequest Insert HTTP.IncomingMessage (ResultSet -> a) | SelectRequest Select HTTP.IncomingMessage (ResultSet -> a)
+data RequestDSL a = InsertRequest Settings Insert HTTP.IncomingMessage (ResultSet -> a) | SelectRequest Settings Select HTTP.IncomingMessage (ResultSet -> a)
 
 instance functorRequestDSL :: Functor RequestDSL where
   map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
-  map f (InsertRequest query' req next)  = (InsertRequest query' req (f <<< next))
-  map f (SelectRequest query' req next)  = (SelectRequest query' req (f <<< next))
+  map f (InsertRequest settings query' req next)  = (InsertRequest settings query' req (f <<< next))
+  map f (SelectRequest settings query' req next)  = (SelectRequest settings query' req (f <<< next))
 
 type Interpreter = WriterT (Array String) Aff 
 
@@ -233,23 +233,14 @@ varianceURI report avg = query
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
     query' = "(X - " <> show avg <> ")"
 
-interpret :: forall a. Settings -> RequestDSL (Request a) -> Interpreter (Request a)
-interpret settings (InsertRequest query' req next) = do
-  _        <- tell ["INSERT"]
-  _        <- lift $ executeTouch settings
-  _        <- lift $ executeSchemas settings
-  database <- lift $ SQLite3.connect settings SQLite3.OpenReadWrite
-  uri      <- lift $ insertURI query' req
-  _        <- lift $ SQLite3.all uri database
-  _        <- lift $ SQLite3.close database
-  lift (next <$> (pure $ InsertResult unit))
-interpret settings (SelectRequest query' req next) = do
-  _         <- tell ["SELECT"]
-  _         <- lift $ executeTouch settings
-  _         <- lift $ executeSchemas settings
-  database  <- lift $ SQLite3.connect settings SQLite3.OpenReadOnly
-  result    <- lift $ executeSelect database query'
-  _         <- lift $ SQLite3.close database
+interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
+interpret (InsertRequest settings query' req next) = do
+  _       <- tell ["INSERT-REQUEST"]
+  result  <- lift $ executeInsert settings query' req
+  lift (next <$> pure result)
+interpret (SelectRequest settings query' req next) = do
+  _      <- tell ["SELECT-REQUEST"]
+  result <- lift $ executeSelect settings query' req
   lift (next <$> (pure result))
 
 executeTouch :: Settings -> Aff Unit
@@ -266,14 +257,38 @@ executeSchemas settings = do
   _        <- SQLite3.close database
   pure unit
 
-executeSelect :: Connection -> Select -> Aff ResultSet
-executeSelect database report = do
-  min        <- executeSelect' database (minURI report)
-  max        <- executeSelect' database (maxURI report)
-  sum        <- executeSelect' database (sumURI report)
-  total      <- executeSelect' database (totalURI report)
-  average    <- executeSelect' database (averageURI report)
-  variance   <- executeSelect' database (varianceURI report average)
+executeInsert :: Settings -> Insert -> HTTP.IncomingMessage -> Aff ResultSet
+executeInsert settings query' req = do
+  _      <- executeTouch settings
+  _      <- executeSchemas settings
+  result <- executeInsert' settings query' req
+  pure result
+
+executeInsert' :: Settings -> Insert -> HTTP.IncomingMessage -> Aff ResultSet
+executeInsert' settings query' req = do
+  database <- SQLite3.connect settings SQLite3.OpenReadWrite
+  uri      <- insertURI query' req
+  _        <- SQLite3.all uri database
+  _        <- SQLite3.close database
+  pure (InsertResult unit)
+
+executeSelect :: Settings -> Select -> HTTP.IncomingMessage -> Aff ResultSet
+executeSelect settings query' req = do
+  _         <- executeTouch settings
+  _         <- executeSchemas settings
+  result    <- executeSelect' settings query' req
+  pure result
+
+executeSelect' :: Settings -> Select -> HTTP.IncomingMessage -> Aff ResultSet
+executeSelect' settings report _ = do
+  database   <- SQLite3.connect settings SQLite3.OpenReadOnly
+  min        <- executeSelect'' database (minURI report)
+  max        <- executeSelect'' database (maxURI report)
+  sum        <- executeSelect'' database (sumURI report)
+  total      <- executeSelect'' database (totalURI report)
+  average    <- executeSelect'' database (averageURI report)
+  variance   <- executeSelect'' database (varianceURI report average)
+  _          <- SQLite3.close database
   pure $ SelectResult $ Report.Entry $
     { min       : min
     , max       : max
@@ -283,8 +298,8 @@ executeSelect database report = do
     , variance  : variance
     }
 
-executeSelect' :: Connection -> String -> Aff Number
-executeSelect' database uri = do
+executeSelect'' :: Connection -> String -> Aff Number
+executeSelect'' database uri = do
   rows    <- SQLite3.all uri database
   results <- sequence (runResult <$> rows)
   case results of
@@ -298,9 +313,9 @@ executeSelect' database uri = do
          (Right number') -> pure number'
     error = Exception.error "Unexpected results."
 
-request :: Query -> HTTP.IncomingMessage -> Request ResultSet
-request (InsertQuery query') req = liftFreeT $ (InsertRequest query' req identity)
-request (SelectQuery query') req = liftFreeT $ (SelectRequest query' req identity)
+request :: Settings -> Query -> HTTP.IncomingMessage -> Request ResultSet
+request settings (InsertQuery query') req = liftFreeT $ (InsertRequest settings query' req identity)
+request settings (SelectQuery query') req = liftFreeT $ (SelectRequest settings query' req identity)
 
-execute ::  forall a. Settings -> Request a -> Aff (Result a)
-execute settings request' = try $ runWriterT $ runFreeT (interpret settings) request'
+execute ::  forall a. Request a -> Aff (Result a)
+execute request' = try $ runWriterT $ runFreeT interpret request'
