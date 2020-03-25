@@ -13,15 +13,15 @@ exports.generateKeyPair = function(bits) {
 };
 
 exports.sign = function(key) {
-  return function(str) {
-    return key.sign(str, "hex", "utf8");
+  return function(data) {
+    return key.sign(data, "hex", "utf8");
   };
 };
 
 exports.verify = function(key) {
   return function(signature) {
-    return function(str) {
-      return key.verify(str, signature, "utf8", "hex");
+    return function(data) {
+      return key.verify(data, signature, "utf8", "hex");
     };
   };
 };

@@ -73,15 +73,12 @@ instance showSchema :: Show Schema where
   show Audit = "Audit"
   show Flow  = "Flow"
 
-data RequestDSL a = Close Connection (Unit -> a)
-  | Connect Settings SQLite3.Mode (Connection -> a) 
-  | Execute String Connection (Array SQLite3.Row -> a)
+data RequestDSL a = InsertRequest Insert HTTP.IncomingMessage (ResultSet -> a) | SelectRequest Select HTTP.IncomingMessage (ResultSet -> a)
 
 instance functorRequestDSL :: Functor RequestDSL where
   map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
-  map f (Close database next)        = (Close database (f <<< next))
-  map f (Connect settings mode next) = (Connect settings mode (f <<< next))
-  map f (Execute query database next)  = (Execute query database (f <<< next))
+  map f (InsertRequest query' req next)  = (InsertRequest query' req (f <<< next))
+  map f (SelectRequest query' req next)  = (SelectRequest query' req (f <<< next))
 
 type Interpreter = WriterT (Array String) Aff 
 
@@ -236,31 +233,47 @@ varianceURI report avg = query
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
     query' = "(X - " <> show avg <> ")"
 
-select' :: Connection -> String -> Request Number
-select' database query = do
-  rows     <- all database query
-  results  <- lift (lift $ sequence (runResult <$> rows))
-  case results of
-    [number'] -> pure number'
-    _         -> lift $ lift (throwError error)
-  where
-    runResult row = do
-       result' <- pure (runExcept $ row ! "Y" >>= Foreign.readNumber)
-       case result' of
-         (Left _)        -> pure 0.0
-         (Right number') -> pure number'
-    error = Exception.error "Unexpected results."
+interpret :: forall a. Settings -> RequestDSL (Request a) -> Interpreter (Request a)
+interpret settings (InsertRequest query' req next) = do
+  _        <- tell ["INSERT"]
+  _        <- lift $ executeTouch settings
+  _        <- lift $ executeSchemas settings
+  database <- lift $ SQLite3.connect settings SQLite3.OpenReadWrite
+  uri      <- lift $ insertURI query' req
+  _        <- lift $ SQLite3.all uri database
+  _        <- lift $ SQLite3.close database
+  lift (next <$> (pure $ InsertResult unit))
+interpret settings (SelectRequest query' req next) = do
+  _         <- tell ["SELECT"]
+  _         <- lift $ executeTouch settings
+  _         <- lift $ executeSchemas settings
+  database  <- lift $ SQLite3.connect settings SQLite3.OpenReadOnly
+  result    <- lift $ executeSelect database query'
+  _         <- lift $ SQLite3.close database
+  lift (next <$> (pure result))
 
-select :: Settings -> Select -> HTTP.IncomingMessage -> Request ResultSet
-select settings report _ = do
-  database   <- connect settings SQLite3.OpenReadOnly
-  min        <- select' database (minURI report)
-  max        <- select' database (maxURI report)
-  sum        <- select' database (sumURI report)
-  total      <- select' database (totalURI report)
-  average    <- select' database (averageURI report)
-  variance   <- select' database (varianceURI report average)
-  _          <- close database
+executeTouch :: Settings -> Aff Unit
+executeTouch settings = do
+  database <- SQLite3.connect settings SQLite3.OpenCreate
+  _        <- SQLite3.close database
+  pure unit
+
+executeSchemas :: Settings -> Aff Unit
+executeSchemas settings = do
+  database <- SQLite3.connect settings SQLite3.OpenReadWrite
+  _        <- SQLite3.all (schemaURI Flow) database
+  _        <- SQLite3.all (schemaURI Audit) database
+  _        <- SQLite3.close database
+  pure unit
+
+executeSelect :: Connection -> Select -> Aff ResultSet
+executeSelect database report = do
+  min        <- executeSelect' database (minURI report)
+  max        <- executeSelect' database (maxURI report)
+  sum        <- executeSelect' database (sumURI report)
+  total      <- executeSelect' database (totalURI report)
+  average    <- executeSelect' database (averageURI report)
+  variance   <- executeSelect' database (varianceURI report average)
   pure $ SelectResult $ Report.Entry $
     { min       : min
     , max       : max
@@ -270,62 +283,24 @@ select settings report _ = do
     , variance  : variance
     }
 
-insert :: Settings -> Insert -> HTTP.IncomingMessage -> Request (ResultSet)
-insert settings insert' req = do
-  database <- connect settings SQLite3.OpenReadWrite
-  uri      <- lift (lift $ insertURI insert' req)
-  _        <- all database uri
-  _        <- close database
-  lift $ pure (InsertResult unit)
+executeSelect' :: Connection -> String -> Aff Number
+executeSelect' database uri = do
+  rows    <- SQLite3.all uri database
+  results <- sequence (runResult <$> rows)
+  case results of
+    [number'] -> pure number'
+    _         -> throwError error
+  where
+    runResult row = do
+       result' <- pure (runExcept $ row ! "Y" >>= Foreign.readNumber)
+       case result' of
+         (Left _)        -> pure 0.0
+         (Right number') -> pure number'
+    error = Exception.error "Unexpected results."
 
-touch :: Settings -> Request Unit
-touch settings = do
-  database <- connect settings SQLite3.OpenCreate
-  _        <- close database
-  lift $ pure unit
+request :: Query -> HTTP.IncomingMessage -> Request ResultSet
+request (InsertQuery query') req = liftFreeT $ (InsertRequest query' req identity)
+request (SelectQuery query') req = liftFreeT $ (SelectRequest query' req identity)
 
-schemas :: Settings -> Request Unit
-schemas settings = do
-  database <- connect settings SQLite3.OpenReadWrite
-  _        <- all database (schemaURI Flow)
-  _        <- all database (schemaURI Audit)
-  _        <- close database
-  pure unit
-
-close :: Connection -> Request Unit
-close database = liftFreeT $ (Close database identity)
-
-connect :: Settings -> SQLite3.Mode -> Request Connection
-connect settings mode = liftFreeT $ (Connect settings mode identity)
-
-all :: Connection -> String -> Request (Array SQLite3.Row)
-all database query = liftFreeT $ (Execute query database identity)
-
-interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
-interpret (Close database next) = do 
-  _      <- tell ["CLOSE"]
-  result <- lift $ next <$> SQLite3.close database
-  lift $ pure result
-interpret (Connect settings mode next) = do
-  _      <- tell ["CONNECT"]
-  result <- lift $ next <$> SQLite3.connect settings mode
-  lift $ pure result 
-interpret (Execute query database next) = do
-  _      <- tell ["EXECUTE"]
-  result <- lift $ next <$> SQLite3.all query database
-  lift $ pure result
-
-request :: Settings -> Query -> HTTP.IncomingMessage -> Request ResultSet
-request settings (InsertQuery query') req = do 
-  _      <- touch settings
-  _      <- schemas settings
-  result <- insert settings query' req
-  lift $ pure result
-request settings (SelectQuery query') req = do
-  _        <- touch settings
-  _        <- schemas settings
-  result   <- select settings query' req
-  lift $ pure result
-
-execute ::  forall a. Request a -> Aff (Result a)
-execute request' = try $ runWriterT $ runFreeT interpret request'
+execute ::  forall a. Settings -> Request a -> Aff (Result a)
+execute settings request' = try $ runWriterT $ runFreeT (interpret settings) request'
