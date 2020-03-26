@@ -23,7 +23,6 @@ import Data.Tuple as Tuple
 
 import Unsafe.Coerce (unsafeCoerce)
 
-import Arrays as Arrays
 import JSON as JSON
 import Strings as Strings
 
@@ -68,8 +67,8 @@ audit :: Tier3.Settings -> Audit.Entry -> Aff Unit
 audit settings entry = void $ Tier3.execute $ Tier3.audit settings entry
 
 databaseRequest'' :: forall a. Tier3.Result a -> Number -> HTTP.IncomingMessage -> Audit.Entry
-databaseRequest'' (Left _)                = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.DatabaseRequest duration "???" $ req
-databaseRequest'' (Right (Tuple _ steps)) = \duration req -> Audit.entry Audit.Tier2 Audit.Success Audit.DatabaseRequest duration (Arrays.join "," steps) $ req
+databaseRequest'' (Left _)                = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.DatabaseRequest duration Audit.Unknown $ req
+databaseRequest'' (Right (Tuple _ steps)) = \duration req -> Audit.entry Audit.Tier2 Audit.Success Audit.DatabaseRequest duration (Audit.EventID steps) $ req
 
 databaseRequest':: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String) 
 databaseRequest' settings route req = do
@@ -89,7 +88,7 @@ databaseRequest settings route req = do
   pure resource
 
 routingRequest' :: Either Error Route -> Number -> HTTP.IncomingMessage -> Audit.Entry
-routingRequest' (Left _)      = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.RoutingRequest duration "???" $ req 
+routingRequest' (Left _)      = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.RoutingRequest duration Audit.Unknown $ req 
 routingRequest' (Right route) = \duration req -> Audit.entry Audit.Tier2 Audit.Success Audit.RoutingRequest duration (Route.eventID route) $ req
 
 routingRequest :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Either Error Route)
@@ -103,8 +102,8 @@ routingRequest settings req = do
   pure result
 
 resourceRequest'' :: forall a b. Either a Route -> Either a (Resource b) -> Number -> HTTP.IncomingMessage -> Audit.Entry
-resourceRequest'' (Left _) (Left _)                             = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  "???" $ req
-resourceRequest'' (Left _) (Right _)                            = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  "???" $ req
+resourceRequest'' (Left _) (Left _)                             = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  Audit.Unknown $ req
+resourceRequest'' (Left _) (Right _)                            = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  Audit.Unknown $ req
 resourceRequest'' (Right route) (Left _)                        = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  (Route.eventID route) $ req
 resourceRequest'' (Right route) (Right (Ok _))                  = \duration req -> Audit.entry Audit.Tier2 Audit.Success Audit.ResourceRequest duration (Route.eventID route) $ req 
 resourceRequest'' (Right route) (Right (InternalServerError _)) = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req

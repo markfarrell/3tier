@@ -26,8 +26,8 @@ import Strings as Strings
 data Route = Forward Forward.Forward | Report Report.Report
 
 eventID :: Route -> Audit.EventID
-eventID (Forward (Forward.Flow _))     = "FORWARD-FLOW"
-eventID (Report (Report.Audit _ _ _))  = "REPORT-AUDIT"
+eventID (Forward (Forward.Flow _))     = Audit.ForwardFlow
+eventID (Report (Report.Audit _ _ _))  = Audit.ReportAudit
 
 reportAudit'' :: Audit.EventCategory -> String
 reportAudit'' Audit.DatabaseRequest = "database-request"

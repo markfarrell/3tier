@@ -1,7 +1,7 @@
 module Audit
   ( EventType(..)
   , EventCategory(..)
-  , EventID
+  , EventID(..)
   , EventSource(..)
   , Entry(..)
   , entry
@@ -12,11 +12,13 @@ import Prelude
 import HTTP as HTTP
 import Socket as Socket
 
+import Arrays as Arrays
+
 data EventType = Success | Failure
 
 data EventCategory = DatabaseRequest | ResourceRequest | RoutingRequest
 
-type EventID = String
+data EventID = EventID (Array EventID) | ForwardFlow | ReportAudit | Unknown
 
 data EventSource = Tier1 | Tier2 | Tier3
 
@@ -38,6 +40,12 @@ instance showEventCategory :: Show EventCategory where
   show DatabaseRequest  = "DATABASE-REQUEST"
   show ResourceRequest  = "RESOURCE-REQUEST"
   show RoutingRequest   = "ROUTING-REQUEST"
+
+instance showEventID :: Show EventID where
+  show ForwardFlow  = "FORWARD-FLOW"
+  show ReportAudit  = "REPORT-AUDIT"
+  show Unknown      = "???"
+  show (EventID x)  = Arrays.join "," (show <$> x)
 
 instance showEventSource :: Show EventSource where
   show Tier1 = "TIER-1"

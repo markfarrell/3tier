@@ -85,11 +85,11 @@ instance functorRequestDSL :: Functor RequestDSL where
   map f (InsertRequest settings query' next)  = (InsertRequest settings query' (f <<< next))
   map f (SelectRequest settings query' next)  = (SelectRequest settings query' (f <<< next))
 
-type Interpreter = WriterT (Array String) Aff 
+type Interpreter = WriterT (Array Audit.EventID) Aff 
 
 type Request a = FreeT RequestDSL Interpreter a
 
-type Result a = Either Error (Tuple a (Array String))
+type Result a = Either Error (Tuple a (Array Audit.EventID))
 
 type Column = Tuple String ColumnType
  
@@ -147,7 +147,7 @@ insertAuditURI (Audit.Entry entry) = do
       , Tuple "Duration" (show entry.duration)
       , Tuple "EventType" (show entry.eventType)
       , Tuple "EventCategory" (show entry.eventCategory)
-      , Tuple "EventID" entry.eventID
+      , Tuple "EventID" (show entry.eventID)
       , Tuple "EventSource" (show entry.eventSource)
       ]
 
@@ -213,11 +213,11 @@ varianceURI report avg = query
     query' = "(X - " <> show avg <> ")"
 
 insertEventID :: Insert -> Audit.EventID
-insertEventID (InsertAudit _) = "???"
-insertEventID (InsertFlow entry) = "FORWARD-FLOW"
+insertEventID (InsertAudit _) = Audit.Unknown
+insertEventID (InsertFlow entry) = Audit.ForwardFlow
 
 selectEventID :: Select -> Audit.EventID
-selectEventID (Report.Audit x y z) = "REPORT-AUDIT"
+selectEventID (Report.Audit x y z) = Audit.ReportAudit
 
 interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
 interpret (InsertRequest settings query' next) = do
