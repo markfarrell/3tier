@@ -3,6 +3,7 @@ module Tier3
  , Interpreter
  , Request
  , Result
+ , Setting
  , Settings
  , Table
  , ColumnType(..)
@@ -28,9 +29,12 @@ import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Traversable (sequence)
 
+import Data.Foldable (oneOf) as Foldable
+
 import Data.Tuple (Tuple(..), fst, snd)
 
 import Effect.Aff (Aff)
+import Effect.Aff (parallel, sequential) as Aff
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 import Effect.Exception as Exception
@@ -56,7 +60,9 @@ import Route as Route
 
 type Connection = SQLite3.Database
 
-type Settings = String
+type Setting = String
+
+type Settings = Array Setting
 
 type Table = String
 
@@ -76,8 +82,8 @@ data RequestDSL a = InsertRequest Settings Insert (ResultSet -> a) | SelectReque
 
 instance functorRequestDSL :: Functor RequestDSL where
   map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
-  map f (InsertRequest settings query' next)  = (InsertRequest settings query' (f <<< next))
-  map f (SelectRequest settings query' next)  = (SelectRequest settings query' (f <<< next))
+  map f (InsertRequest setting query' next)  = (InsertRequest setting query' (f <<< next))
+  map f (SelectRequest setting query' next)  = (SelectRequest setting query' (f <<< next))
 
 type Interpreter = WriterT (Array String) Aff 
 
@@ -215,23 +221,23 @@ selectEventID (Report.Audit x y z) = "SELECT-AUDIT"
 
 interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
 interpret (InsertRequest settings query' next) = do
-  _       <- tell [insertEventID query']
-  result  <- lift $ executeInsert settings query'
+  _      <- tell [insertEventID query']
+  result <- lift $ executeInsert settings query'
   lift (next <$> (pure result))
 interpret (SelectRequest settings query' next) = do
   _      <- tell [selectEventID query']
   result <- lift $ executeSelect settings query'
   lift (next <$> (pure result))
 
-executeTouch :: Settings -> Aff Unit
-executeTouch settings = do
-  database <- SQLite3.connect settings SQLite3.OpenCreate
+executeTouch :: Setting -> Aff Unit
+executeTouch setting = do
+  database <- SQLite3.connect setting SQLite3.OpenCreate
   _        <- SQLite3.close database
   pure unit
 
-executeSchemas :: Settings -> Aff Unit
-executeSchemas settings = do
-  database <- SQLite3.connect settings SQLite3.OpenReadWrite
+executeSchemas :: Setting -> Aff Unit
+executeSchemas setting = do
+  database <- SQLite3.connect setting SQLite3.OpenReadWrite
   _        <- SQLite3.all (schemaURI Flow) database
   _        <- SQLite3.all (schemaURI Audit) database
   _        <- SQLite3.close database
@@ -239,14 +245,19 @@ executeSchemas settings = do
 
 executeInsert :: Settings -> Insert -> Aff ResultSet
 executeInsert settings query' = do
-  _      <- executeTouch settings
-  _      <- executeSchemas settings
-  result <- executeInsert' settings query'
+  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeInsert' query' <$> settings)) 
   pure result
 
-executeInsert' :: Settings -> Insert -> Aff ResultSet
-executeInsert' settings query' = do
-  database <- SQLite3.connect settings SQLite3.OpenReadWrite
+executeInsert' :: Setting -> Insert -> Aff ResultSet
+executeInsert' setting query' = do
+  _      <- executeTouch setting
+  _      <- executeSchemas setting
+  result <- executeInsert'' setting query'
+  pure result
+
+executeInsert'' :: Setting -> Insert -> Aff ResultSet
+executeInsert'' setting query' = do
+  database <- SQLite3.connect setting SQLite3.OpenReadWrite
   uri      <- insertURI query'
   _        <- SQLite3.all uri database
   _        <- SQLite3.close database
@@ -254,20 +265,25 @@ executeInsert' settings query' = do
 
 executeSelect :: Settings -> Select -> Aff ResultSet
 executeSelect settings query' = do
-  _         <- executeTouch settings
-  _         <- executeSchemas settings
-  result    <- executeSelect' settings query'
+  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeSelect' query' <$> settings)) 
   pure result
 
-executeSelect' :: Settings -> Select -> Aff ResultSet
-executeSelect' settings report = do
-  database   <- SQLite3.connect settings SQLite3.OpenReadOnly
-  min        <- executeSelect'' database (minURI report)
-  max        <- executeSelect'' database (maxURI report)
-  sum        <- executeSelect'' database (sumURI report)
-  total      <- executeSelect'' database (totalURI report)
-  average    <- executeSelect'' database (averageURI report)
-  variance   <- executeSelect'' database (varianceURI report average)
+executeSelect' :: Setting -> Select -> Aff ResultSet
+executeSelect' setting query' = do
+  _         <- executeTouch setting
+  _         <- executeSchemas setting
+  result    <- executeSelect'' setting query'
+  pure result
+
+executeSelect'' :: Setting -> Select -> Aff ResultSet
+executeSelect'' setting report = do
+  database   <- SQLite3.connect setting SQLite3.OpenReadOnly
+  min        <- executeSelect''' database (minURI report)
+  max        <- executeSelect''' database (maxURI report)
+  sum        <- executeSelect''' database (sumURI report)
+  total      <- executeSelect''' database (totalURI report)
+  average    <- executeSelect''' database (averageURI report)
+  variance   <- executeSelect''' database (varianceURI report average)
   _          <- SQLite3.close database
   pure $ SelectResult $ Report.Entry $
     { min       : min
@@ -278,8 +294,8 @@ executeSelect' settings report = do
     , variance  : variance
     }
 
-executeSelect'' :: Connection -> String -> Aff Number
-executeSelect'' database uri = do
+executeSelect''' :: Connection -> String -> Aff Number
+executeSelect''' database uri = do
   rows    <- SQLite3.all uri database
   results <- sequence (runResult <$> rows)
   case results of

@@ -37,7 +37,7 @@ execute settings (Tier2.Settings tier2) request = do
   pure result
 
 execute' :: Route -> Aff (Either Error HTTP.IncomingResponse)
-execute' = execute "Test.Tier2.db" (Tier2.Settings { host : "localhost", port : 4000 })
+execute' = execute ["Test.Tier2.db.1", "Test.Tier2.db.2"] (Tier2.Settings { host : "localhost", port : 4000 })
 
 forwardFlow :: UnitTest Route Error HTTP.IncomingResponse
 forwardFlow = UnitTest $

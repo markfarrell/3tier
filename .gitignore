@@ -8,5 +8,5 @@
 /.purs*
 /.psa*
 /bin/
-/*.db
-/*.db-journal
+/*.db*
+/*.db-journal*
