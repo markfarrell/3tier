@@ -41,11 +41,7 @@ import Foreign.Index ((!))
 import Arrays as Arrays
 
 import Date as Date
-import HTTP as HTTP
-import Socket as Socket
 import SQLite3 as SQLite3
-import UUIDv1 as UUIDv1
-import UUIDv5 as UUIDv5
 
 import Audit as Audit
 import Flow as Flow
@@ -73,12 +69,12 @@ instance showSchema :: Show Schema where
   show Audit = "Audit"
   show Flow  = "Flow"
 
-data RequestDSL a = InsertRequest Settings Insert HTTP.IncomingMessage (ResultSet -> a) | SelectRequest Settings Select HTTP.IncomingMessage (ResultSet -> a)
+data RequestDSL a = InsertRequest Settings Insert (ResultSet -> a) | SelectRequest Settings Select (ResultSet -> a)
 
 instance functorRequestDSL :: Functor RequestDSL where
   map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
-  map f (InsertRequest settings query' req next)  = (InsertRequest settings query' req (f <<< next))
-  map f (SelectRequest settings query' req next)  = (SelectRequest settings query' req (f <<< next))
+  map f (InsertRequest settings query' next)  = (InsertRequest settings query' (f <<< next))
+  map f (SelectRequest settings query' next)  = (SelectRequest settings query' (f <<< next))
 
 type Interpreter = WriterT (Array String) Aff 
 
@@ -106,18 +102,15 @@ schemaURI' table' params params' = query
 
 schemaURI :: Schema -> String
 schemaURI Audit = schemaURI' "Audit" [] $
-  [ Tuple "LogID" Text
-  , Tuple "SourceID" Text
-  , Tuple "EntryID" Text
-  , Tuple "Timestamp" Text
-  , Tuple "SourceAddress" Text
+  [ Tuple "Timestamp" Text
+  , Tuple "SourceIP" Text
   , Tuple "SourcePort" Text
   , Tuple "Duration" Real
   , Tuple "EventType" Text
   , Tuple "EventID" Text
   , Tuple "Event" Text
   ]
-schemaURI Flow = schemaURI' "Flow" compositeKey $ 
+schemaURI Flow = schemaURI' "Flow" [] $ 
   [ Tuple "SIP" Text
   , Tuple "DIP" Text
   , Tuple "SPort" Text
@@ -131,46 +124,28 @@ schemaURI Flow = schemaURI' "Flow" compositeKey $
   , Tuple "ETime" Text
   , Tuple "Sensor" Text
   ]
-  where compositeKey = [ Tuple "LogID" Text, Tuple "SourceID" Text, Tuple "EntryID" Text ]
 
-insertAuditURI :: Audit.Entry -> HTTP.IncomingMessage -> Aff String
-insertAuditURI (Audit.Entry eventType eventID duration msg) req = do
+insertAuditURI :: Audit.Entry -> Aff String
+insertAuditURI (Audit.Entry entry) = do
   timestamp <- liftEffect $ (Date.toISOString <$> Date.current)
-  pure $ insertURI' table (params timestamp)
+  pure $ insertURI' "Audit" (params timestamp)
   where 
     params timestamp =
-      [ Tuple "LogID" logID
-      , Tuple "SourceID" sourceID
-      , Tuple "EntryID" entryID
-      , Tuple "Timestamp" timestamp 
-      , Tuple "SourceAddress" remoteAddress
-      , Tuple "SourcePort" remotePort'
-      , Tuple "Duration" duration'
-      , Tuple "EventType" eventType'
-      , Tuple "EventID" eventID'
-      , Tuple "Event" msg
+      [ Tuple "Timestamp" timestamp 
+      , Tuple "SourceIP" entry.sourceIP
+      , Tuple "SourcePort" (show entry.sourcePort)
+      , Tuple "Duration" (show entry.duration)
+      , Tuple "EventType" (show entry.eventType)
+      , Tuple "EventID" (show entry.eventID)
+      , Tuple "Event" (show entry.event)
       ]
-    remoteAddress = Socket.remoteAddress $ HTTP.socket req
-    remotePort    = Socket.remotePort $ HTTP.socket req
-    remotePort'   = show remotePort
-    sourceID      = UUIDv5.namespaceUUID logID $ remoteAddress
-    entryID       = UUIDv5.namespaceUUID sourceID $ HTTP.messageURL req
-    logID         = UUIDv1.defaultUUID
-    eventType'    = show eventType
-    eventID'      = show eventID
-    duration'     = show duration
-    table         = "Audit"
 
-insertFlowURI :: Flow.Entry -> HTTP.IncomingMessage -> Aff String
-insertFlowURI (Flow.Entry entry) req = do
-  timestamp <- liftEffect (Date.toISOString <$> Date.current)
-  pure $ insertURI' table (params timestamp)
+insertFlowURI :: Flow.Entry -> Aff String
+insertFlowURI (Flow.Entry entry) = do
+  pure $ insertURI' "Flow" params
   where
-    params timestamp = 
-      [ Tuple "LogID" logID
-      , Tuple "SourceID" sourceID
-      , Tuple "EntryID" entryID
-      , Tuple "SIP" entry.sIP
+    params = 
+      [ Tuple "SIP" entry.sIP
       , Tuple "DIP" entry.dIP
       , Tuple "SPort" entry.sPort
       , Tuple "DPort" entry.dPort
@@ -183,13 +158,6 @@ insertFlowURI (Flow.Entry entry) req = do
       , Tuple "ETime" entry.eTime
       , Tuple "Sensor" entry.sensor
       ]
-    remoteAddress = Socket.remoteAddress $ HTTP.socket req
-    remotePort    = Socket.remotePort $ HTTP.socket req
-    remotePort'   = show remotePort
-    entryID       = UUIDv5.namespaceUUID sourceID $ HTTP.messageURL req
-    sourceID      = UUIDv5.namespaceUUID UUIDv1.defaultUUID $ remoteAddress
-    logID         = UUIDv1.defaultUUID
-    table         = "Flow"
 
 insertURI' ::  Table -> Array (Tuple String String) -> String
 insertURI'  table' params = query
@@ -200,17 +168,17 @@ insertURI'  table' params = query
      columns' = fst <$> params
      values'  = snd <$> params
 
-insertURI :: Insert -> HTTP.IncomingMessage -> Aff String
-insertURI (InsertAudit entry) req = insertAuditURI entry req
-insertURI (InsertFlow  entry) req = insertFlowURI entry req
+insertURI :: Insert ->  Aff String
+insertURI (InsertAudit entry) = insertAuditURI entry
+insertURI (InsertFlow  entry) = insertFlowURI entry
 
 
-reportURI' :: Report.ReportType -> Table -> Table
-reportURI' Report.Sources   = \table -> "SELECT COUNT(DISTINCT EntryID) AS X FROM (" <> table <> ") GROUP BY LogID, SourceID" 
-reportURI' Report.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
+reportAuditURI' :: Report.ReportType -> Table -> Table
+reportAuditURI' Report.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceIP, SourcePort" 
+reportAuditURI' Report.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Select -> Table
-reportURI (Report.Audit eventID eventType reportType) = reportURI' reportType $ "SELECT * FROM Audit WHERE EventID='" <> show eventID <> "' AND EventType='" <> show eventType <> "'"
+reportURI (Report.Audit eventID eventType reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventID='" <> show eventID <> "' AND EventType='" <> show eventType <> "'"
 
 maxURI :: Select -> String
 maxURI report = "SELECT MAX(X) AS Y FROM (" <> (reportURI report) <> ")"
@@ -234,13 +202,13 @@ varianceURI report avg = query
     query' = "(X - " <> show avg <> ")"
 
 interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
-interpret (InsertRequest settings query' req next) = do
+interpret (InsertRequest settings query' next) = do
   _       <- tell ["INSERT-REQUEST"]
-  result  <- lift $ executeInsert settings query' req
+  result  <- lift $ executeInsert settings query'
   lift (next <$> pure result)
-interpret (SelectRequest settings query' req next) = do
+interpret (SelectRequest settings query' next) = do
   _      <- tell ["SELECT-REQUEST"]
-  result <- lift $ executeSelect settings query' req
+  result <- lift $ executeSelect settings query'
   lift (next <$> (pure result))
 
 executeTouch :: Settings -> Aff Unit
@@ -257,30 +225,30 @@ executeSchemas settings = do
   _        <- SQLite3.close database
   pure unit
 
-executeInsert :: Settings -> Insert -> HTTP.IncomingMessage -> Aff ResultSet
-executeInsert settings query' req = do
+executeInsert :: Settings -> Insert -> Aff ResultSet
+executeInsert settings query' = do
   _      <- executeTouch settings
   _      <- executeSchemas settings
-  result <- executeInsert' settings query' req
+  result <- executeInsert' settings query'
   pure result
 
-executeInsert' :: Settings -> Insert -> HTTP.IncomingMessage -> Aff ResultSet
-executeInsert' settings query' req = do
+executeInsert' :: Settings -> Insert -> Aff ResultSet
+executeInsert' settings query' = do
   database <- SQLite3.connect settings SQLite3.OpenReadWrite
-  uri      <- insertURI query' req
+  uri      <- insertURI query'
   _        <- SQLite3.all uri database
   _        <- SQLite3.close database
   pure (InsertResult unit)
 
-executeSelect :: Settings -> Select -> HTTP.IncomingMessage -> Aff ResultSet
-executeSelect settings query' req = do
+executeSelect :: Settings -> Select -> Aff ResultSet
+executeSelect settings query' = do
   _         <- executeTouch settings
   _         <- executeSchemas settings
-  result    <- executeSelect' settings query' req
+  result    <- executeSelect' settings query'
   pure result
 
-executeSelect' :: Settings -> Select -> HTTP.IncomingMessage -> Aff ResultSet
-executeSelect' settings report _ = do
+executeSelect' :: Settings -> Select -> Aff ResultSet
+executeSelect' settings report = do
   database   <- SQLite3.connect settings SQLite3.OpenReadOnly
   min        <- executeSelect'' database (minURI report)
   max        <- executeSelect'' database (maxURI report)
@@ -313,9 +281,9 @@ executeSelect'' database uri = do
          (Right number') -> pure number'
     error = Exception.error "Unexpected results."
 
-request :: Settings -> Query -> HTTP.IncomingMessage -> Request ResultSet
-request settings (InsertQuery query') req = liftFreeT $ (InsertRequest settings query' req identity)
-request settings (SelectQuery query') req = liftFreeT $ (SelectRequest settings query' req identity)
+request :: Settings -> Query -> Request ResultSet
+request settings (InsertQuery query') = liftFreeT $ (InsertRequest settings query' identity)
+request settings (SelectQuery query') = liftFreeT $ (SelectRequest settings query' identity)
 
 execute ::  forall a. Request a -> Aff (Result a)
 execute request' = try $ runWriterT $ runFreeT interpret request'

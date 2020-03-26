@@ -67,15 +67,15 @@ forward = choice [forwardFlow]
 route :: Parser String Route
 route = choice [forward, report]
 
-routingRequest :: Either Error Route -> Number -> Audit.Entry
-routingRequest (Left _)                              = \duration -> Audit.Entry Audit.Failure Audit.RoutingRequest duration "???"               
-routingRequest (Right (Forward (Forward.Flow _)))    = \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "FORWARD-FLOW"
-routingRequest (Right (Report (Report.Audit _ _ _))) =  \duration -> Audit.Entry Audit.Success Audit.RoutingRequest duration "REPORT-AUDIT"
+routingRequest :: Either Error Route -> Number -> HTTP.IncomingMessage -> Audit.Entry
+routingRequest (Left _)                              = \duration req -> Audit.entry Audit.Failure Audit.RoutingRequest duration "???" $ req 
+routingRequest (Right (Forward (Forward.Flow _)))    = \duration req -> Audit.entry Audit.Success Audit.RoutingRequest duration "FORWARD-FLOW" $ req
+routingRequest (Right (Report (Report.Audit _ _ _))) = \duration req -> Audit.entry Audit.Success Audit.RoutingRequest duration "REPORT-AUDIT" $ req
 
 audit :: Tier3.Settings -> Either Error Route -> Number -> HTTP.IncomingMessage -> Aff Unit
 audit settings result duration req = do
-  entry <- pure $ routingRequest result duration
-  _ <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery $ Tier3.InsertAudit entry) req
+  entry <- pure $ routingRequest result duration req
+  _ <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery $ Tier3.InsertAudit entry)
   pure unit
 
 execute' :: HTTP.IncomingMessage -> Aff (Either Error Route)

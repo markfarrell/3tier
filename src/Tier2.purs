@@ -60,23 +60,23 @@ instance contentJSONUnit :: ContentJSON Tier3.ResultSet where
   showJSON (Tier3.InsertResult _) = ""
   showJSON (Tier3.SelectResult x) = JSON.stringify $ unsafeCoerce x
 
-audit :: Tier3.Settings -> Audit.Entry -> HTTP.IncomingMessage -> Aff Unit
-audit settings entry req = do
-  _ <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery $ Tier3.InsertAudit entry) req
+audit :: Tier3.Settings -> Audit.Entry -> Aff Unit
+audit settings entry = do
+  _ <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery $ Tier3.InsertAudit entry)
   pure unit
 
-databaseRequest'' :: forall a. Tier3.Result a -> Number -> Audit.Entry
-databaseRequest'' (Left _)                = \duration -> Audit.Entry Audit.Failure Audit.DatabaseRequest duration "???"
-databaseRequest'' (Right (Tuple _ steps)) = \duration -> Audit.Entry Audit.Success Audit.DatabaseRequest duration (show steps)
+databaseRequest'' :: forall a. Tier3.Result a -> Number -> HTTP.IncomingMessage -> Audit.Entry
+databaseRequest'' (Left _)                = \duration req -> Audit.entry Audit.Failure Audit.DatabaseRequest duration "???" $ req
+databaseRequest'' (Right (Tuple _ steps)) = \duration req -> Audit.entry Audit.Success Audit.DatabaseRequest duration (show steps) $ req
 
 databaseRequest':: Tier3.Settings -> Tier3.Query -> HTTP.IncomingMessage -> Aff (Resource String) 
 databaseRequest' settings query req = do
   startTime <- liftEffect $ Date.currentTime
-  result    <- Tier3.execute $ Tier3.request settings query req
+  result    <- Tier3.execute $ Tier3.request settings query
   endTime   <- liftEffect $ Date.currentTime
   duration  <- pure $ endTime - startTime
-  entry     <- pure $ databaseRequest'' result duration
-  _         <- audit settings entry req 
+  entry     <- pure $ databaseRequest'' result duration req
+  _         <- audit settings entry
   case result of 
     (Left _)                    -> pure  $ InternalServerError ""
     (Right (Tuple resultSet _)) -> pure  $ Ok (TextJSON (showJSON resultSet))
@@ -85,12 +85,12 @@ databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resou
 databaseRequest settings (Route.Forward (Forward.Flow entry)) req = databaseRequest' settings (Tier3.InsertQuery $ Tier3.InsertFlow entry) req
 databaseRequest settings (Route.Report report) req                = databaseRequest' settings (Tier3.SelectQuery $ report) req
 
-resourceRequest''' :: forall a b. Either a (Resource b) -> Number -> Audit.Entry
-resourceRequest''' (Left _)                         = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration  "???"
-resourceRequest''' (Right (Ok _))                   = \duration -> Audit.Entry Audit.Success Audit.ResourceRequest duration "200-OK" 
-resourceRequest''' (Right (InternalServerError _))  = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration "500-INTERNAL-SERVER-ERROR"
-resourceRequest''' (Right (BadRequest _))           = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration "400-BAD-REQUEST"
-resourceRequest''' (Right (Forbidden _ _))          = \duration -> Audit.Entry Audit.Failure Audit.ResourceRequest duration "403-FORBIDDEN"
+resourceRequest''' :: forall a b. Either a (Resource b) -> Number -> HTTP.IncomingMessage -> Audit.Entry
+resourceRequest''' (Left _)                         = \duration req -> Audit.entry Audit.Failure Audit.ResourceRequest duration  "???" $ req
+resourceRequest''' (Right (Ok _))                   = \duration req -> Audit.entry Audit.Success Audit.ResourceRequest duration "200-OK" $ req 
+resourceRequest''' (Right (InternalServerError _))  = \duration req -> Audit.entry Audit.Failure Audit.ResourceRequest duration "500-INTERNAL-SERVER-ERROR" $ req
+resourceRequest''' (Right (BadRequest _))           = \duration req -> Audit.entry Audit.Failure Audit.ResourceRequest duration "400-BAD-REQUEST" $ req
+resourceRequest''' (Right (Forbidden _ _))          = \duration req -> Audit.entry Audit.Failure Audit.ResourceRequest duration "403-FORBIDDEN" $ req
 
 resourceRequest'' :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Resource String)
 resourceRequest'' settings req  = do
@@ -132,8 +132,8 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
   result          <- try $ resourceRequest' settings $ HTTP.IncomingRequest req res
   endTime         <- liftEffect $ Date.currentTime
   duration        <- pure (endTime - startTime)
-  entry           <- pure $ resourceRequest''' result duration 
-  _               <- audit settings entry req
+  entry           <- pure $ resourceRequest''' result duration req 
+  _               <- audit settings entry
   pure unit
 
 producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit

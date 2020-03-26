@@ -7,9 +7,9 @@ import Control.Coroutine as Coroutine
 import Data.Either(Either)
 
 import Effect (Effect)
-import Effect.Aff (Aff, launchAff, forkAff, killFiber)
+import Effect.Aff (Aff, launchAff, forkAff, supervise)
 import Effect.Class (liftEffect)
-import Effect.Exception (Error, error)
+import Effect.Exception (Error)
 
 import HTTP as HTTP
 
@@ -33,7 +33,6 @@ execute settings (Tier2.Settings tier2) request = do
   fiber  <- forkAff (Coroutine.runProcess $ Tier2.process settings server)
   _      <- liftEffect (HTTP.listen tier2.port $ server)
   result <- Tier2.execute (Tier2.Settings tier2) request
-  _      <- flip killFiber fiber $ error "Expected behaviour."
   _      <- liftEffect (HTTP.close server)
   pure result
 
@@ -104,8 +103,12 @@ reportAudit = UnitTest $
       , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Failure Report.Durations
       ]
 
-main :: Effect Unit
-main = void $ launchAff $ do
+unitTests :: Aff Unit
+unitTests = supervise $ do
   _ <- UnitTest.execute forwardFlow
   _ <- UnitTest.execute reportAudit
   pure unit
+
+main :: Effect Unit
+main = void $ launchAff $ unitTests
+
