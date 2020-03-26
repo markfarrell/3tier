@@ -184,9 +184,9 @@ insertURI (InsertAudit entry) = insertAuditURI entry
 insertURI (InsertFlow  entry) = insertFlowURI entry
 
 
-reportAuditURI' :: Report.ReportType -> Table -> Table
-reportAuditURI' Report.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceIP, SourcePort" 
-reportAuditURI' Report.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
+reportAuditURI' :: Audit.ReportType -> Table -> Table
+reportAuditURI' Audit.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceIP, SourcePort" 
+reportAuditURI' Audit.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Select -> Table
 reportURI (Report.Audit eventCategory eventType reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "'"

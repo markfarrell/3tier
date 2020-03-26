@@ -98,18 +98,18 @@ reportAudit = UnitTest $
   }
   where
     testInputs = 
-      [ Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Success Report.Sources
-      , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Failure Report.Sources
-      , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Success Report.Durations
-      , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Failure Report.Durations
-      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Success Report.Sources
-      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Failure Report.Sources
-      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Success Report.Durations
-      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Failure Report.Durations
-      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Success Report.Sources
-      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Failure Report.Sources
-      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Success Report.Durations
-      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Failure Report.Durations
+      [ Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Success Audit.Sources
+      , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Failure Audit.Sources
+      , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Success Audit.Durations
+      , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Failure Audit.Durations
+      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Success Audit.Sources
+      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Failure Audit.Sources
+      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Success Audit.Durations
+      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Failure Audit.Durations
+      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Success Audit.Sources
+      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Failure Audit.Sources
+      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Success Audit.Durations
+      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Failure Audit.Durations
       ]
 
 unitTests :: Aff Unit

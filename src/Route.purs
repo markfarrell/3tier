@@ -39,16 +39,16 @@ reportAudit' eventCategory = choice [w, x, y, z]
   where
     w = do
       _ <- string ("/report/audit/" <> reportAudit'' eventCategory <> "/success/sources")
-      pure (Report (Report.Audit eventCategory Audit.Success Report.Sources))
+      pure (Report (Report.Audit eventCategory Audit.Success Audit.Sources))
     x = do
       _ <- string ("/report/audit/" <> reportAudit'' eventCategory <> "/failure/sources")
-      pure (Report (Report.Audit eventCategory Audit.Failure Report.Sources))
+      pure (Report (Report.Audit eventCategory Audit.Failure Audit.Sources))
     y = do
       _ <- string ("/report/audit/" <> reportAudit'' eventCategory <> "/success/durations")
-      pure (Report (Report.Audit eventCategory Audit.Success Report.Durations))
+      pure (Report (Report.Audit eventCategory Audit.Success Audit.Durations))
     z = do
       _ <- string ("/report/audit/" <> reportAudit'' eventCategory <> "/failure/durations")
-      pure (Report (Report.Audit eventCategory Audit.Failure Report.Durations))
+      pure (Report (Report.Audit eventCategory Audit.Failure Audit.Durations))
 
 reportAudit :: Parser String Route
 reportAudit = choice $ reportAudit' <$> [Audit.DatabaseRequest, Audit.ResourceRequest, Audit.RoutingRequest] 

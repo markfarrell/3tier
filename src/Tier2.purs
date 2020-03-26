@@ -187,18 +187,18 @@ executeForwardFlow settings entry = do
       pure res
 
 executeReport' :: Settings -> Report -> String
-executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Success Report.Sources)   = url' settings "/report/audit/database-request/success/sources"  
-executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Failure Report.Sources)   = url' settings "/report/audit/database-request/success/sources"  
-executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Success Report.Durations) = url' settings "/report/audit/database-request/success/durations"  
-executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Failure Report.Durations) = url' settings "/report/audit/database-request/success/durations"  
-executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Success Report.Sources)   = url' settings "/report/audit/resource-request/success/sources"  
-executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Failure Report.Sources)   = url' settings "/report/audit/resource-request/success/sources"  
-executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Success Report.Durations) = url' settings "/report/audit/resource-request/success/durations"  
-executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Failure Report.Durations) = url' settings "/report/audit/resource-request/success/durations"  
-executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Success Report.Sources)    = url' settings "/report/audit/routing-request/success/sources"  
-executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Failure Report.Sources)    = url' settings "/report/audit/routing-request/success/sources"  
-executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Success Report.Durations)  = url' settings "/report/audit/routing-request/success/durations"  
-executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Failure Report.Durations)  = url' settings "/report/audit/routing-request/success/durations"  
+executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Success Audit.Sources)   = url' settings "/report/audit/database-request/success/sources"  
+executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Failure Audit.Sources)   = url' settings "/report/audit/database-request/success/sources"  
+executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Success Audit.Durations) = url' settings "/report/audit/database-request/success/durations"  
+executeReport' settings (Report.Audit Audit.DatabaseRequest Audit.Failure Audit.Durations) = url' settings "/report/audit/database-request/success/durations"  
+executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Success Audit.Sources)   = url' settings "/report/audit/resource-request/success/sources"  
+executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Failure Audit.Sources)   = url' settings "/report/audit/resource-request/success/sources"  
+executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Success Audit.Durations) = url' settings "/report/audit/resource-request/success/durations"  
+executeReport' settings (Report.Audit Audit.ResourceRequest Audit.Failure Audit.Durations) = url' settings "/report/audit/resource-request/success/durations"  
+executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Success Audit.Sources)    = url' settings "/report/audit/routing-request/success/sources"  
+executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Failure Audit.Sources)    = url' settings "/report/audit/routing-request/success/sources"  
+executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Success Audit.Durations)  = url' settings "/report/audit/routing-request/success/durations"  
+executeReport' settings (Report.Audit Audit.RoutingRequest Audit.Failure Audit.Durations)  = url' settings "/report/audit/routing-request/success/durations"  
 
 executeReport :: Settings -> Report -> Aff (Either Error HTTP.IncomingResponse)
 executeReport settings request = do

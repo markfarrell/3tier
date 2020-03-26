@@ -4,6 +4,7 @@ module Audit
   , EventID(..)
   , EventSource(..)
   , Entry(..)
+  , ReportType(..)
   , entry
   ) where
 
@@ -21,6 +22,8 @@ data EventCategory = DatabaseRequest | ResourceRequest | RoutingRequest
 data EventID = EventID (Array EventID) | ForwardFlow | ReportAudit | Unknown
 
 data EventSource = Tier1 | Tier2 | Tier3
+
+data ReportType = Sources | Durations
 
 data Entry = Entry 
   { sourceIP      :: String
