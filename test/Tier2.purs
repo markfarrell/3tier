@@ -28,16 +28,25 @@ import Test.UnitTest (UnitTest(..))
 import Test.UnitTest as UnitTest
 
 execute :: Tier3.Settings -> Tier2.Settings -> Route -> Aff (Either Error HTTP.IncomingResponse)
-execute settings (Tier2.Settings tier2) request = do
+execute settings (Tier2.Settings settings') request = do
   server <- liftEffect (HTTP.createServer)
   fiber  <- forkAff (Coroutine.runProcess $ Tier2.process settings server)
-  _      <- liftEffect (HTTP.listen tier2.port $ server)
-  result <- Tier2.execute (Tier2.Settings tier2) request
+  _      <- liftEffect (HTTP.listen settings'.port $ server)
+  result <- Tier2.execute (Tier2.Settings settings') request
   _      <- liftEffect (HTTP.close server)
   pure result
 
 execute' :: Route -> Aff (Either Error HTTP.IncomingResponse)
-execute' = execute ["Test.Tier2.db.1", "Test.Tier2.db.2"] (Tier2.Settings { host : "localhost", port : 4000 })
+execute' = execute settings settings'
+  where
+    settings = Tier3.Settings $
+      [ Tier3.Local "Test.Tier2.db.1"
+      , Tier3.Local "Test.Tier2.db.2"
+      ]
+    settings' = Tier2.Settings $
+      { host : "localhost"
+      , port : 4000
+      }
 
 forwardFlow :: UnitTest Route Error HTTP.IncomingResponse
 forwardFlow = UnitTest $

@@ -3,8 +3,8 @@ module Tier3
  , Interpreter
  , Request
  , Result
- , Setting
- , Settings
+ , Setting(..)
+ , Settings(..)
  , Table
  , ColumnType(..)
  , Schema(..)
@@ -60,9 +60,9 @@ import Route as Route
 
 type Connection = SQLite3.Database
 
-type Setting = String
+data Setting = Local String
 
-type Settings = Array Setting
+data Settings = Settings (Array Setting)
 
 type Table = String
 
@@ -82,8 +82,8 @@ data RequestDSL a = InsertRequest Settings Insert (ResultSet -> a) | SelectReque
 
 instance functorRequestDSL :: Functor RequestDSL where
   map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
-  map f (InsertRequest setting query' next)  = (InsertRequest setting query' (f <<< next))
-  map f (SelectRequest setting query' next)  = (SelectRequest setting query' (f <<< next))
+  map f (InsertRequest settings query' next)  = (InsertRequest settings query' (f <<< next))
+  map f (SelectRequest settings query' next)  = (SelectRequest settings query' (f <<< next))
 
 type Interpreter = WriterT (Array String) Aff 
 
@@ -230,13 +230,13 @@ interpret (SelectRequest settings query' next) = do
   lift (next <$> (pure result))
 
 executeTouch :: Setting -> Aff Unit
-executeTouch setting = do
+executeTouch (Local setting) = do
   database <- SQLite3.connect setting SQLite3.OpenCreate
   _        <- SQLite3.close database
   pure unit
 
 executeSchemas :: Setting -> Aff Unit
-executeSchemas setting = do
+executeSchemas (Local setting) = do
   database <- SQLite3.connect setting SQLite3.OpenReadWrite
   _        <- SQLite3.all (schemaURI Flow) database
   _        <- SQLite3.all (schemaURI Audit) database
@@ -244,7 +244,7 @@ executeSchemas setting = do
   pure unit
 
 executeInsert :: Settings -> Insert -> Aff ResultSet
-executeInsert settings query' = do
+executeInsert (Settings settings) query' = do
   result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeInsert' query' <$> settings)) 
   pure result
 
@@ -256,7 +256,7 @@ executeInsert' setting query' = do
   pure result
 
 executeInsert'' :: Setting -> Insert -> Aff ResultSet
-executeInsert'' setting query' = do
+executeInsert'' (Local setting) query' = do
   database <- SQLite3.connect setting SQLite3.OpenReadWrite
   uri      <- insertURI query'
   _        <- SQLite3.all uri database
@@ -264,7 +264,7 @@ executeInsert'' setting query' = do
   pure (InsertResult unit)
 
 executeSelect :: Settings -> Select -> Aff ResultSet
-executeSelect settings query' = do
+executeSelect (Settings settings) query' = do
   result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeSelect' query' <$> settings)) 
   pure result
 
@@ -276,7 +276,7 @@ executeSelect' setting query' = do
   pure result
 
 executeSelect'' :: Setting -> Select -> Aff ResultSet
-executeSelect'' setting report = do
+executeSelect'' (Local setting) report = do
   database   <- SQLite3.connect setting SQLite3.OpenReadOnly
   min        <- executeSelect''' database (minURI report)
   max        <- executeSelect''' database (maxURI report)
