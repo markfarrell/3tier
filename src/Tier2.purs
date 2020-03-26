@@ -19,6 +19,7 @@ import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 
 import Data.Tuple (Tuple(..))
+import Data.Tuple as Tuple
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -83,7 +84,9 @@ databaseRequest' settings route req = do
     (Right (Tuple resultSet _)) -> pure  $ Ok (TextJSON (showJSON resultSet))
 
 databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String)
-databaseRequest settings route req = databaseRequest' settings route req
+databaseRequest settings route req = do
+  resource <- databaseRequest' settings route req
+  pure resource
 
 routingRequest' :: Either Error Route -> Number -> HTTP.IncomingMessage -> Audit.Entry
 routingRequest' (Left _)      = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.RoutingRequest duration "???" $ req 
@@ -99,25 +102,25 @@ routingRequest settings req = do
   _         <- audit settings entry
   pure result
 
-resourceRequest''' :: forall a b. Either a (Resource b) -> Number -> HTTP.IncomingMessage -> Audit.Entry
-resourceRequest''' (Left _)                         = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  "???" $ req
-resourceRequest''' (Right (Ok _))                   = \duration req -> Audit.entry Audit.Tier2 Audit.Success Audit.ResourceRequest duration "200-OK" $ req 
-resourceRequest''' (Right (InternalServerError _))  = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration "500-INTERNAL-SERVER-ERROR" $ req
-resourceRequest''' (Right (BadRequest _))           = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration "400-BAD-REQUEST" $ req
-resourceRequest''' (Right (Forbidden _ _))          = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration "403-FORBIDDEN" $ req
+resourceRequest'' :: forall a b. Either a Route -> Either a (Resource b) -> Number -> HTTP.IncomingMessage -> Audit.Entry
+resourceRequest'' (Left _) (Left _)                             = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  "???" $ req
+resourceRequest'' (Left _) (Right _)                            = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  "???" $ req
+resourceRequest'' (Right route) (Left _)                        = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  (Route.eventID route) $ req
+resourceRequest'' (Right route) (Right (Ok _))                  = \duration req -> Audit.entry Audit.Tier2 Audit.Success Audit.ResourceRequest duration (Route.eventID route) $ req 
+resourceRequest'' (Right route) (Right (InternalServerError _)) = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
+resourceRequest'' (Right route) (Right (BadRequest _))          = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
+resourceRequest'' (Right route) (Right (Forbidden _ _))         = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
 
-resourceRequest'' :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Resource String)
-resourceRequest'' settings req  = do
+resourceRequest' :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Tuple (Either Error Route) (Resource String))
+resourceRequest' settings req  = do
   result <- routingRequest settings req
   case result of
-    (Left  _)      -> pure $ BadRequest (HTTP.messageURL req)
-    (Right route') -> databaseRequest settings route' req
-
-resourceRequest' :: Tier3.Settings -> HTTP.IncomingRequest -> Aff (Resource String)
-resourceRequest' settings (HTTP.IncomingRequest req res) = do
-  response <- resourceRequest'' settings req
-  _        <- sendResource response res
-  pure response
+    (Left  _)      -> do
+       resource <- pure $ BadRequest (HTTP.messageURL req)
+       pure $ Tuple result resource
+    (Right route') -> do
+       resource <- databaseRequest settings route' req
+       pure $ Tuple result resource
 
 sendResource :: Resource String -> HTTP.ServerResponse -> Aff Unit
 sendResource (Ok (TextJSON body)) = \res -> liftEffect $ do
@@ -143,12 +146,19 @@ sendResource (InternalServerError _) = \res -> liftEffect $ do
 resourceRequest :: Tier3.Settings -> HTTP.IncomingRequest -> Aff Unit
 resourceRequest settings (HTTP.IncomingRequest req res) = do
   startTime       <- liftEffect $ Date.currentTime
-  result          <- try $ resourceRequest' settings $ HTTP.IncomingRequest req res
+  result          <- resourceRequest' settings req
+  result'         <- try $ sendResource (Tuple.snd result) res 
   endTime         <- liftEffect $ Date.currentTime
   duration        <- pure (endTime - startTime)
-  entry           <- pure $ resourceRequest''' result duration req 
-  _               <- audit settings entry
-  pure unit
+  case result' of
+    (Left error) -> do
+      entry <- pure $ resourceRequest'' (Tuple.fst result) (Left error) duration req 
+      _     <- audit settings entry
+      pure unit
+    (Right _)    -> do
+       entry <- pure $ resourceRequest'' (Tuple.fst result) (Right (Tuple.snd result)) duration req
+       _     <- audit settings entry
+       pure unit
 
 producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
 producer server = produce \emitter -> do

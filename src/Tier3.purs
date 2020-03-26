@@ -213,11 +213,11 @@ varianceURI report avg = query
     query' = "(X - " <> show avg <> ")"
 
 insertEventID :: Insert -> Audit.EventID
-insertEventID (InsertAudit _) = "INSERT-AUDIT"
-insertEventID (InsertFlow entry) = "INSERT-FLOW"
+insertEventID (InsertAudit _) = "???"
+insertEventID (InsertFlow entry) = "FORWARD-FLOW"
 
 selectEventID :: Select -> Audit.EventID
-selectEventID (Report.Audit x y z) = "SELECT-AUDIT"
+selectEventID (Report.Audit x y z) = "REPORT-AUDIT"
 
 interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
 interpret (InsertRequest settings query' next) = do
