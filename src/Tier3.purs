@@ -9,10 +9,10 @@ module Tier3
  , Schema(..)
  , Insert(..)
  , Select(..)
- , Query(..)
  , ResultSet(..)
  , request
  , execute
+ , audit
  ) where
 
 import Prelude
@@ -46,8 +46,13 @@ import SQLite3 as SQLite3
 import Audit as Audit
 import Flow as Flow
 
+import Forward as Forward
+
 import Report (Report)
 import Report as Report
+
+import Route (Route)
+import Route as Route
 
 type Connection = SQLite3.Database
 
@@ -60,8 +65,6 @@ data Schema  = Audit | Flow
 data Insert  = InsertAudit Audit.Entry | InsertFlow Flow.Entry
 
 type Select  = Report
-
-data Query   = InsertQuery Insert | SelectQuery Select
 
 data ResultSet = InsertResult Unit | SelectResult Report.Entry
 
@@ -107,8 +110,9 @@ schemaURI Audit = schemaURI' "Audit" [] $
   , Tuple "SourcePort" Text
   , Tuple "Duration" Real
   , Tuple "EventType" Text
+  , Tuple "EventCategory" Text
   , Tuple "EventID" Text
-  , Tuple "Event" Text
+  , Tuple "EventSource" Text
   ]
 schemaURI Flow = schemaURI' "Flow" [] $ 
   [ Tuple "SIP" Text
@@ -136,8 +140,9 @@ insertAuditURI (Audit.Entry entry) = do
       , Tuple "SourcePort" (show entry.sourcePort)
       , Tuple "Duration" (show entry.duration)
       , Tuple "EventType" (show entry.eventType)
-      , Tuple "EventID" (show entry.eventID)
-      , Tuple "Event" (show entry.event)
+      , Tuple "EventCategory" (show entry.eventCategory)
+      , Tuple "EventID" entry.eventID
+      , Tuple "EventSource" (show entry.eventSource)
       ]
 
 insertFlowURI :: Flow.Entry -> Aff String
@@ -178,7 +183,7 @@ reportAuditURI' Report.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> ta
 reportAuditURI' Report.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Select -> Table
-reportURI (Report.Audit eventID eventType reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventID='" <> show eventID <> "' AND EventType='" <> show eventType <> "'"
+reportURI (Report.Audit eventCategory eventType reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "'"
 
 maxURI :: Select -> String
 maxURI report = "SELECT MAX(X) AS Y FROM (" <> (reportURI report) <> ")"
@@ -201,13 +206,20 @@ varianceURI report avg = query
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
     query' = "(X - " <> show avg <> ")"
 
+insertEventID :: Insert -> Audit.EventID
+insertEventID (InsertAudit _) = "INSERT-AUDIT"
+insertEventID (InsertFlow entry) = "INSERT-FLOW"
+
+selectEventID :: Select -> Audit.EventID
+selectEventID (Report.Audit x y z) = "SELECT-AUDIT"
+
 interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
 interpret (InsertRequest settings query' next) = do
-  _       <- tell ["INSERT-REQUEST"]
+  _       <- tell [insertEventID query']
   result  <- lift $ executeInsert settings query'
-  lift (next <$> pure result)
+  lift (next <$> (pure result))
 interpret (SelectRequest settings query' next) = do
-  _      <- tell ["SELECT-REQUEST"]
+  _      <- tell [selectEventID query']
   result <- lift $ executeSelect settings query'
   lift (next <$> (pure result))
 
@@ -281,9 +293,12 @@ executeSelect'' database uri = do
          (Right number') -> pure number'
     error = Exception.error "Unexpected results."
 
-request :: Settings -> Query -> Request ResultSet
-request settings (InsertQuery query') = liftFreeT $ (InsertRequest settings query' identity)
-request settings (SelectQuery query') = liftFreeT $ (SelectRequest settings query' identity)
+request :: Settings -> Route -> Request ResultSet
+request settings (Route.Forward (Forward.Flow entry)) = liftFreeT $ (InsertRequest settings (InsertFlow entry) identity)
+request settings (Route.Report report)                = liftFreeT $ (SelectRequest settings report identity)
 
 execute ::  forall a. Request a -> Aff (Result a)
 execute request' = try $ runWriterT $ runFreeT interpret request'
+
+audit :: Settings -> Audit.Entry -> Request ResultSet
+audit settings entry = liftFreeT $ (InsertRequest settings (InsertAudit entry) identity)

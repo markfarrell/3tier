@@ -1,6 +1,8 @@
 module Audit
   ( EventType(..)
-  , EventID(..)
+  , EventCategory(..)
+  , EventID
+  , EventSource(..)
   , Entry(..)
   , entry
   ) where
@@ -12,34 +14,45 @@ import Socket as Socket
 
 data EventType = Success | Failure
 
-data EventID = DatabaseRequest | ResourceRequest | RoutingRequest
+data EventCategory = DatabaseRequest | ResourceRequest | RoutingRequest
+
+type EventID = String
+
+data EventSource = Tier1 | Tier2 | Tier3
 
 data Entry = Entry 
-  { sourceIP   :: String
-  , sourcePort :: Int 
-  , eventType  :: EventType
-  , eventID    :: EventID
-  , duration   :: Number
-  , event      :: String
+  { sourceIP      :: String
+  , sourcePort    :: Int 
+  , eventType     :: EventType
+  , eventCategory :: EventCategory
+  , eventID       :: EventID
+  , eventSource   :: EventSource
+  , duration      :: Number
   }
 
 instance showEventType :: Show EventType where
   show Success = "SUCCESS"
   show Failure = "FAILURE"
 
-instance showEventID :: Show EventID where
+instance showEventCategory :: Show EventCategory where
   show DatabaseRequest  = "DATABASE-REQUEST"
   show ResourceRequest  = "RESOURCE-REQUEST"
   show RoutingRequest   = "ROUTING-REQUEST"
 
-entry :: EventType -> EventID -> Number -> String -> HTTP.IncomingMessage -> Entry
-entry eventType eventID duration event req = Entry $
-  { sourceIP : sourceIP
-  , sourcePort : sourcePort
-  , eventType : eventType
-  , eventID : eventID 
-  , duration : duration
-  , event : event
+instance showEventSource :: Show EventSource where
+  show Tier1 = "TIER-1"
+  show Tier2 = "TIER-2"
+  show Tier3 = "TIER-3"
+
+entry :: EventSource -> EventType -> EventCategory -> Number -> EventID -> HTTP.IncomingMessage -> Entry
+entry eventSource eventType eventCategory duration eventID req = Entry $
+  { sourceIP      : sourceIP
+  , sourcePort    : sourcePort
+  , eventType     : eventType
+  , eventCategory : eventCategory 
+  , duration      : duration
+  , eventID       : eventID
+  , eventSource   : eventSource
   }
   where
     sourceIP = Socket.remoteAddress $ HTTP.socket req

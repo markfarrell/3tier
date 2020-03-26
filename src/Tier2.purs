@@ -22,6 +22,7 @@ import Data.Tuple (Tuple(..))
 
 import Unsafe.Coerce (unsafeCoerce)
 
+import Arrays as Arrays
 import JSON as JSON
 import Strings as Strings
 
@@ -31,13 +32,15 @@ import Date as Date
 import HTTP as HTTP
 
 import Audit as Audit
-import Forward as Forward
 import Flow as Flow
+
+import Forward as Forward
+
 import Report (Report)
 import Report as Report
 
-import Tier2.Route (Route)
-import Tier2.Route as Route
+import Route (Route)
+import Route as Route
 
 data Settings = Settings { host :: String, port :: Int }
 
@@ -61,18 +64,16 @@ instance contentJSONUnit :: ContentJSON Tier3.ResultSet where
   showJSON (Tier3.SelectResult x) = JSON.stringify $ unsafeCoerce x
 
 audit :: Tier3.Settings -> Audit.Entry -> Aff Unit
-audit settings entry = do
-  _ <- Tier3.execute $ Tier3.request settings (Tier3.InsertQuery $ Tier3.InsertAudit entry)
-  pure unit
+audit settings entry = void $ Tier3.execute $ Tier3.audit settings entry
 
 databaseRequest'' :: forall a. Tier3.Result a -> Number -> HTTP.IncomingMessage -> Audit.Entry
-databaseRequest'' (Left _)                = \duration req -> Audit.entry Audit.Failure Audit.DatabaseRequest duration "???" $ req
-databaseRequest'' (Right (Tuple _ steps)) = \duration req -> Audit.entry Audit.Success Audit.DatabaseRequest duration (show steps) $ req
+databaseRequest'' (Left _)                = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.DatabaseRequest duration "???" $ req
+databaseRequest'' (Right (Tuple _ steps)) = \duration req -> Audit.entry Audit.Tier2 Audit.Success Audit.DatabaseRequest duration (Arrays.join "," steps) $ req
 
-databaseRequest':: Tier3.Settings -> Tier3.Query -> HTTP.IncomingMessage -> Aff (Resource String) 
-databaseRequest' settings query req = do
+databaseRequest':: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String) 
+databaseRequest' settings route req = do
   startTime <- liftEffect $ Date.currentTime
-  result    <- Tier3.execute $ Tier3.request settings query
+  result    <- Tier3.execute $ Tier3.request settings route
   endTime   <- liftEffect $ Date.currentTime
   duration  <- pure $ endTime - startTime
   entry     <- pure $ databaseRequest'' result duration req
@@ -82,19 +83,32 @@ databaseRequest' settings query req = do
     (Right (Tuple resultSet _)) -> pure  $ Ok (TextJSON (showJSON resultSet))
 
 databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource String)
-databaseRequest settings (Route.Forward (Forward.Flow entry)) req = databaseRequest' settings (Tier3.InsertQuery $ Tier3.InsertFlow entry) req
-databaseRequest settings (Route.Report report) req                = databaseRequest' settings (Tier3.SelectQuery $ report) req
+databaseRequest settings route req = databaseRequest' settings route req
+
+routingRequest' :: Either Error Route -> Number -> HTTP.IncomingMessage -> Audit.Entry
+routingRequest' (Left _)      = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.RoutingRequest duration "???" $ req 
+routingRequest' (Right route) = \duration req -> Audit.entry Audit.Tier2 Audit.Success Audit.RoutingRequest duration (Route.eventID route) $ req
+
+routingRequest :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Either Error Route)
+routingRequest settings req = do 
+  startTime <- liftEffect $ Date.currentTime
+  result    <- Route.execute req
+  endTime   <- liftEffect $ Date.currentTime
+  duration  <- pure $ endTime - startTime
+  entry     <- pure $ routingRequest' result duration req
+  _         <- audit settings entry
+  pure result
 
 resourceRequest''' :: forall a b. Either a (Resource b) -> Number -> HTTP.IncomingMessage -> Audit.Entry
-resourceRequest''' (Left _)                         = \duration req -> Audit.entry Audit.Failure Audit.ResourceRequest duration  "???" $ req
-resourceRequest''' (Right (Ok _))                   = \duration req -> Audit.entry Audit.Success Audit.ResourceRequest duration "200-OK" $ req 
-resourceRequest''' (Right (InternalServerError _))  = \duration req -> Audit.entry Audit.Failure Audit.ResourceRequest duration "500-INTERNAL-SERVER-ERROR" $ req
-resourceRequest''' (Right (BadRequest _))           = \duration req -> Audit.entry Audit.Failure Audit.ResourceRequest duration "400-BAD-REQUEST" $ req
-resourceRequest''' (Right (Forbidden _ _))          = \duration req -> Audit.entry Audit.Failure Audit.ResourceRequest duration "403-FORBIDDEN" $ req
+resourceRequest''' (Left _)                         = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration  "???" $ req
+resourceRequest''' (Right (Ok _))                   = \duration req -> Audit.entry Audit.Tier2 Audit.Success Audit.ResourceRequest duration "200-OK" $ req 
+resourceRequest''' (Right (InternalServerError _))  = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration "500-INTERNAL-SERVER-ERROR" $ req
+resourceRequest''' (Right (BadRequest _))           = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration "400-BAD-REQUEST" $ req
+resourceRequest''' (Right (Forbidden _ _))          = \duration req -> Audit.entry Audit.Tier2 Audit.Failure Audit.ResourceRequest duration "403-FORBIDDEN" $ req
 
 resourceRequest'' :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Resource String)
 resourceRequest'' settings req  = do
-  result <- Route.execute settings req
+  result <- routingRequest settings req
   case result of
     (Left  _)      -> pure $ BadRequest (HTTP.messageURL req)
     (Right route') -> databaseRequest settings route' req

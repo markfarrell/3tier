@@ -18,10 +18,10 @@ import Flow as Flow
 import Forward as Forward
 import Report as Report
 
-import Tier2 as Tier2
-import Tier2.Route (Route)
-import Tier2.Route as Route
+import Route (Route)
+import Route as Route
 
+import Tier2 as Tier2
 import Tier3 as Tier3
 
 import Test.UnitTest (UnitTest(..))
