@@ -1,8 +1,8 @@
 module Tier3
- ( Request
- , Result
- , RequestDSL
+ ( DSL
+ , Request
  , Interpreter
+ , Result
  , Setting(..)
  , Settings(..)
  , ResultSet(..)
@@ -13,11 +13,11 @@ module Tier3
 import Prelude
 
 import Control.Monad.Except (runExcept, throwError)
-import Control.Monad.Free.Trans (FreeT, liftFreeT, runFreeT)
+import Control.Monad.Free.Trans (liftFreeT, runFreeT)
 import Control.Monad.Error.Class (try)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Writer.Class (tell)
-import Control.Monad.Writer.Trans (WriterT, runWriterT)
+import Control.Monad.Writer.Trans (runWriterT)
 
 import Data.Array as Array
 import Data.Either (Either(..))
@@ -30,7 +30,6 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Aff (Aff)
 import Effect.Aff (parallel, sequential) as Aff
 import Effect.Class (liftEffect)
-import Effect.Exception (Error)
 import Effect.Exception as Exception
 
 import Foreign (readNumber) as Foreign
@@ -53,6 +52,8 @@ import Report as Report
 import Route (Route)
 import Route as Route
 
+import DSL as DSL
+
 type Connection = SQLite3.Database
 
 data Setting = Local String
@@ -69,18 +70,13 @@ data Schema  = AuditSchema | FlowSchema
 
 data ResultSet = Forward Unit | Report Report.Entry
 
-data RequestDSL a b = ForwardRequest Settings Forward (a -> b) | ReportRequest Settings Report (a -> b)
+type DSL a = DSL.DSL Settings ResultSet a
 
-type Interpreter = WriterT Audit.EventID Aff 
+type Request a = DSL.Request Settings ResultSet a
 
-type Request a = FreeT (RequestDSL ResultSet) Interpreter a
+type Interpreter a = DSL.Interpreter a
 
-type Result a = Either Error (Tuple a Audit.EventID)
-
-instance functorRequestDSL :: Functor (RequestDSL a) where
-  map :: forall b c. (b -> c) -> RequestDSL a b -> RequestDSL a c
-  map f (ForwardRequest settings query' next)  = (ForwardRequest settings query' (f <<< next))
-  map f (ReportRequest settings query' next)  = (ReportRequest settings query' (f <<< next))
+type Result a = DSL.Result a
 
 schemaURI' :: Table -> Array Column -> Array Column -> String
 schemaURI' table' params params' = query
@@ -198,12 +194,12 @@ varianceURI report avg = query
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
     query' = "(X - " <> show avg <> ")"
 
-interpret :: forall a. RequestDSL ResultSet (Request a) -> Interpreter (Request a)
-interpret (ForwardRequest settings query' next) = do
+interpret :: forall a. DSL (Request a) -> Interpreter (Request a)
+interpret (DSL.Forward settings query' next) = do
   _      <- tell $ Route.eventID (Route.Forward query')
   result <- lift $ executeForward settings query'
   lift (next <$> (pure result))
-interpret (ReportRequest settings query' next) = do
+interpret (DSL.Report settings query' next) = do
   _      <- tell $ Route.eventID (Route.Report query')
   result <- lift $ executeReport settings query'
   lift (next <$> (pure result))
@@ -289,8 +285,8 @@ executeReport''' database uri = do
     error = Exception.error "Unexpected results."
 
 request :: Settings -> Route -> Request ResultSet
-request settings (Route.Forward query) = liftFreeT $ (ForwardRequest settings query identity)
-request settings (Route.Report query)  = liftFreeT $ (ReportRequest settings query identity)
+request settings (Route.Forward query) = liftFreeT $ (DSL.Forward settings query identity)
+request settings (Route.Report query)  = liftFreeT $ (DSL.Report settings query identity)
 
 execute ::  forall a. Request a -> Aff (Result a)
 execute request' = try $ runWriterT $ runFreeT interpret request'
