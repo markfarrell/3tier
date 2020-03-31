@@ -95,7 +95,7 @@ schemaURI' table' params params' = query
 schemaURI :: Schema -> String
 schemaURI AuditSchema = schemaURI' "Audit" [] $
   [ Tuple "Timestamp" Text
-  , Tuple "SourceIP" Text
+  , Tuple "SourceAddress" Text
   , Tuple "SourcePort" Text
   , Tuple "Duration" Real
   , Tuple "EventType" Text
@@ -104,18 +104,17 @@ schemaURI AuditSchema = schemaURI' "Audit" [] $
   , Tuple "EventSource" Text
   ]
 schemaURI FlowSchema = schemaURI' "Flow" [] $ 
-  [ Tuple "SIP" Text
-  , Tuple "DIP" Text
-  , Tuple "SPort" Text
-  , Tuple "DPort" Text
+  [ Tuple "SourceIPv4" Text
+  , Tuple "DestinationIPv4" Text
+  , Tuple "SourcePort" Text
+  , Tuple "DestinationPort" Text
   , Tuple "Protocol" Text
   , Tuple "Packets" Text
   , Tuple "Bytes" Text
   , Tuple "Flags" Text
-  , Tuple "STime" Text
+  , Tuple "StartTIme" Text
   , Tuple "Duration" Real
-  , Tuple "ETime" Text
-  , Tuple "Sensor" Text
+  , Tuple "EndTime" Text
   ]
 
 insertAuditURI :: Audit.Entry -> Aff String
@@ -125,12 +124,12 @@ insertAuditURI (Audit.Entry entry) = do
   where 
     params timestamp =
       [ Tuple "Timestamp" timestamp 
-      , Tuple "SourceIP" entry.sourceIP
+      , Tuple "SourceAddress" entry.sourceAddress
       , Tuple "SourcePort" (show entry.sourcePort)
       , Tuple "Duration" (show entry.duration)
       , Tuple "EventType" (show entry.eventType)
       , Tuple "EventCategory" (show entry.eventCategory)
-      , Tuple "EventID" (show entry.eventID)
+      , Tuple "EventID" (Arrays.join "," (show <$> entry.eventID))
       , Tuple "EventSource" (show entry.eventSource)
       ]
 
@@ -139,18 +138,17 @@ insertFlowURI (Flow.Entry entry) = do
   pure $ insertURI' "Flow" params
   where
     params = 
-      [ Tuple "SIP" entry.sIP
-      , Tuple "DIP" entry.dIP
-      , Tuple "SPort" entry.sPort
-      , Tuple "DPort" entry.dPort
-      , Tuple "Protocol" entry.protocol
-      , Tuple "Packets" entry.packets
-      , Tuple "Bytes" entry.bytes
+      [ Tuple "SourceIPv4" (show entry.sourceIPv4)
+      , Tuple "DestinationIPv4" (show entry.destinationIPv4)
+      , Tuple "SourcePort" (show entry.sourcePort)
+      , Tuple "DestinationPort" (show entry.destinationPort)
+      , Tuple "Protocol" (show entry.protocol)
+      , Tuple "Packets" (show entry.packets)
+      , Tuple "Bytes" (show entry.bytes)
       , Tuple "Flags" entry.flags
-      , Tuple "STime" entry.sTime
+      , Tuple "StartTIme" (show entry.startTime)
       , Tuple "Duration" (show entry.duration)
-      , Tuple "ETime" entry.eTime
-      , Tuple "Sensor" entry.sensor
+      , Tuple "EndTime" (show entry.endTime)
       ]
 
 insertURI' ::  Table -> Array (Tuple String String) -> String
@@ -167,7 +165,7 @@ insertURI (Forward.Audit entry) = insertAuditURI entry
 insertURI (Forward.Flow  entry) = insertFlowURI entry
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
-reportAuditURI' Audit.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceIP, SourcePort" 
+reportAuditURI' Audit.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceAddress, SourcePort" 
 reportAuditURI' Audit.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Report -> Table

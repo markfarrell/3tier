@@ -170,13 +170,9 @@ url (Settings settings) uri = location <> uri
 
 executeForward :: Settings -> Forward -> Aff (Either Error HTTP.IncomingResponse)
 executeForward settings query = do
-  result <- pure $ Forward.uri query
-  case result of
-    (Left error) -> pure (Left error)
-    (Right uri) -> do
-      req <- HTTP.createRequest HTTP.Post $ url settings uri
-      res <- try $ HTTP.endRequest req
-      pure res
+  req <- HTTP.createRequest HTTP.Post $ url settings (Forward.uri query)
+  res <- try $ HTTP.endRequest req
+  pure res
 
 executeReport :: Settings -> Report -> Aff (Either Error HTTP.IncomingResponse)
 executeReport settings query = do

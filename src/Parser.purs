@@ -7,19 +7,28 @@ module Parser
   , timestamp
   , lowercase
   , uppercase
+  , octet
+  , port
+  , ipv4
   ) where
 
 import Prelude
 
+import Data.Array as Array
+import Data.Either (Either(..))
 import Data.Foldable (foldMap, foldl)
 import Data.List as List
 import Data.String.CodeUnits (singleton)
+import Data.Maybe (Maybe(..))
 
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.String (string, anyChar)
 import Text.Parsing.Parser.Combinators (choice, optional)
 
+import Date (Date)
 import Date as Date
+
+import IPv4(IPv4(..))
 
 foreign import parseInt :: String -> Int
 
@@ -55,7 +64,7 @@ positiveFloat = do
 anyString :: Parser String String
 anyString = foldMap singleton <$> List.many anyChar
 
-timestamp :: Parser String String
+timestamp :: Parser String Date
 timestamp = do
   year   <- digits
   _      <- choice [string "/", string "-"]
@@ -72,9 +81,9 @@ timestamp = do
   millis <- digits
   _      <- optional $ string "Z"
   result <- pure $ format year month day hour minute second millis 
-  case Date.isValid result of
-    true  -> pure $ result
-    false -> fail "Invalid sTime or eTime."
+  case Date.parse result of
+    (Left _)        -> fail "Invalid timestamp."
+    (Right result') -> pure $ result'
   where
     format year month day hour minute second millis = foldl (<>) year $
       [ "-"
@@ -109,4 +118,32 @@ uppercase = choice (string <$> letters)
       <> ["I", "J", "K", "L", "M", "N", "O", "P"] 
       <> ["Q", "R", "S", "T", "U", "V", "W", "Z"]
       <> ["Y", "Z"]
+
+octet :: Parser String Int
+octet = do
+  w <- positiveInteger
+  case Array.elemIndex w octets of
+    (Just _)  -> pure w
+    (Nothing) -> fail "Invalid octet."
+  where octets = Array.range 0 255
+
+port :: Parser String Int
+port = do
+  w <- positiveInteger
+  case Array.elemIndex w ports of
+    (Just _)  -> pure w
+    (Nothing) -> fail "Invalid port."
+  where ports = Array.range 0 65535
+
+ipv4 :: Parser String IPv4
+ipv4 = do
+  w <- octet
+  _ <- string dot
+  x <- octet
+  _ <- string dot
+  y <- octet
+  _ <- string dot
+  z <- octet
+  pure $ IPv4 w x y z
+  where dot = "."
 

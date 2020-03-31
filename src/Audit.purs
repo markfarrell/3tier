@@ -8,6 +8,7 @@ module Audit
   , Entry(..)
   , ReportType(..)
   , entry
+  , uri
   ) where
 
 import Prelude
@@ -32,7 +33,7 @@ data EventSource = Tier1 | Tier2 | Tier3
 data ReportType = Sources | Durations
 
 data Entry = Entry 
-  { sourceIP      :: String
+  { sourceAddress :: String
   , sourcePort    :: Int 
   , eventType     :: EventType
   , eventCategory :: EventCategory
@@ -63,7 +64,7 @@ instance showEventSource :: Show EventSource where
 
 entry :: EventSource -> EventType -> EventCategory -> Number -> EventID -> HTTP.IncomingMessage -> Entry
 entry eventSource eventType eventCategory duration eventID req = Entry $
-  { sourceIP      : sourceIP
+  { sourceAddress : sourceAddress
   , sourcePort    : sourcePort
   , eventType     : eventType
   , eventCategory : eventCategory 
@@ -72,5 +73,16 @@ entry eventSource eventType eventCategory duration eventID req = Entry $
   , eventSource   : eventSource
   }
   where
-    sourceIP = Socket.remoteAddress $ HTTP.socket req
+    sourceAddress = Socket.remoteAddress $ HTTP.socket req
     sourcePort = Socket.remotePort $ HTTP.socket req
+
+uri :: Entry -> String
+uri (Entry entry') = Arrays.join "," $
+  [ entry'.sourceAddress
+  , show entry'.sourcePort
+  , show entry'.eventType
+  , show entry'.eventCategory
+  , show entry'.eventID
+  , show entry'.eventSource
+  , show entry'.duration
+  ] 

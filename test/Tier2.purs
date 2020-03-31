@@ -11,7 +11,10 @@ import Effect.Aff (Aff, launchAff, forkAff, supervise)
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 
+import Date as Date
 import HTTP as HTTP
+
+import IPv4 (IPv4(..))
 
 import Flow as Flow
 import Forward as Forward
@@ -58,32 +61,30 @@ forwardFlow = UnitTest $
   where
     testInputs =
       [ Route.Forward $ Forward.Flow $ Flow.Entry $
-        { sIP : "0.0.0.0"
-        , dIP : "0.0.0.0"
-        , sPort : "0"
-        , dPort : "0"
-        , protocol : "0"
-        , packets : "0"
-        , bytes : "0"
+        { sourceIPv4 : IPv4 0 0 0 0
+        , destinationIPv4 : IPv4 0 0 0 0
+        , sourcePort : 0
+        , destinationPort : 0
+        , protocol : 0
+        , packets : 0
+        , bytes : 0
         , flags : ""
-        , sTime : "1970-01-01T00:00:00.000Z"
+        , startTime : Date.epoch
         , duration : 0.000
-        , eTime : "1970-01-01T00:00:00.000Z"
-        , sensor : ""
+        , endTime : Date.epoch
         }
       , Route.Forward $ Forward.Flow $ Flow.Entry $
-        { sIP : "255.255.255.255"
-        , dIP : "255.255.255.255"
-        , sPort : "65535"
-        , dPort : "65535"
-        , protocol : "255"
-        , packets : "123456789"
-        , bytes : "123456789"
+        { sourceIPv4 : IPv4 255 255 255 255
+        , destinationIPv4 : IPv4 255 255 255 255
+        , sourcePort : 65535
+        , destinationPort : 65535
+        , protocol : 255
+        , packets : 123456789
+        , bytes : 123456789
         , flags : "URFSPA"
-        , sTime : "2020-03-22T23:59:59.999Z"
+        , startTime : Date.epoch
         , duration : 0.000
-        , eTime : "2020-03-22T23:59:59.999Z"
-        , sensor : "AaBbCcDdEeFf123456789"
+        , endTime : Date.epoch
         }
       ]
 

@@ -17,8 +17,6 @@ import Strings as Strings
 
 data Forward = Flow Flow.Entry | Audit Audit.Entry
 
-uri :: Forward -> Either Error String
-uri (Flow entry) = do
-  query <- Flow.write entry
-  pure ("/forward/flow/" <> Strings.encodeURIComponent query)
-uri (Audit entry) = Left $ Exception.error "Unexpected behaviour."
+uri :: Forward -> String
+uri (Flow entry)  = "/forward/flow/"  <> Flow.uri entry
+uri (Audit entry) = "/forward/audit/" <> Audit.uri entry
