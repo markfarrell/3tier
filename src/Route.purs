@@ -35,27 +35,13 @@ reportAudit'' Audit.DatabaseRequest = "database-request"
 reportAudit'' Audit.ResourceRequest = "resource-request"
 reportAudit'' Audit.RoutingRequest  = "routing-request"
 
-reportAudit' :: Audit.EventCategory -> Parser String Route
-reportAudit' eventCategory = choice [w, x, y, z] 
-  where
-    w = do
-      _ <- string ("/report/audit/" <> reportAudit'' eventCategory <> "/success/sources")
-      pure (Report (Report.Audit eventCategory Audit.Success Audit.Sources))
-    x = do
-      _ <- string ("/report/audit/" <> reportAudit'' eventCategory <> "/failure/sources")
-      pure (Report (Report.Audit eventCategory Audit.Failure Audit.Sources))
-    y = do
-      _ <- string ("/report/audit/" <> reportAudit'' eventCategory <> "/success/durations")
-      pure (Report (Report.Audit eventCategory Audit.Success Audit.Durations))
-    z = do
-      _ <- string ("/report/audit/" <> reportAudit'' eventCategory <> "/failure/durations")
-      pure (Report (Report.Audit eventCategory Audit.Failure Audit.Durations))
+report :: Report.Report -> Parser String Route
+report report' = do
+  _ <- string $ Report.uri report'
+  pure $ (Report report')
 
-reportAudit :: Parser String Route
-reportAudit = choice $ reportAudit' <$> [Audit.DatabaseRequest, Audit.ResourceRequest, Audit.RoutingRequest] 
-
-report :: Parser String Route
-report = choice [reportAudit]
+reports :: Parser String Route
+reports = choice (report <$> Report.reports)
 
 forwardFlow :: Parser String Route
 forwardFlow = do
@@ -67,7 +53,7 @@ forward :: Parser String Route
 forward = choice [forwardFlow] 
 
 route :: Parser String Route
-route = choice [forward, report]
+route = choice [forward, reports]
 
 execute :: HTTP.IncomingMessage -> Aff (Either Error Route)
 execute req = do 

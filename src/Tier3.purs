@@ -44,8 +44,10 @@ import SQLite3 as SQLite3
 import Audit as Audit
 import Flow as Flow
 
+import Forward (Forward)
 import Forward as Forward
 
+import Report (Report)
 import Report as Report
 
 import Route (Route)
@@ -65,13 +67,9 @@ data ColumnType = Text | Real
 
 data Schema  = AuditSchema | FlowSchema
 
-type Insert = Forward.Forward
+data ResultSet = Forward Unit | Report Report.Entry
 
-type Select = Report.Report
-
-data ResultSet = InsertResult Unit | SelectResult Report.Entry
-
-data RequestDSL a b = InsertRequest Settings Insert (a -> b) | SelectRequest Settings Select (a -> b)
+data RequestDSL a b = ForwardRequest Settings Forward (a -> b) | ReportRequest Settings Report (a -> b)
 
 type Interpreter = WriterT Audit.EventID Aff 
 
@@ -81,8 +79,8 @@ type Result a = Either Error (Tuple a Audit.EventID)
 
 instance functorRequestDSL :: Functor (RequestDSL a) where
   map :: forall b c. (b -> c) -> RequestDSL a b -> RequestDSL a c
-  map f (InsertRequest settings query' next)  = (InsertRequest settings query' (f <<< next))
-  map f (SelectRequest settings query' next)  = (SelectRequest settings query' (f <<< next))
+  map f (ForwardRequest settings query' next)  = (ForwardRequest settings query' (f <<< next))
+  map f (ReportRequest settings query' next)  = (ReportRequest settings query' (f <<< next))
 
 schemaURI' :: Table -> Array Column -> Array Column -> String
 schemaURI' table' params params' = query
@@ -168,7 +166,7 @@ insertURI'  table' params = query
      columns' = fst <$> params
      values'  = snd <$> params
 
-insertURI :: Insert ->  Aff String
+insertURI :: Forward ->  Aff String
 insertURI (Forward.Audit entry) = insertAuditURI entry
 insertURI (Forward.Flow  entry) = insertFlowURI entry
 
@@ -176,38 +174,38 @@ reportAuditURI' :: Audit.ReportType -> Table -> Table
 reportAuditURI' Audit.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceIP, SourcePort" 
 reportAuditURI' Audit.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
-reportURI :: Select -> Table
+reportURI :: Report -> Table
 reportURI (Report.Audit eventCategory eventType reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "'"
 
-maxURI :: Select -> String
+maxURI :: Report -> String
 maxURI report = "SELECT MAX(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-minURI :: Select -> String
+minURI :: Report -> String
 minURI report = "SELECT MIN(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-averageURI :: Select -> String
+averageURI :: Report -> String
 averageURI report = "SELECT AVG(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-sumURI :: Select -> String
+sumURI :: Report -> String
 sumURI report = "SELECT SUM(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-totalURI :: Select -> String
+totalURI :: Report -> String
 totalURI report = "SELECT COUNT(*) as Y FROM (" <> (reportURI report) <> ")"
 
-varianceURI :: Select -> Number -> String
+varianceURI :: Report -> Number -> String
 varianceURI report avg = query
   where 
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
     query' = "(X - " <> show avg <> ")"
 
 interpret :: forall a. RequestDSL ResultSet (Request a) -> Interpreter (Request a)
-interpret (InsertRequest settings query' next) = do
+interpret (ForwardRequest settings query' next) = do
   _      <- tell $ Route.eventID (Route.Forward query')
-  result <- lift $ executeInsert settings query'
+  result <- lift $ executeForward settings query'
   lift (next <$> (pure result))
-interpret (SelectRequest settings query' next) = do
+interpret (ReportRequest settings query' next) = do
   _      <- tell $ Route.eventID (Route.Report query')
-  result <- lift $ executeSelect settings query'
+  result <- lift $ executeReport settings query'
   lift (next <$> (pure result))
 
 executeTouch :: Setting -> Aff Unit
@@ -224,49 +222,49 @@ executeSchemas (Local setting) = do
   _        <- SQLite3.close database
   pure unit
 
-executeInsert :: Settings -> Insert -> Aff ResultSet
-executeInsert (Settings settings) query' = do
-  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeInsert' query' <$> settings)) 
+executeForward :: Settings -> Forward -> Aff ResultSet
+executeForward (Settings settings) query' = do
+  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward' query' <$> settings)) 
   pure result
 
-executeInsert' :: Setting -> Insert -> Aff ResultSet
-executeInsert' setting query' = do
+executeForward' :: Setting -> Forward -> Aff ResultSet
+executeForward' setting query' = do
   _      <- executeTouch setting
   _      <- executeSchemas setting
-  result <- executeInsert'' setting query'
+  result <- executeForward'' setting query'
   pure result
 
-executeInsert'' :: Setting -> Insert -> Aff ResultSet
-executeInsert'' (Local setting) query' = do
+executeForward'' :: Setting -> Forward -> Aff ResultSet
+executeForward'' (Local setting) query' = do
   database <- SQLite3.connect setting SQLite3.OpenReadWrite
   uri      <- insertURI query'
   _        <- SQLite3.all uri database
   _        <- SQLite3.close database
-  pure (InsertResult unit)
+  pure (Forward unit)
 
-executeSelect :: Settings -> Select -> Aff ResultSet
-executeSelect (Settings settings) query' = do
-  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeSelect' query' <$> settings)) 
+executeReport :: Settings -> Report -> Aff ResultSet
+executeReport (Settings settings) query' = do
+  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport' query' <$> settings)) 
   pure result
 
-executeSelect' :: Setting -> Select -> Aff ResultSet
-executeSelect' setting query' = do
+executeReport' :: Setting -> Report -> Aff ResultSet
+executeReport' setting query' = do
   _         <- executeTouch setting
   _         <- executeSchemas setting
-  result    <- executeSelect'' setting query'
+  result    <- executeReport'' setting query'
   pure result
 
-executeSelect'' :: Setting -> Select -> Aff ResultSet
-executeSelect'' (Local setting) report = do
+executeReport'' :: Setting -> Report -> Aff ResultSet
+executeReport'' (Local setting) report = do
   database   <- SQLite3.connect setting SQLite3.OpenReadOnly
-  min        <- executeSelect''' database (minURI report)
-  max        <- executeSelect''' database (maxURI report)
-  sum        <- executeSelect''' database (sumURI report)
-  total      <- executeSelect''' database (totalURI report)
-  average    <- executeSelect''' database (averageURI report)
-  variance   <- executeSelect''' database (varianceURI report average)
+  min        <- executeReport''' database (minURI report)
+  max        <- executeReport''' database (maxURI report)
+  sum        <- executeReport''' database (sumURI report)
+  total      <- executeReport''' database (totalURI report)
+  average    <- executeReport''' database (averageURI report)
+  variance   <- executeReport''' database (varianceURI report average)
   _          <- SQLite3.close database
-  pure $ SelectResult $ Report.Entry $
+  pure $ Report $ Report.Entry $
     { min       : min
     , max       : max
     , sum       : sum
@@ -275,8 +273,8 @@ executeSelect'' (Local setting) report = do
     , variance  : variance
     }
 
-executeSelect''' :: Connection -> String -> Aff Number
-executeSelect''' database uri = do
+executeReport''' :: Connection -> String -> Aff Number
+executeReport''' database uri = do
   rows    <- SQLite3.all uri database
   results <- sequence (runResult <$> rows)
   case results of
@@ -291,8 +289,8 @@ executeSelect''' database uri = do
     error = Exception.error "Unexpected results."
 
 request :: Settings -> Route -> Request ResultSet
-request settings (Route.Forward query) = liftFreeT $ (InsertRequest settings query identity)
-request settings (Route.Report query)  = liftFreeT $ (SelectRequest settings query identity)
+request settings (Route.Forward query) = liftFreeT $ (ForwardRequest settings query identity)
+request settings (Route.Report query)  = liftFreeT $ (ReportRequest settings query identity)
 
 execute ::  forall a. Request a -> Aff (Result a)
 execute request' = try $ runWriterT $ runFreeT interpret request'

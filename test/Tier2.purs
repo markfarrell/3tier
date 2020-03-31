@@ -13,7 +13,6 @@ import Effect.Exception (Error)
 
 import HTTP as HTTP
 
-import Audit as Audit
 import Flow as Flow
 import Forward as Forward
 import Report as Report
@@ -94,23 +93,8 @@ reportAudit = UnitTest $
   , testName     : "Tier2.execute"
   , testCase     : "/report/audit/*/*/*"
   , testFunction : execute'
-  , testInputs   : testInputs
+  , testInputs   : Route.Report <$> Report.reports
   }
-  where
-    testInputs = 
-      [ Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Success Audit.Sources
-      , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Failure Audit.Sources
-      , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Success Audit.Durations
-      , Route.Report $ Report.Audit Audit.DatabaseRequest Audit.Failure Audit.Durations
-      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Success Audit.Sources
-      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Failure Audit.Sources
-      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Success Audit.Durations
-      , Route.Report $ Report.Audit Audit.ResourceRequest Audit.Failure Audit.Durations
-      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Success Audit.Sources
-      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Failure Audit.Sources
-      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Success Audit.Durations
-      , Route.Report $ Report.Audit Audit.RoutingRequest Audit.Failure Audit.Durations
-      ]
 
 unitTests :: Aff Unit
 unitTests = supervise $ do
