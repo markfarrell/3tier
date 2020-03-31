@@ -1,19 +1,13 @@
 module Tier3
- ( RequestDSL
- , Interpreter
- , Request
+ ( Request
  , Result
+ , RequestDSL
+ , Interpreter
  , Setting(..)
  , Settings(..)
- , Table
- , ColumnType(..)
- , Schema(..)
- , Insert(..)
- , Select(..)
  , ResultSet(..)
  , request
  , execute
- , audit
  ) where
 
 import Prelude
@@ -52,7 +46,6 @@ import Flow as Flow
 
 import Forward as Forward
 
-import Report (Report)
 import Report as Report
 
 import Route (Route)
@@ -66,34 +59,30 @@ data Settings = Settings (Array Setting)
 
 type Table = String
 
-data Schema  = Audit | Flow
-
-data Insert  = InsertAudit Audit.Entry | InsertFlow Flow.Entry
-
-type Select  = Report
-
-data ResultSet = InsertResult Unit | SelectResult Report.Entry
-
-instance showSchema :: Show Schema where
-  show Audit = "Audit"
-  show Flow  = "Flow"
-
-data RequestDSL a = InsertRequest Settings Insert (ResultSet -> a) | SelectRequest Settings Select (ResultSet -> a)
-
-instance functorRequestDSL :: Functor RequestDSL where
-  map :: forall a b. (a -> b) -> RequestDSL a -> RequestDSL b
-  map f (InsertRequest settings query' next)  = (InsertRequest settings query' (f <<< next))
-  map f (SelectRequest settings query' next)  = (SelectRequest settings query' (f <<< next))
-
-type Interpreter = WriterT (Array Audit.EventID) Aff 
-
-type Request a = FreeT RequestDSL Interpreter a
-
-type Result a = Either Error (Tuple a (Array Audit.EventID))
-
 type Column = Tuple String ColumnType
  
 data ColumnType = Text | Real
+
+data Schema  = AuditSchema | FlowSchema
+
+type Insert = Forward.Forward
+
+type Select = Report.Report
+
+data ResultSet = InsertResult Unit | SelectResult Report.Entry
+
+data RequestDSL a b = InsertRequest Settings Insert (a -> b) | SelectRequest Settings Select (a -> b)
+
+type Interpreter = WriterT Audit.EventID Aff 
+
+type Request a = FreeT (RequestDSL ResultSet) Interpreter a
+
+type Result a = Either Error (Tuple a Audit.EventID)
+
+instance functorRequestDSL :: Functor (RequestDSL a) where
+  map :: forall b c. (b -> c) -> RequestDSL a b -> RequestDSL a c
+  map f (InsertRequest settings query' next)  = (InsertRequest settings query' (f <<< next))
+  map f (SelectRequest settings query' next)  = (SelectRequest settings query' (f <<< next))
 
 schemaURI' :: Table -> Array Column -> Array Column -> String
 schemaURI' table' params params' = query
@@ -110,7 +99,7 @@ schemaURI' table' params params' = query
      primaryKey'      = Arrays.join "," (fst <$> params)
 
 schemaURI :: Schema -> String
-schemaURI Audit = schemaURI' "Audit" [] $
+schemaURI AuditSchema = schemaURI' "Audit" [] $
   [ Tuple "Timestamp" Text
   , Tuple "SourceIP" Text
   , Tuple "SourcePort" Text
@@ -120,7 +109,7 @@ schemaURI Audit = schemaURI' "Audit" [] $
   , Tuple "EventID" Text
   , Tuple "EventSource" Text
   ]
-schemaURI Flow = schemaURI' "Flow" [] $ 
+schemaURI FlowSchema = schemaURI' "Flow" [] $ 
   [ Tuple "SIP" Text
   , Tuple "DIP" Text
   , Tuple "SPort" Text
@@ -180,9 +169,8 @@ insertURI'  table' params = query
      values'  = snd <$> params
 
 insertURI :: Insert ->  Aff String
-insertURI (InsertAudit entry) = insertAuditURI entry
-insertURI (InsertFlow  entry) = insertFlowURI entry
-
+insertURI (Forward.Audit entry) = insertAuditURI entry
+insertURI (Forward.Flow  entry) = insertFlowURI entry
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
 reportAuditURI' Audit.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceIP, SourcePort" 
@@ -212,20 +200,13 @@ varianceURI report avg = query
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
     query' = "(X - " <> show avg <> ")"
 
-insertEventID :: Insert -> Audit.EventID
-insertEventID (InsertAudit _) = Audit.Unknown
-insertEventID (InsertFlow entry) = Audit.ForwardFlow
-
-selectEventID :: Select -> Audit.EventID
-selectEventID (Report.Audit x y z) = Audit.ReportAudit
-
-interpret :: forall a. RequestDSL (Request a) -> Interpreter (Request a)
+interpret :: forall a. RequestDSL ResultSet (Request a) -> Interpreter (Request a)
 interpret (InsertRequest settings query' next) = do
-  _      <- tell [insertEventID query']
+  _      <- tell $ Route.eventID (Route.Forward query')
   result <- lift $ executeInsert settings query'
   lift (next <$> (pure result))
 interpret (SelectRequest settings query' next) = do
-  _      <- tell [selectEventID query']
+  _      <- tell $ Route.eventID (Route.Report query')
   result <- lift $ executeSelect settings query'
   lift (next <$> (pure result))
 
@@ -238,8 +219,8 @@ executeTouch (Local setting) = do
 executeSchemas :: Setting -> Aff Unit
 executeSchemas (Local setting) = do
   database <- SQLite3.connect setting SQLite3.OpenReadWrite
-  _        <- SQLite3.all (schemaURI Flow) database
-  _        <- SQLite3.all (schemaURI Audit) database
+  _        <- SQLite3.all (schemaURI FlowSchema) database
+  _        <- SQLite3.all (schemaURI AuditSchema) database
   _        <- SQLite3.close database
   pure unit
 
@@ -310,11 +291,8 @@ executeSelect''' database uri = do
     error = Exception.error "Unexpected results."
 
 request :: Settings -> Route -> Request ResultSet
-request settings (Route.Forward (Forward.Flow entry)) = liftFreeT $ (InsertRequest settings (InsertFlow entry) identity)
-request settings (Route.Report report)                = liftFreeT $ (SelectRequest settings report identity)
+request settings (Route.Forward query) = liftFreeT $ (InsertRequest settings query identity)
+request settings (Route.Report query)  = liftFreeT $ (SelectRequest settings query identity)
 
 execute ::  forall a. Request a -> Aff (Result a)
 execute request' = try $ runWriterT $ runFreeT interpret request'
-
-audit :: Settings -> Audit.Entry -> Request ResultSet
-audit settings entry = liftFreeT $ (InsertRequest settings (InsertAudit entry) identity)

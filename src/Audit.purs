@@ -1,6 +1,8 @@
 module Audit
   ( EventType(..)
   , EventCategory(..)
+  , EventClass(..)
+  , EventInstance(..)
   , EventID(..)
   , EventSource(..)
   , Entry(..)
@@ -19,7 +21,11 @@ data EventType = Success | Failure
 
 data EventCategory = DatabaseRequest | ResourceRequest | RoutingRequest
 
-data EventID = EventID (Array EventID) | ForwardFlow | ReportAudit | Unknown
+data EventClass = Audit | Flow
+
+data EventInstance = Forward EventClass | Report EventClass
+
+type EventID = Array EventInstance
 
 data EventSource = Tier1 | Tier2 | Tier3
 
@@ -44,11 +50,11 @@ instance showEventCategory :: Show EventCategory where
   show ResourceRequest  = "RESOURCE-REQUEST"
   show RoutingRequest   = "ROUTING-REQUEST"
 
-instance showEventID :: Show EventID where
-  show ForwardFlow  = "FORWARD-FLOW"
-  show ReportAudit  = "REPORT-AUDIT"
-  show Unknown      = "???"
-  show (EventID x)  = Arrays.join "," (show <$> x)
+instance showEventInstance :: Show EventInstance where
+  show (Forward Flow)  = "FORWARD-FLOW"
+  show (Forward Audit) = "FORWARD-AUDIT"
+  show (Report  Flow)  = "REPORT-FLOW"
+  show (Report Audit)  = "REPORT-AUDIT"
 
 instance showEventSource :: Show EventSource where
   show Tier1 = "TIER-1"
