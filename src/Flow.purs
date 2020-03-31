@@ -1,5 +1,5 @@
 module Flow
-  ( Entry (..)
+  ( Record (..)
   , flow
   , uri
   ) where
@@ -29,7 +29,7 @@ import Parser as Parser
 import Date (Date)
 import IPv4 (IPv4)
 
-newtype Entry = Entry
+newtype Record = Record
   { sourceIPv4      :: IPv4
   , destinationIPv4 :: IPv4
   , sourcePort      :: Int
@@ -58,7 +58,7 @@ flags = do
     false -> fail "Invalid number of TCP flags."
 
 {-- Parses a valid SiLk flow record based on the parsers defined for its fields, or fails otherwise. --}
-flow :: Parser String Entry
+flow :: Parser String Record
 flow = do
   sourceIPv4      <- Parser.ipv4
   _               <- comma
@@ -82,7 +82,7 @@ flow = do
   _               <- comma
   endTime           <- Parser.timestamp
   _               <- eof
-  pure $ Entry
+  pure $ Record
     { sourceIPv4      : sourceIPv4
     , destinationIPv4 : destinationIPv4
     , sourcePort      : sourcePort
@@ -97,18 +97,18 @@ flow = do
     }
   where comma = char delimiter
 
-uri :: Entry -> String
-uri (Entry entry) = Arrays.join delimiter' $
-  [ show entry.sourceIPv4
-  , show entry.destinationIPv4
-  , show entry.sourcePort
-  , show entry.destinationPort
-  , show entry.protocol
-  , show entry.packets
-  , show entry.bytes
-  , entry.flags
-  , show entry.startTime
-  , show entry.duration
-  , show entry.endTime
+uri :: Record -> String
+uri (Record record) = Arrays.join delimiter' $
+  [ show record.sourceIPv4
+  , show record.destinationIPv4
+  , show record.sourcePort
+  , show record.destinationPort
+  , show record.protocol
+  , show record.packets
+  , show record.bytes
+  , record.flags
+  , show record.startTime
+  , show record.duration
+  , show record.endTime
   ]
   where delimiter' = singleton delimiter

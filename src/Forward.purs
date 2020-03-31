@@ -15,8 +15,8 @@ import Effect.Exception as Exception
 
 import Strings as Strings
 
-data Forward = Flow Flow.Entry | Audit Audit.Entry
+data Forward = Flow Flow.Record | Audit Audit.Record
 
 uri :: Forward -> String
-uri (Flow entry)  = "/forward/flow/"  <> Flow.uri entry
-uri (Audit entry) = "/forward/audit/" <> Audit.uri entry
+uri (Flow record)  = "/forward/flow/"  <> Flow.uri record
+uri (Audit record) = "/forward/audit/" <> Audit.uri record

@@ -5,9 +5,9 @@ module Audit
   , EventInstance(..)
   , EventID(..)
   , EventSource(..)
-  , Entry(..)
+  , Record(..)
   , ReportType(..)
-  , entry
+  , record
   , uri
   ) where
 
@@ -32,7 +32,7 @@ data EventSource = Tier1 | Tier2 | Tier3
 
 data ReportType = Sources | Durations
 
-data Entry = Entry 
+data Record = Record 
   { sourceAddress :: String
   , sourcePort    :: Int 
   , eventType     :: EventType
@@ -62,8 +62,8 @@ instance showEventSource :: Show EventSource where
   show Tier2 = "TIER-2"
   show Tier3 = "TIER-3"
 
-entry :: EventSource -> EventType -> EventCategory -> Number -> EventID -> HTTP.IncomingMessage -> Entry
-entry eventSource eventType eventCategory duration eventID req = Entry $
+record :: EventSource -> EventType -> EventCategory -> Number -> EventID -> HTTP.IncomingMessage -> Record
+record eventSource eventType eventCategory duration eventID req = Record $
   { sourceAddress : sourceAddress
   , sourcePort    : sourcePort
   , eventType     : eventType
@@ -76,13 +76,13 @@ entry eventSource eventType eventCategory duration eventID req = Entry $
     sourceAddress = Socket.remoteAddress $ HTTP.socket req
     sourcePort = Socket.remotePort $ HTTP.socket req
 
-uri :: Entry -> String
-uri (Entry entry') = Arrays.join "," $
-  [ entry'.sourceAddress
-  , show entry'.sourcePort
-  , show entry'.eventType
-  , show entry'.eventCategory
-  , show entry'.eventID
-  , show entry'.eventSource
-  , show entry'.duration
+uri :: Record -> String
+uri (Record record') = Arrays.join "," $
+  [ record'.sourceAddress
+  , show record'.sourcePort
+  , show record'.eventType
+  , show record'.eventCategory
+  , show record'.eventID
+  , show record'.eventSource
+  , show record'.duration
   ] 
