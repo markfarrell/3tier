@@ -1,4 +1,4 @@
-module UUIDv1
+module FFI.UUIDv1
   ( createUUID
   , defaultUUID
   ) where

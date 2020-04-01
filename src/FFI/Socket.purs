@@ -1,4 +1,4 @@
-module Socket
+module FFI.Socket
   ( Socket
   , remoteAddress
   , remotePort

@@ -1,4 +1,4 @@
-module CSVParser
+module FFI.CSVParser
   ( Options
   , createReader
   ) where
@@ -17,7 +17,7 @@ import Effect.Aff (Aff)
 import Foreign (Foreign)
 import Foreign as Foreign
 
-import Stream as Stream
+import FFI.Stream as Stream
 
 type Options =
   { separator :: String

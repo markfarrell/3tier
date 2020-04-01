@@ -1,4 +1,4 @@
-module Date
+module FFI.Date
   ( Date 
   , current
   , toISOString

@@ -13,10 +13,10 @@ module Audit
 
 import Prelude
 
-import HTTP as HTTP
-import Socket as Socket
+import Data.Foldable (intercalate)
 
-import Arrays as Arrays
+import FFI.HTTP as HTTP
+import FFI.Socket as Socket
 
 data EventType = Success | Failure
 
@@ -77,7 +77,7 @@ record eventSource eventType eventCategory duration eventID req = Record $
     sourcePort = Socket.remotePort $ HTTP.socket req
 
 uri :: Record -> String
-uri (Record record') = Arrays.join "," $
+uri (Record record') = intercalate separator $
   [ record'.sourceAddress
   , show record'.sourcePort
   , show record'.eventType
@@ -86,3 +86,4 @@ uri (Record record') = Arrays.join "," $
   , show record'.eventSource
   , show record'.duration
   ] 
+  where separator = ","

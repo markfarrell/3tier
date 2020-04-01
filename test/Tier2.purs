@@ -11,8 +11,8 @@ import Effect.Aff (Aff, launchAff, forkAff, supervise)
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 
-import Date as Date
-import HTTP as HTTP
+import FFI.Date as Date
+import FFI.HTTP as HTTP
 
 import IPv4 (IPv4(..))
 

@@ -11,6 +11,7 @@ module Test.UnitTest
 import Prelude
 
 import Data.Either (Either(..))
+import Data.Foldable (intercalate)
 import Data.Traversable (sequence)
 
 import Effect.Aff (Aff)
@@ -18,8 +19,6 @@ import Effect.Class (liftEffect)
 import Effect.Console (log)
 
 import Effect.Exception as Exception
-
-import Arrays as Arrays
 
 type TestSuite = String
 
@@ -43,12 +42,12 @@ data UnitTest a b c = UnitTest
   
 execute' :: forall a b c. UnitTest a b c -> TestResult b c -> Aff Unit
 execute' (UnitTest unitTest) (Left _) = liftEffect $ do 
-  result <- pure (Arrays.join " " ["FAILURE", unitTest.testSuite, unitTest.testName, unitTest.testCase])
+  result <- pure (intercalate " " ["FAILURE", unitTest.testSuite, unitTest.testName, unitTest.testCase])
   _ <- log result 
   _ <- Exception.throw result
   pure unit
 execute' (UnitTest unitTest) (Right _) = liftEffect $ do 
-  result <- pure (Arrays.join " " ["SUCCESS", unitTest.testSuite, unitTest.testName, unitTest.testCase])
+  result <- pure (intercalate " " ["SUCCESS", unitTest.testSuite, unitTest.testName, unitTest.testCase])
   _ <- log result
   pure unit
 

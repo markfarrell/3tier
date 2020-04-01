@@ -1,4 +1,4 @@
-module UUIDv5
+module FFI.UUIDv5
   ( namespaceUUID
   ) where
 

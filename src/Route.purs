@@ -20,7 +20,7 @@ import Forward as Forward
 import Flow as Flow
 import Report as Report
 
-import HTTP as HTTP
+import FFI.HTTP as HTTP
 import Strings as Strings
 
 data Route = Forward Forward.Forward | Report Report.Report

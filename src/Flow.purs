@@ -6,30 +6,22 @@ module Flow
 
 import Prelude
 
-import Effect.Exception (Error)
-import Effect.Exception (error) as Exception
-
 import Data.List as List
-
-import Data.Either (Either(..))
-
-import Data.Identity (Identity)
-import Data.Newtype (unwrap)
+import Data.Foldable (intercalate)
 
 import Data.Traversable(foldMap)
 import Data.String.CodeUnits (singleton)
 
-import Text.Parsing.Parser (Parser, fail, runParser)
+import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.String (char, eof, string)
 import Text.Parsing.Parser.Combinators (choice)
 
-import Arrays as Arrays
-import Parser as Parser
+import FFI.Date (Date)
 
-import Date (Date)
+import Parser as Parser
 import IPv4 (IPv4)
 
-newtype Record = Record
+data Record = Record
   { sourceIPv4      :: IPv4
   , destinationIPv4 :: IPv4
   , sourcePort      :: Int
@@ -98,7 +90,7 @@ flow = do
   where comma = char delimiter
 
 uri :: Record -> String
-uri (Record record) = Arrays.join delimiter' $
+uri (Record record) = intercalate delimiter' $
   [ show record.sourceIPv4
   , show record.destinationIPv4
   , show record.sourcePort

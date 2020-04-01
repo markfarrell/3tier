@@ -1,4 +1,4 @@
-module SQLite3
+module FFI.SQLite3
   ( Mode (..)
   , Database
   , Row

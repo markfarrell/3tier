@@ -1,10 +1,10 @@
-module Process
+module FFI.Process
   ( stdin
   , stdout
   , argv
   ) where
 
-import Stream as Stream
+import FFI.Stream as Stream
 
 foreign import stdin :: Stream.Readable
 

@@ -23,12 +23,11 @@ import Data.Tuple as Tuple
 
 import Unsafe.Coerce (unsafeCoerce)
 
-import JSON as JSON
+import FFI.Date as Date
+import FFI.HTTP as HTTP
+import FFI.JSON as JSON
 
 import Tier3 as Tier3
-
-import Date as Date
-import HTTP as HTTP
 
 import Audit as Audit
 
@@ -64,7 +63,7 @@ databaseRequest' settings route req = do
   result    <- Tier3.execute $ Tier3.request settings route
   endTime   <- liftEffect $ Date.currentTime
   duration  <- pure $ endTime - startTime
-  record     <- pure $ databaseRequest'' result duration req
+  record    <- pure $ databaseRequest'' result duration req
   _         <- Tier3.execute $ audit settings record
   case result of 
     (Left _)                    -> pure  $ InternalServerError ""

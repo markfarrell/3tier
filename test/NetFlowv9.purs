@@ -7,7 +7,7 @@ import Prelude
 import Effect (Effect)
 import Effect.Console (log)
 
-import Buffer as Buffer
+import FFI.Buffer as Buffer
 
 import NetFlowv9 as NetFlowv9
 

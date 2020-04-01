@@ -1,4 +1,4 @@
-module Buffer
+module FFI.Buffer
   ( Buffer
   , from
   , readInt16BE

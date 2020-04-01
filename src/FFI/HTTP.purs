@@ -1,4 +1,4 @@
-module HTTP
+module FFI.HTTP
   ( IncomingRequest(..)
   , Server
   , IncomingMessage
@@ -34,7 +34,7 @@ import Effect.Class (liftEffect)
 
 import Foreign (Foreign)
 
-import Socket (Socket)
+import FFI.Socket (Socket)
 
 foreign import data Server :: Type
 foreign import data IncomingMessage :: Type

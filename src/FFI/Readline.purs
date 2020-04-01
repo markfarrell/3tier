@@ -1,4 +1,4 @@
-module Readline
+module FFI.Readline
   ( Interface
   , createInterface
   , onLine
@@ -8,7 +8,7 @@ import Prelude
 
 import Effect (Effect)
 
-import Stream as Stream
+import FFI.Stream as Stream
 
 foreign import data Interface :: Type
 

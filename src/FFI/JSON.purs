@@ -1,4 +1,4 @@
-module JSON
+module FFI.JSON
   ( stringify
   ) where
 

@@ -25,8 +25,8 @@ import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.String (string, anyChar)
 import Text.Parsing.Parser.Combinators (choice, optional)
 
-import Date (Date)
-import Date as Date
+import FFI.Date (Date)
+import FFI.Date as Date
 
 import IPv4(IPv4(..))
 

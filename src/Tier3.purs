@@ -23,6 +23,7 @@ import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Traversable (sequence)
 
+import Data.Foldable (intercalate)
 import Data.Foldable (oneOf) as Foldable
 
 import Data.Tuple (Tuple(..), fst, snd)
@@ -35,10 +36,8 @@ import Effect.Exception as Exception
 import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
 
-import Arrays as Arrays
-
-import Date as Date
-import SQLite3 as SQLite3
+import FFI.Date as Date
+import FFI.SQLite3 as SQLite3
 
 import Audit as Audit
 import Flow as Flow
@@ -84,13 +83,13 @@ schemaURI' table' params params' = query
      query   = case Array.length params > 0 of
        true  -> "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> "," <> primaryKey <> ")"
        false -> "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> ")"
-     columns                = (Arrays.join "," columns')
+     columns                = (intercalate "," columns')
      columns'               = column <$> (params <> params')
-     column param           = Arrays.join " " $ [fst param, columnType $ snd param]
+     column param           = intercalate " " $ [fst param, columnType $ snd param]
      columnType Text = "TEXT NOT NULL"
      columnType Real = "REAL NOT NULL"
      primaryKey       = "PRIMARY KEY (" <> primaryKey' <> ")"
-     primaryKey'      = Arrays.join "," (fst <$> params)
+     primaryKey'      = intercalate "," (fst <$> params)
 
 schemaURI :: Schema -> String
 schemaURI AuditSchema = schemaURI' "Audit" [] $
@@ -129,7 +128,7 @@ insertAuditURI (Audit.Record record) = do
       , Tuple "Duration" (show record.duration)
       , Tuple "EventType" (show record.eventType)
       , Tuple "EventCategory" (show record.eventCategory)
-      , Tuple "EventID" (Arrays.join "," (show <$> record.eventID))
+      , Tuple "EventID" (intercalate "," (show <$> record.eventID))
       , Tuple "EventSource" (show record.eventSource)
       ]
 
@@ -155,8 +154,8 @@ insertURI' ::  Table -> Array (Tuple String String) -> String
 insertURI'  table' params = query
   where
      query = "INSERT INTO " <> table' <> " (" <> columns <> ") VALUES (" <> values <> ")"
-     columns  = "'" <> (Arrays.join "','" columns') <> "'"
-     values   = "'" <> (Arrays.join "','" values') <> "'"
+     columns  = "'" <> (intercalate "','" columns') <> "'"
+     values   = "'" <> (intercalate "','" values') <> "'"
      columns' = fst <$> params
      values'  = snd <$> params
 

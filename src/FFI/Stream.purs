@@ -1,4 +1,4 @@
-module Stream
+module FFI.Stream
   ( Readable
   , Writable
   , pipe

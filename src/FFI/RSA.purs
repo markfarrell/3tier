@@ -1,4 +1,4 @@
-module RSA
+module FFI.RSA
   ( Key
   , generateKeyPair
   , sign

@@ -11,6 +11,7 @@ import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Traversable (sequence)
 import Data.Tuple(Tuple(..))
+import Data.Foldable (intercalate)
 
 import Effect (Effect)
 import Effect.Exception (Error)
@@ -20,8 +21,8 @@ import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.String (string)
 import Text.Parsing.Parser.Combinators (sepBy)
 
-import Arrays as Arrays
-import Buffer as Buffer
+import FFI.Buffer as Buffer
+
 import Parser as Parser
 
 data Packet = Packet Header FlowSets
@@ -56,7 +57,7 @@ data DataFlowSet = DataFlowSet
   }
 
 instance showPacket :: Show Packet where
-  show (Packet x y) = "(Packet " <> (Arrays.join " " [show x, show y]) <> ")"
+  show (Packet x y) = "(Packet " <> (intercalate " " [show x, show y]) <> ")"
 
 instance showHeader :: Show Header where
   show (Header x) = "(Header " <> show x <> ")"
@@ -130,7 +131,7 @@ readTemplateFlowSet body = do
           case result' of
             (Left error')  -> pure $ Left error'
             (Right templates''') -> do 
-              templates'' <- pure $ Arrays.join comma (show <$> templates''')
+              templates'' <- pure $ intercalate comma (show <$> templates''')
               case runParser templates'' templates of
                 (Left _)          -> pure $ Left (Exception.error "Unexpected result (ParseError).")
                 (Right templates') -> pure $ Right $ TemplateFlowSet $
