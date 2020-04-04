@@ -1,6 +1,7 @@
 module Windows
   ( EventCategory(..) 
   , EventID
+  , EventType(..)
   , Record(..)
   , read
   ) where
@@ -40,9 +41,12 @@ data EventCategory = AccountLogon
 
 type EventID = Int
 
+data EventType = Success | Failure
+
 data Record = Record
   { eventCategory :: EventCategory
   , eventID       :: EventID
+  , eventType     :: EventType
   }
 
 instance eqEventCategoryWindows :: Eq EventCategory where
@@ -63,12 +67,14 @@ read :: Foreign -> Either Exception.Error Record
 read = \x -> do
   eventCategory' <- read' "eventCategory" eventCategory $ x
   eventID'       <- read' "eventID" eventID $ x
+  eventType'     <- read' "eventType" eventType $ x
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
       case eventCategory' == eventCategory'' of
         true  -> pure $ Record
           { eventCategory : eventCategory''
           , eventID       : eventID''
+          , eventType     : eventType'
           }
         false -> Left (Exception.error "Invalid input.")
 
@@ -104,6 +110,13 @@ eventCategory = do
   case readEventCategory result of
     (Left _)               -> fail "Invalid input."
     (Right eventCategory') -> pure eventCategory'
+
+eventType :: Parser String EventType
+eventType = choice (eventType' <$> [Success, Failure])
+  where
+    eventType' = \x -> do
+       _ <- string (writeEventType x) 
+       pure x
 
 eventIDs :: EventCategory -> Array Int
 eventIDs AccountLogon      = accountLogon
@@ -159,6 +172,10 @@ readEventCategory "process-tracking"   = Right ProcessTracking
 readEventCategory "system"             = Right System
 readEventCategory "uncategorized"      = Right Uncategorized
 readEventCategory _                    = Left (Exception.error "Invalid input.")
+
+writeEventType :: EventType -> String
+writeEventType Success = "success"
+writeEventType Failure = "failure"
 
 accountLogon :: Array Int
 accountLogon =
