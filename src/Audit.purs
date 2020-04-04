@@ -7,7 +7,6 @@ module Audit
   , EventSource(..)
   , Event(..)
   , ReportType(..)
-  , event
   , uri
   ) where
 
@@ -15,6 +14,7 @@ import Prelude
 
 import Data.Foldable (intercalate)
 
+import FFI.Date (Date)
 import FFI.HTTP as HTTP
 import FFI.Socket as Socket
 
@@ -39,7 +39,9 @@ data Event = Event
   , eventCategory :: EventCategory
   , eventID       :: EventID
   , eventSource   :: EventSource
+  , startTime     :: Date
   , duration      :: Number
+  , endTime       :: Date
   }
 
 instance showEventTypeAudit :: Show EventType where
@@ -61,20 +63,6 @@ instance showEventSourceAudit :: Show EventSource where
   show Tier1 = "TIER-1"
   show Tier2 = "TIER-2"
   show Tier3 = "TIER-3"
-
-event :: EventSource -> EventType -> EventCategory -> Number -> EventID -> HTTP.IncomingMessage -> Event
-event eventSource eventType eventCategory duration eventID req = Event $
-  { sourceAddress : sourceAddress
-  , sourcePort    : sourcePort
-  , eventType     : eventType
-  , eventCategory : eventCategory 
-  , duration      : duration
-  , eventID       : eventID
-  , eventSource   : eventSource
-  }
-  where
-    sourceAddress = Socket.remoteAddress $ HTTP.socket req
-    sourcePort = Socket.remotePort $ HTTP.socket req
 
 uri :: Event -> String
 uri (Event event') = intercalate separator $

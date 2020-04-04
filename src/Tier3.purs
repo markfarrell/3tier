@@ -30,13 +30,11 @@ import Data.Tuple (Tuple(..), fst, snd)
 
 import Effect.Aff (Aff)
 import Effect.Aff (parallel, sequential) as Aff
-import Effect.Class (liftEffect)
 import Effect.Exception as Exception
 
 import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
 
-import FFI.Date as Date
 import FFI.SQLite3 as SQLite3
 
 import Audit as Audit
@@ -93,10 +91,11 @@ schemaURI' table' params params' = query
 
 schemaURI :: Schema -> String
 schemaURI AuditSchema = schemaURI' "Audit" [] $
-  [ Tuple "Timestamp" Text
-  , Tuple "SourceAddress" Text
+  [ Tuple "SourceAddress" Text
   , Tuple "SourcePort" Text
+  , Tuple "StartTime" Text
   , Tuple "Duration" Real
+  , Tuple "EndTime" Text
   , Tuple "EventType" Text
   , Tuple "EventCategory" Text
   , Tuple "EventID" Text
@@ -118,14 +117,14 @@ schemaURI FlowSchema = schemaURI' "Flow" [] $
 
 insertAuditURI :: Audit.Event -> Aff String
 insertAuditURI (Audit.Event event) = do
-  timestamp <- liftEffect $ (Date.toISOString <$> Date.current)
-  pure $ insertURI' "Audit" (params timestamp)
+  pure $ insertURI' "Audit" params
   where 
-    params timestamp =
-      [ Tuple "Timestamp" timestamp 
-      , Tuple "SourceAddress" event.sourceAddress
+    params  =
+      [ Tuple "SourceAddress" event.sourceAddress
       , Tuple "SourcePort" (show event.sourcePort)
+      , Tuple "StartTime" (show event.startTime)
       , Tuple "Duration" (show event.duration)
+      , Tuple "EndTime" (show event.endTime)
       , Tuple "EventType" (show event.eventType)
       , Tuple "EventCategory" (show event.eventCategory)
       , Tuple "EventID" (intercalate "," (show <$> event.eventID))

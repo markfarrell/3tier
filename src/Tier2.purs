@@ -19,12 +19,12 @@ import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 
 import Data.Tuple (Tuple(..))
-import Data.Tuple as Tuple
 
 import Unsafe.Coerce (unsafeCoerce)
 
 import FFI.Date as Date
 import FFI.HTTP as HTTP
+import FFI.Socket as Socket
 import FFI.JSON as JSON
 
 import Tier3 as Tier3
@@ -53,60 +53,60 @@ audit settings event = do
   _ <- Tier3.request settings $ Route.Forward (Forward.Audit event)
   pure unit
 
-databaseRequest'' :: forall a. Tier3.Result a -> Number -> HTTP.IncomingMessage -> Audit.Event
-databaseRequest'' (Left _)                = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.DatabaseRequest duration [] $ req
-databaseRequest'' (Right (Tuple _ steps)) = \duration req -> Audit.event Audit.Tier2 Audit.Success Audit.DatabaseRequest duration steps $ req
-
-databaseRequest':: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource Tier3.ResultSet) 
-databaseRequest' settings route req = do
-  startTime <- liftEffect $ Date.currentTime
+databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource Tier3.ResultSet) 
+databaseRequest settings route req = do
+  startTime <- liftEffect $ Date.current
   result    <- Tier3.execute $ Tier3.request settings route
-  endTime   <- liftEffect $ Date.currentTime
-  duration  <- pure $ endTime - startTime
-  event    <- pure $ databaseRequest'' result duration req
+  endTime   <- liftEffect $ Date.current
+  duration  <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
+  eventType <- pure $ case result of
+                 (Left _)  -> Audit.Failure
+                 (Right _) -> Audit.Success
+  eventID <- pure $ case result of
+                 (Left _)                  -> []
+                 (Right (Tuple _ eventID)) -> eventID
+  event     <- pure $ Audit.Event $
+                 { eventSource   : Audit.Tier2
+                 , eventType     : eventType
+                 , eventCategory : Audit.DatabaseRequest
+                 , eventID       : eventID
+                 , startTime     : startTime
+                 , duration      : duration
+                 , endTime       : endTime
+                 , sourceAddress : Socket.remoteAddress $ HTTP.socket req
+                 , sourcePort    : Socket.remotePort    $ HTTP.socket req
+                 }
   _         <- Tier3.execute $ audit settings event
   case result of 
     (Left _)                    -> pure  $ InternalServerError ""
     (Right (Tuple resultSet _)) -> pure  $ Ok (TextJSON resultSet)
 
-databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource Tier3.ResultSet)
-databaseRequest settings route req = do
-  resource <- databaseRequest' settings route req
-  pure resource
-
-routingRequest' :: Either Error Route -> Number -> HTTP.IncomingMessage -> Audit.Event
-routingRequest' (Left _)      = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.RoutingRequest duration [] $ req 
-routingRequest' (Right route) = \duration req -> Audit.event Audit.Tier2 Audit.Success Audit.RoutingRequest duration (Route.eventID route) $ req
-
 routingRequest :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Either Error Route)
 routingRequest settings req = do 
-  startTime <- liftEffect $ Date.currentTime
+  startTime <- liftEffect $ Date.current
   result    <- Route.execute req
-  endTime   <- liftEffect $ Date.currentTime
-  duration  <- pure $ endTime - startTime
-  event     <- pure $ routingRequest' result duration req
+  endTime   <- liftEffect $ Date.current
+  duration  <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
+  eventType <- pure $ case result of
+                 (Left _)  -> Audit.Failure
+                 (Right _) -> Audit.Success
+  eventID <- pure $ case result of
+                 (Left _)      -> []
+                 (Right route) -> Route.eventID route
+  event     <- pure $ Audit.Event $
+                 { eventSource   : Audit.Tier2
+                 , eventType     : eventType
+                 , eventCategory : Audit.RoutingRequest
+                 , eventID       : eventID
+                 , startTime     : startTime
+                 , duration      : duration
+                 , endTime       : endTime
+                 , sourceAddress : Socket.remoteAddress $ HTTP.socket req
+                 , sourcePort    : Socket.remotePort    $ HTTP.socket req
+                 }
   _         <- Tier3.execute $ audit settings event
   pure result
 
-resourceRequest'' :: forall a b. Either a Route -> Either a (Resource b) -> Number -> HTTP.IncomingMessage -> Audit.Event
-resourceRequest'' (Left _) (Left _)                             = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration [] $ req
-resourceRequest'' (Left _) (Right _)                            = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration [] $ req
-resourceRequest'' (Right route) (Left _)                        = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
-resourceRequest'' (Right route) (Right (Ok _))                  = \duration req -> Audit.event Audit.Tier2 Audit.Success Audit.ResourceRequest duration (Route.eventID route) $ req 
-resourceRequest'' (Right route) (Right (InternalServerError _)) = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
-resourceRequest'' (Right route) (Right (BadRequest _))          = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
-resourceRequest'' (Right route) (Right (Forbidden _ _))         = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
-
-resourceRequest' :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Tuple (Either Error Route) (Resource Tier3.ResultSet))
-resourceRequest' settings req  = do
-  result <- routingRequest settings req
-  case result of
-    (Left  _)      -> do
-       resource <- pure $ BadRequest (HTTP.messageURL req)
-       pure $ Tuple result resource
-    (Right route') -> do
-       resource <- databaseRequest settings route' req
-       pure $ Tuple result resource
 
 textJSON :: Tier3.ResultSet -> String
 textJSON (Tier3.Forward _) = ""
@@ -135,20 +135,37 @@ sendResource (InternalServerError _) = \res -> liftEffect $ do
 
 resourceRequest :: Tier3.Settings -> HTTP.IncomingRequest -> Aff Unit
 resourceRequest settings (HTTP.IncomingRequest req res) = do
-  startTime       <- liftEffect $ Date.currentTime
-  result          <- resourceRequest' settings req
-  result'         <- try $ sendResource (Tuple.snd result) res 
-  endTime         <- liftEffect $ Date.currentTime
-  duration        <- pure (endTime - startTime)
-  case result' of
-    (Left error) -> do
-      event <- pure $ resourceRequest'' (Tuple.fst result) (Left error) duration req 
-      _     <- Tier3.execute $ audit settings event
-      pure unit
-    (Right _)    -> do
-       event <- pure $ resourceRequest'' (Tuple.fst result) (Right (Tuple.snd result)) duration req
-       _     <- Tier3.execute $ audit settings event
-       pure unit
+  startTime     <- liftEffect $ Date.current
+  routingResult <- routingRequest settings req
+  resource      <- case routingResult of
+                     (Left _)      -> pure $ BadRequest (HTTP.messageURL req)
+                     (Right route) -> databaseRequest settings route req 
+  response      <- try $ sendResource resource res 
+  endTime       <- liftEffect $ Date.current
+  duration      <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
+  eventID       <- pure $ case routingResult of
+                     (Left _)      -> []
+                     (Right route) -> Route.eventID route
+  eventType     <- pure $ case routingResult of
+                     (Left  _) -> Audit.Failure
+                     (Right _) -> case resource of
+                       (Ok _) -> Audit.Success
+                       _      -> case response of
+                         (Left _)  -> Audit.Failure
+                         (Right _) -> Audit.Success
+  event     <- pure $ Audit.Event $
+                 { eventSource   : Audit.Tier2
+                 , eventType     : eventType
+                 , eventCategory : Audit.ResourceRequest
+                 , eventID       : eventID
+                 , startTime     : startTime
+                 , duration      : duration
+                 , endTime       : endTime
+                 , sourceAddress : Socket.remoteAddress $ HTTP.socket req
+                 , sourcePort    : Socket.remotePort    $ HTTP.socket req
+                 }
+  _     <- Tier3.execute $ audit settings event
+  pure unit
 
 producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
 producer server = produce \emitter -> do
