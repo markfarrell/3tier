@@ -10,6 +10,7 @@ module Parser
   , octet
   , port
   , ipv4
+  , json
   ) where
 
 import Prelude
@@ -21,12 +22,15 @@ import Data.List as List
 import Data.String.CodeUnits (singleton)
 import Data.Maybe (Maybe(..))
 
+import Foreign (Foreign)
+
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.String (string, anyChar)
-import Text.Parsing.Parser.Combinators (choice, optional)
+import Text.Parsing.Parser.Combinators (choice)
 
 import FFI.Date (Date)
 import FFI.Date as Date
+import FFI.JSON as JSON
 
 import IPv4(IPv4(..))
 
@@ -147,3 +151,10 @@ ipv4 = do
   pure $ IPv4 w x y z
   where dot = "."
 
+json :: Parser String Foreign
+json = do
+  x <- anyString
+  y <- pure $ JSON.parse x
+  case y of
+    (Left _)  -> fail "Invalid JSON."
+    (Right z) -> pure z 

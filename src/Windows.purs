@@ -3,7 +3,7 @@ module Event
   , EventID
   , EventType(..)
   , Event(..)
-  , read
+  , event
   ) where
 
 import Prelude
@@ -27,7 +27,7 @@ import Text.Parsing.Parser.String (string)
 
 import FFI.Date (Date)
 
-import Parser (date, positiveFloat, positiveInteger)
+import Parser (date, json, positiveFloat, positiveInteger)
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -67,6 +67,14 @@ instance eqEventCategoryEvent :: Eq EventCategory where
   eq System            System            = true 
   eq Uncategorized     Uncategorized     = true 
   eq _                 _                 = false
+
+event :: Parser String Event
+event = do
+  x <- json
+  y <- pure $ read x
+  case y of
+    (Left _)  -> fail "Invalid input."
+    (Right z) -> pure z
 
 read :: Foreign -> Either Exception.Error Event
 read = \x -> do
