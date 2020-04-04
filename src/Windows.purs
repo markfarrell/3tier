@@ -1,5 +1,6 @@
 module Windows
-  ( TaskCategory(..) 
+  ( EventCategory(..) 
+  , EventID
   , Record(..)
   , read
   ) where
@@ -11,6 +12,7 @@ import Control.Monad.Except (runExcept)
 import Data.Array as Array
 import Data.Maybe(Maybe(..))
 import Data.Either(Either(..))
+import Data.Tuple(Tuple(..))
 
 import Effect.Exception as Exception
 
@@ -20,10 +22,11 @@ import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.Combinators (choice)
+import Text.Parsing.Parser.String (string)
 
 import Parser as Parser
 
-data TaskCategory = AccountLogon
+data EventCategory = AccountLogon
   | AccountManagement
   | DirectoryService
   | LogonAndLogoff
@@ -35,20 +38,46 @@ data TaskCategory = AccountLogon
   | System
   | Uncategorized
 
+type EventID = Int
+
 data Record = Record
-  { taskCategory :: TaskCategory
+  { eventCategory :: EventCategory
+  , eventID       :: EventID
   }
+
+instance eqEventCategoryWindows :: Eq EventCategory where
+  eq AccountLogon      AccountLogon      = true 
+  eq AccountManagement AccountManagement = true
+  eq DirectoryService  DirectoryService  = true 
+  eq LogonAndLogoff    LogonAndLogoff    = true 
+  eq ObjectAccess      ObjectAccess      = true 
+  eq NonAudit          NonAudit          = true 
+  eq PolicyChange      PolicyChange      = true 
+  eq PrivilegeUse      PrivilegeUse      = true 
+  eq ProcessTracking   ProcessTracking   = true 
+  eq System            System            = true 
+  eq Uncategorized     Uncategorized     = true 
+  eq _                 _                 = false
 
 read :: Foreign -> Either Exception.Error Record
 read = \x -> do
-  taskCategory' <- read' taskCategory "eventID" $ x
-  pure $ Record
-    { taskCategory : taskCategory' }
-  where
-    read' = \x y z -> do
-      result  <- runExcept' (z ! y >>= Foreign.readString)
-      result' <- runParser' result x
-      pure result'
+  eventCategory' <- read' "eventCategory" eventCategory $ x
+  eventID'       <- read' "eventID" eventID $ x
+  case eventID' of
+    (Tuple eventCategory'' eventID'') -> do
+      case eventCategory' == eventCategory'' of
+        true  -> pure $ Record
+          { eventCategory : eventCategory''
+          , eventID       : eventID''
+          }
+        false -> Left (Exception.error "Invalid input.")
+
+read' :: forall a. String -> Parser String a -> Foreign -> Either Exception.Error a
+read' = \x y z -> do
+  result  <- runExcept' (z ! x >>= Foreign.readString)
+  result' <- runParser' result y
+  pure result'
+  where 
     runExcept' = \x -> do
       result <- pure $ runExcept x
       case result of
@@ -60,17 +89,37 @@ read = \x -> do
         (Left _)    -> Left (Exception.error "Invalid input.")
         (Right val) -> pure val
 
-taskCategory :: Parser String TaskCategory
-taskCategory = choice (taskCategory' <$> taskCategories)
+eventID :: Parser String (Tuple EventCategory EventID)
+eventID = choice (eventID' <$> eventCategories)
   where
-    taskCategory' = \tc -> do
-      eventID <- Parser.positiveInteger
-      case Array.elemIndex eventID (eventIDs tc) of
-        (Just _)  -> pure tc
+    eventID' = \eventCategory' -> do
+      result <- Parser.positiveInteger
+      case Array.elemIndex result (eventIDs eventCategory') of
+        (Just _)  -> pure (Tuple eventCategory' result)
         (Nothing) -> fail "Invalid input."
 
-taskCategories :: Array TaskCategory
-taskCategories = 
+eventCategory :: Parser String EventCategory
+eventCategory = do
+  result <- choice (string <$> writeEventCategory <$> eventCategories)
+  case readEventCategory result of
+    (Left _)               -> fail "Invalid input."
+    (Right eventCategory') -> pure eventCategory'
+
+eventIDs :: EventCategory -> Array Int
+eventIDs AccountLogon      = accountLogon
+eventIDs AccountManagement = accountManagement
+eventIDs DirectoryService  = directoryService
+eventIDs LogonAndLogoff    = logonAndLogoff
+eventIDs ObjectAccess      = objectAccess
+eventIDs NonAudit          = nonAudit
+eventIDs PolicyChange      = policyChange
+eventIDs PrivilegeUse      = privilegeUse
+eventIDs ProcessTracking   = processTracking
+eventIDs System            = system
+eventIDs Uncategorized     = uncategorized
+
+eventCategories :: Array EventCategory
+eventCategories = 
   [ AccountLogon
   , AccountManagement
   , DirectoryService
@@ -84,18 +133,32 @@ taskCategories =
   , Uncategorized
   ]
 
-eventIDs :: TaskCategory -> Array Int
-eventIDs AccountLogon      = accountLogon
-eventIDs AccountManagement = accountManagement
-eventIDs DirectoryService  = directoryService
-eventIDs LogonAndLogoff    = logonAndLogoff
-eventIDs ObjectAccess      = objectAccess
-eventIDs NonAudit          = nonAudit
-eventIDs PolicyChange      = policyChange
-eventIDs PrivilegeUse      = privilegeUse
-eventIDs ProcessTracking   = processTracking
-eventIDs System            = system
-eventIDs Uncategorized     = uncategorized
+writeEventCategory :: EventCategory -> String
+writeEventCategory AccountLogon      = "account-logon"
+writeEventCategory AccountManagement = "account-management"
+writeEventCategory DirectoryService  = "directory-service"
+writeEventCategory LogonAndLogoff    = "logon-and-logoff"
+writeEventCategory ObjectAccess      = "object-access"
+writeEventCategory NonAudit          = "non-audit"
+writeEventCategory PolicyChange      = "policy-change"
+writeEventCategory PrivilegeUse      = "privilege-use"
+writeEventCategory ProcessTracking   = "process-tracking"
+writeEventCategory System            = "system"
+writeEventCategory Uncategorized     = "uncategorized"
+
+readEventCategory :: String -> Either Exception.Error EventCategory
+readEventCategory "account-logon"      = Right AccountLogon
+readEventCategory "account-management" = Right AccountManagement
+readEventCategory "directory-service"  = Right DirectoryService
+readEventCategory "logon-and-logoff"   = Right LogonAndLogoff
+readEventCategory "object-access"      = Right ObjectAccess
+readEventCategory "non-audit"          = Right NonAudit
+readEventCategory "policy-change"      = Right PolicyChange
+readEventCategory "privilege-use"      = Right PrivilegeUse
+readEventCategory "process-tracking"   = Right ProcessTracking
+readEventCategory "system"             = Right System
+readEventCategory "uncategorized"      = Right Uncategorized
+readEventCategory _                    = Left (Exception.error "Invalid input.")
 
 accountLogon :: Array Int
 accountLogon =
