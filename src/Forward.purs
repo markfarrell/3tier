@@ -8,8 +8,8 @@ import Prelude
 import Audit as Audit
 import Flow as Flow
 
-data Forward = Flow Flow.Record | Audit Audit.Record
+data Forward = Flow Flow.Event | Audit Audit.Event
 
 uri :: Forward -> String
-uri (Flow record)  = "/forward/flow"  <> Flow.uri record
-uri (Audit record) = "/forward/audit" <> Audit.uri record
+uri (Flow event)  = "/forward/flow"  <> Flow.uri event
+uri (Audit event) = "/forward/audit" <> Audit.uri event

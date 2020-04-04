@@ -46,8 +46,8 @@ reports = choice (report <$> Report.reports)
 forwardFlow :: Parser String Route
 forwardFlow = do
   _     <- string "/forward/flow/"
-  entry <- Flow.flow
-  pure (Forward (Forward.Flow entry))
+  event <- Flow.event
+  pure (Forward (Forward.Flow event))
 
 forward :: Parser String Route
 forward = choice [forwardFlow] 

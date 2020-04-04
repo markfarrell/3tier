@@ -1,5 +1,5 @@
 module Report
-  ( Record(..)
+  ( Event(..)
   , Report(..)
   , reports
   , uri
@@ -11,7 +11,7 @@ import Audit as Audit
 
 data Report = Audit Audit.EventCategory Audit.EventType Audit.ReportType
 
-data Record = Record
+data Event = Event
   { min                 :: Number
   , max                 :: Number
   , sum                 :: Number
@@ -20,8 +20,8 @@ data Record = Record
   , variance            :: Number 
   }
 
-instance eqRecord :: Eq Record where
-  eq (Record x) (Record y) = x == y
+instance eqEventReport :: Eq Event where
+  eq (Event x) (Event y) = x == y
 
 reports :: Array Report
 reports =

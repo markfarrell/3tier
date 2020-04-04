@@ -60,7 +60,7 @@ forwardFlow = UnitTest $
   }
   where
     testInputs =
-      [ Route.Forward $ Forward.Flow $ Flow.Record $
+      [ Route.Forward $ Forward.Flow $ Flow.Event $
         { sourceIPv4 : IPv4 0 0 0 0
         , destinationIPv4 : IPv4 0 0 0 0
         , sourcePort : 0
@@ -73,7 +73,7 @@ forwardFlow = UnitTest $
         , duration : 0.000
         , endTime : Date.epoch
         }
-      , Route.Forward $ Forward.Flow $ Flow.Record $
+      , Route.Forward $ Forward.Flow $ Flow.Event $
         { sourceIPv4 : IPv4 255 255 255 255
         , destinationIPv4 : IPv4 255 255 255 255
         , sourcePort : 65535

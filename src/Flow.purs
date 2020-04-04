@@ -1,6 +1,6 @@
 module Flow
-  ( Record (..)
-  , flow
+  ( Event (..)
+  , event
   , uri
   ) where
 
@@ -21,7 +21,7 @@ import FFI.Date (Date)
 import Parser as Parser
 import IPv4 (IPv4)
 
-data Record = Record
+data Event = Event
   { sourceIPv4      :: IPv4
   , destinationIPv4 :: IPv4
   , sourcePort      :: Int
@@ -49,9 +49,9 @@ flags = do
     true  -> pure $ foldMap identity elems
     false -> fail "Invalid number of TCP flags."
 
-{-- Parses a valid SiLk flow record based on the parsers defined for its fields, or fails otherwise. --}
-flow :: Parser String Record
-flow = do
+{-- Parses a valid SiLk event event based on the parsers defined for its fields, or fails otherwise. --}
+event :: Parser String Event
+event = do
   sourceIPv4      <- Parser.ipv4
   _               <- comma
   destinationIPv4 <- Parser.ipv4
@@ -74,7 +74,7 @@ flow = do
   _               <- comma
   endTime           <- Parser.timestamp
   _               <- eof
-  pure $ Record
+  pure $ Event
     { sourceIPv4      : sourceIPv4
     , destinationIPv4 : destinationIPv4
     , sourcePort      : sourcePort
@@ -89,18 +89,18 @@ flow = do
     }
   where comma = char delimiter
 
-uri :: Record -> String
-uri (Record record) = intercalate delimiter' $
-  [ show record.sourceIPv4
-  , show record.destinationIPv4
-  , show record.sourcePort
-  , show record.destinationPort
-  , show record.protocol
-  , show record.packets
-  , show record.bytes
-  , record.flags
-  , show record.startTime
-  , show record.duration
-  , show record.endTime
+uri :: Event -> String
+uri (Event event) = intercalate delimiter' $
+  [ show event.sourceIPv4
+  , show event.destinationIPv4
+  , show event.sourcePort
+  , show event.destinationPort
+  , show event.protocol
+  , show event.packets
+  , show event.bytes
+  , event.flags
+  , show event.startTime
+  , show event.duration
+  , show event.endTime
   ]
   where delimiter' = singleton delimiter

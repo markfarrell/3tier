@@ -1,8 +1,8 @@
-module Windows
+module Event
   ( EventCategory(..) 
   , EventID
   , EventType(..)
-  , Record(..)
+  , Event(..)
   , read
   ) where
 
@@ -43,13 +43,13 @@ type EventID = Int
 
 data EventType = Success | Failure
 
-data Record = Record
+data Event = Event
   { eventCategory :: EventCategory
   , eventID       :: EventID
   , eventType     :: EventType
   }
 
-instance eqEventCategoryWindows :: Eq EventCategory where
+instance eqEventCategoryEvent :: Eq EventCategory where
   eq AccountLogon      AccountLogon      = true 
   eq AccountManagement AccountManagement = true
   eq DirectoryService  DirectoryService  = true 
@@ -63,7 +63,7 @@ instance eqEventCategoryWindows :: Eq EventCategory where
   eq Uncategorized     Uncategorized     = true 
   eq _                 _                 = false
 
-read :: Foreign -> Either Exception.Error Record
+read :: Foreign -> Either Exception.Error Event
 read = \x -> do
   eventCategory' <- read' "eventCategory" eventCategory $ x
   eventID'       <- read' "eventID" eventID $ x
@@ -71,7 +71,7 @@ read = \x -> do
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
       case eventCategory' == eventCategory'' of
-        true  -> pure $ Record
+        true  -> pure $ Event
           { eventCategory : eventCategory''
           , eventID       : eventID''
           , eventType     : eventType'

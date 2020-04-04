@@ -67,7 +67,7 @@ data ColumnType = Text | Real
 
 data Schema  = AuditSchema | FlowSchema
 
-data ResultSet = Forward Unit | Report Report.Record
+data ResultSet = Forward Unit | Report Report.Event
 
 type DSL a = DSL.DSL Settings ResultSet a
 
@@ -116,38 +116,38 @@ schemaURI FlowSchema = schemaURI' "Flow" [] $
   , Tuple "EndTime" Text
   ]
 
-insertAuditURI :: Audit.Record -> Aff String
-insertAuditURI (Audit.Record record) = do
+insertAuditURI :: Audit.Event -> Aff String
+insertAuditURI (Audit.Event event) = do
   timestamp <- liftEffect $ (Date.toISOString <$> Date.current)
   pure $ insertURI' "Audit" (params timestamp)
   where 
     params timestamp =
       [ Tuple "Timestamp" timestamp 
-      , Tuple "SourceAddress" record.sourceAddress
-      , Tuple "SourcePort" (show record.sourcePort)
-      , Tuple "Duration" (show record.duration)
-      , Tuple "EventType" (show record.eventType)
-      , Tuple "EventCategory" (show record.eventCategory)
-      , Tuple "EventID" (intercalate "," (show <$> record.eventID))
-      , Tuple "EventSource" (show record.eventSource)
+      , Tuple "SourceAddress" event.sourceAddress
+      , Tuple "SourcePort" (show event.sourcePort)
+      , Tuple "Duration" (show event.duration)
+      , Tuple "EventType" (show event.eventType)
+      , Tuple "EventCategory" (show event.eventCategory)
+      , Tuple "EventID" (intercalate "," (show <$> event.eventID))
+      , Tuple "EventSource" (show event.eventSource)
       ]
 
-insertFlowURI :: Flow.Record -> Aff String
-insertFlowURI (Flow.Record record) = do
+insertFlowURI :: Flow.Event -> Aff String
+insertFlowURI (Flow.Event event) = do
   pure $ insertURI' "Flow" params
   where
     params = 
-      [ Tuple "SourceIPv4" (show record.sourceIPv4)
-      , Tuple "DestinationIPv4" (show record.destinationIPv4)
-      , Tuple "SourcePort" (show record.sourcePort)
-      , Tuple "DestinationPort" (show record.destinationPort)
-      , Tuple "Protocol" (show record.protocol)
-      , Tuple "Packets" (show record.packets)
-      , Tuple "Bytes" (show record.bytes)
-      , Tuple "Flags" record.flags
-      , Tuple "StartTIme" (show record.startTime)
-      , Tuple "Duration" (show record.duration)
-      , Tuple "EndTime" (show record.endTime)
+      [ Tuple "SourceIPv4" (show event.sourceIPv4)
+      , Tuple "DestinationIPv4" (show event.destinationIPv4)
+      , Tuple "SourcePort" (show event.sourcePort)
+      , Tuple "DestinationPort" (show event.destinationPort)
+      , Tuple "Protocol" (show event.protocol)
+      , Tuple "Packets" (show event.packets)
+      , Tuple "Bytes" (show event.bytes)
+      , Tuple "Flags" event.flags
+      , Tuple "StartTIme" (show event.startTime)
+      , Tuple "Duration" (show event.duration)
+      , Tuple "EndTime" (show event.endTime)
       ]
 
 insertURI' ::  Table -> Array (Tuple String String) -> String
@@ -160,8 +160,8 @@ insertURI'  table' params = query
      values'  = snd <$> params
 
 insertURI :: Forward ->  Aff String
-insertURI (Forward.Audit record) = insertAuditURI record
-insertURI (Forward.Flow  record) = insertFlowURI record
+insertURI (Forward.Audit event) = insertAuditURI event
+insertURI (Forward.Flow  event) = insertFlowURI event
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
 reportAuditURI' Audit.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceAddress, SourcePort" 
@@ -257,7 +257,7 @@ executeReport'' (Local setting) report = do
   average    <- executeReport''' database (averageURI report)
   variance   <- executeReport''' database (varianceURI report average)
   _          <- SQLite3.close database
-  pure $ Report $ Report.Record $
+  pure $ Report $ Report.Event $
     { min       : min
     , max       : max
     , sum       : sum

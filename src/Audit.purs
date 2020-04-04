@@ -5,9 +5,9 @@ module Audit
   , EventInstance(..)
   , EventID(..)
   , EventSource(..)
-  , Record(..)
+  , Event(..)
   , ReportType(..)
-  , record
+  , event
   , uri
   ) where
 
@@ -32,7 +32,7 @@ data EventSource = Tier1 | Tier2 | Tier3
 
 data ReportType = Sources | Durations
 
-data Record = Record 
+data Event = Event 
   { sourceAddress :: String
   , sourcePort    :: Int 
   , eventType     :: EventType
@@ -42,28 +42,28 @@ data Record = Record
   , duration      :: Number
   }
 
-instance showEventType :: Show EventType where
+instance showEventTypeAudit :: Show EventType where
   show Success = "SUCCESS"
   show Failure = "FAILURE"
 
-instance showEventCategory :: Show EventCategory where
+instance showEventCategoryAudit :: Show EventCategory where
   show DatabaseRequest  = "DATABASE-REQUEST"
   show ResourceRequest  = "RESOURCE-REQUEST"
   show RoutingRequest   = "ROUTING-REQUEST"
 
-instance showEventInstance :: Show EventInstance where
+instance showEventInstanceAudit :: Show EventInstance where
   show (Forward Flow)  = "FORWARD-FLOW"
   show (Forward Audit) = "FORWARD-AUDIT"
   show (Report  Flow)  = "REPORT-FLOW"
   show (Report Audit)  = "REPORT-AUDIT"
 
-instance showEventSource :: Show EventSource where
+instance showEventSourceAudit :: Show EventSource where
   show Tier1 = "TIER-1"
   show Tier2 = "TIER-2"
   show Tier3 = "TIER-3"
 
-record :: EventSource -> EventType -> EventCategory -> Number -> EventID -> HTTP.IncomingMessage -> Record
-record eventSource eventType eventCategory duration eventID req = Record $
+event :: EventSource -> EventType -> EventCategory -> Number -> EventID -> HTTP.IncomingMessage -> Event
+event eventSource eventType eventCategory duration eventID req = Event $
   { sourceAddress : sourceAddress
   , sourcePort    : sourcePort
   , eventType     : eventType
@@ -76,14 +76,14 @@ record eventSource eventType eventCategory duration eventID req = Record $
     sourceAddress = Socket.remoteAddress $ HTTP.socket req
     sourcePort = Socket.remotePort $ HTTP.socket req
 
-uri :: Record -> String
-uri (Record record') = intercalate separator $
-  [ record'.sourceAddress
-  , show record'.sourcePort
-  , show record'.eventType
-  , show record'.eventCategory
-  , show record'.eventID
-  , show record'.eventSource
-  , show record'.duration
+uri :: Event -> String
+uri (Event event') = intercalate separator $
+  [ event'.sourceAddress
+  , show event'.sourcePort
+  , show event'.eventType
+  , show event'.eventCategory
+  , show event'.eventID
+  , show event'.eventSource
+  , show event'.duration
   ] 
   where separator = ","

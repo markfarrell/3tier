@@ -48,14 +48,14 @@ data AuthenticationType = Bearer
 
 data Resource a = Ok (ContentType a) | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
 
-audit :: Tier3.Settings -> Audit.Record -> Tier3.Request Unit
-audit settings record = do
-  _ <- Tier3.request settings $ Route.Forward (Forward.Audit record)
+audit :: Tier3.Settings -> Audit.Event -> Tier3.Request Unit
+audit settings event = do
+  _ <- Tier3.request settings $ Route.Forward (Forward.Audit event)
   pure unit
 
-databaseRequest'' :: forall a. Tier3.Result a -> Number -> HTTP.IncomingMessage -> Audit.Record
-databaseRequest'' (Left _)                = \duration req -> Audit.record Audit.Tier2 Audit.Failure Audit.DatabaseRequest duration [] $ req
-databaseRequest'' (Right (Tuple _ steps)) = \duration req -> Audit.record Audit.Tier2 Audit.Success Audit.DatabaseRequest duration steps $ req
+databaseRequest'' :: forall a. Tier3.Result a -> Number -> HTTP.IncomingMessage -> Audit.Event
+databaseRequest'' (Left _)                = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.DatabaseRequest duration [] $ req
+databaseRequest'' (Right (Tuple _ steps)) = \duration req -> Audit.event Audit.Tier2 Audit.Success Audit.DatabaseRequest duration steps $ req
 
 databaseRequest':: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource Tier3.ResultSet) 
 databaseRequest' settings route req = do
@@ -63,8 +63,8 @@ databaseRequest' settings route req = do
   result    <- Tier3.execute $ Tier3.request settings route
   endTime   <- liftEffect $ Date.currentTime
   duration  <- pure $ endTime - startTime
-  record    <- pure $ databaseRequest'' result duration req
-  _         <- Tier3.execute $ audit settings record
+  event    <- pure $ databaseRequest'' result duration req
+  _         <- Tier3.execute $ audit settings event
   case result of 
     (Left _)                    -> pure  $ InternalServerError ""
     (Right (Tuple resultSet _)) -> pure  $ Ok (TextJSON resultSet)
@@ -74,9 +74,9 @@ databaseRequest settings route req = do
   resource <- databaseRequest' settings route req
   pure resource
 
-routingRequest' :: Either Error Route -> Number -> HTTP.IncomingMessage -> Audit.Record
-routingRequest' (Left _)      = \duration req -> Audit.record Audit.Tier2 Audit.Failure Audit.RoutingRequest duration [] $ req 
-routingRequest' (Right route) = \duration req -> Audit.record Audit.Tier2 Audit.Success Audit.RoutingRequest duration (Route.eventID route) $ req
+routingRequest' :: Either Error Route -> Number -> HTTP.IncomingMessage -> Audit.Event
+routingRequest' (Left _)      = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.RoutingRequest duration [] $ req 
+routingRequest' (Right route) = \duration req -> Audit.event Audit.Tier2 Audit.Success Audit.RoutingRequest duration (Route.eventID route) $ req
 
 routingRequest :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Either Error Route)
 routingRequest settings req = do 
@@ -84,18 +84,18 @@ routingRequest settings req = do
   result    <- Route.execute req
   endTime   <- liftEffect $ Date.currentTime
   duration  <- pure $ endTime - startTime
-  record     <- pure $ routingRequest' result duration req
-  _         <- Tier3.execute $ audit settings record
+  event     <- pure $ routingRequest' result duration req
+  _         <- Tier3.execute $ audit settings event
   pure result
 
-resourceRequest'' :: forall a b. Either a Route -> Either a (Resource b) -> Number -> HTTP.IncomingMessage -> Audit.Record
-resourceRequest'' (Left _) (Left _)                             = \duration req -> Audit.record Audit.Tier2 Audit.Failure Audit.ResourceRequest duration [] $ req
-resourceRequest'' (Left _) (Right _)                            = \duration req -> Audit.record Audit.Tier2 Audit.Failure Audit.ResourceRequest duration [] $ req
-resourceRequest'' (Right route) (Left _)                        = \duration req -> Audit.record Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
-resourceRequest'' (Right route) (Right (Ok _))                  = \duration req -> Audit.record Audit.Tier2 Audit.Success Audit.ResourceRequest duration (Route.eventID route) $ req 
-resourceRequest'' (Right route) (Right (InternalServerError _)) = \duration req -> Audit.record Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
-resourceRequest'' (Right route) (Right (BadRequest _))          = \duration req -> Audit.record Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
-resourceRequest'' (Right route) (Right (Forbidden _ _))         = \duration req -> Audit.record Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
+resourceRequest'' :: forall a b. Either a Route -> Either a (Resource b) -> Number -> HTTP.IncomingMessage -> Audit.Event
+resourceRequest'' (Left _) (Left _)                             = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration [] $ req
+resourceRequest'' (Left _) (Right _)                            = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration [] $ req
+resourceRequest'' (Right route) (Left _)                        = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
+resourceRequest'' (Right route) (Right (Ok _))                  = \duration req -> Audit.event Audit.Tier2 Audit.Success Audit.ResourceRequest duration (Route.eventID route) $ req 
+resourceRequest'' (Right route) (Right (InternalServerError _)) = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
+resourceRequest'' (Right route) (Right (BadRequest _))          = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
+resourceRequest'' (Right route) (Right (Forbidden _ _))         = \duration req -> Audit.event Audit.Tier2 Audit.Failure Audit.ResourceRequest duration (Route.eventID route) $ req
 
 resourceRequest' :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Tuple (Either Error Route) (Resource Tier3.ResultSet))
 resourceRequest' settings req  = do
@@ -142,12 +142,12 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
   duration        <- pure (endTime - startTime)
   case result' of
     (Left error) -> do
-      record <- pure $ resourceRequest'' (Tuple.fst result) (Left error) duration req 
-      _     <- Tier3.execute $ audit settings record
+      event <- pure $ resourceRequest'' (Tuple.fst result) (Left error) duration req 
+      _     <- Tier3.execute $ audit settings event
       pure unit
     (Right _)    -> do
-       record <- pure $ resourceRequest'' (Tuple.fst result) (Right (Tuple.snd result)) duration req
-       _     <- Tier3.execute $ audit settings record
+       event <- pure $ resourceRequest'' (Tuple.fst result) (Right (Tuple.snd result)) duration req
+       _     <- Tier3.execute $ audit settings event
        pure unit
 
 producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
