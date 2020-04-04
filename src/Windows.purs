@@ -25,7 +25,9 @@ import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.Combinators (choice)
 import Text.Parsing.Parser.String (string)
 
-import Parser as Parser
+import FFI.Date (Date)
+
+import Parser (date, positiveFloat, positiveInteger)
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -47,6 +49,9 @@ data Event = Event
   { eventCategory :: EventCategory
   , eventID       :: EventID
   , eventType     :: EventType
+  , startTime     :: Date
+  , duration      :: Number
+  , endTime       :: Date
   }
 
 instance eqEventCategoryEvent :: Eq EventCategory where
@@ -68,6 +73,9 @@ read = \x -> do
   eventCategory' <- read' "eventCategory" eventCategory $ x
   eventID'       <- read' "eventID" eventID $ x
   eventType'     <- read' "eventType" eventType $ x
+  startTime'     <- read' "startTime" date $ x
+  duration'      <- read' "duration"  positiveFloat $ x
+  endTime'       <- read' "endTime" date $ x
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
       case eventCategory' == eventCategory'' of
@@ -75,13 +83,16 @@ read = \x -> do
           { eventCategory : eventCategory''
           , eventID       : eventID''
           , eventType     : eventType'
+          , startTime     : startTime'
+          , duration      : duration'
+          , endTime       : endTime'
           }
         false -> Left (Exception.error "Invalid input.")
 
 read' :: forall a. String -> Parser String a -> Foreign -> Either Exception.Error a
 read' = \x y z -> do
   result  <- runExcept' (z ! x >>= Foreign.readString)
-  result' <- runParser' result y
+  result' <- run result y
   pure result'
   where 
     runExcept' = \x -> do
@@ -89,8 +100,8 @@ read' = \x y z -> do
       case result of
         (Left _)    -> Left (Exception.error "Invalid raw input.")
         (Right raw) -> pure raw 
-    runParser' = \x y -> do
-      result <- pure $ runParser x y 
+    run = \x y -> do
+      result <- pure $ runParser x y
       case result of
         (Left _)    -> Left (Exception.error "Invalid input.")
         (Right val) -> pure val
@@ -99,7 +110,7 @@ eventID :: Parser String (Tuple EventCategory EventID)
 eventID = choice (eventID' <$> eventCategories)
   where
     eventID' = \eventCategory' -> do
-      result <- Parser.positiveInteger
+      result <- positiveInteger
       case Array.elemIndex result (eventIDs eventCategory') of
         (Just _)  -> pure (Tuple eventCategory' result)
         (Nothing) -> fail "Invalid input."

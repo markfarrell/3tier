@@ -18,7 +18,7 @@ import Text.Parsing.Parser.Combinators (choice)
 
 import FFI.Date (Date)
 
-import Parser as Parser
+import Parser (date, port, ipv4, octet, positiveFloat, positiveInteger)
 import IPv4 (IPv4)
 
 data Event = Event
@@ -52,27 +52,27 @@ flags = do
 {-- Parses a valid SiLk event event based on the parsers defined for its fields, or fails otherwise. --}
 event :: Parser String Event
 event = do
-  sourceIPv4      <- Parser.ipv4
+  sourceIPv4      <- ipv4
   _               <- comma
-  destinationIPv4 <- Parser.ipv4
+  destinationIPv4 <- ipv4
   _               <- comma
-  sourcePort      <- Parser.port
+  sourcePort      <- port
   _               <- comma
-  destinationPort <- Parser.port
+  destinationPort <- port
   _               <- comma
-  protocol        <- Parser.octet
+  protocol        <- octet
   _               <- comma
-  packets         <- Parser.positiveInteger
+  packets         <- positiveInteger
   _               <- comma
-  bytes           <- Parser.positiveInteger
+  bytes           <- positiveInteger
   _               <- comma
   flags'          <- flags
   _               <- comma
-  startTime           <- Parser.timestamp
+  startTime       <- date
   _               <- comma
-  duration'       <- Parser.positiveFloat
+  duration'       <- positiveFloat
   _               <- comma
-  endTime           <- Parser.timestamp
+  endTime         <- date
   _               <- eof
   pure $ Event
     { sourceIPv4      : sourceIPv4
@@ -90,17 +90,17 @@ event = do
   where comma = char delimiter
 
 uri :: Event -> String
-uri (Event event) = intercalate delimiter' $
-  [ show event.sourceIPv4
-  , show event.destinationIPv4
-  , show event.sourcePort
-  , show event.destinationPort
-  , show event.protocol
-  , show event.packets
-  , show event.bytes
-  , event.flags
-  , show event.startTime
-  , show event.duration
-  , show event.endTime
+uri (Event event') = intercalate delimiter' $
+  [ show event'.sourceIPv4
+  , show event'.destinationIPv4
+  , show event'.sourcePort
+  , show event'.destinationPort
+  , show event'.protocol
+  , show event'.packets
+  , show event'.bytes
+  , event'.flags
+  , show event'.startTime
+  , show event'.duration
+  , show event'.endTime
   ]
   where delimiter' = singleton delimiter

@@ -4,7 +4,7 @@ module Parser
   , positiveInteger
   , positiveFloat
   , anyString
-  , timestamp
+  , date
   , lowercase
   , uppercase
   , octet
@@ -64,12 +64,12 @@ positiveFloat = do
 anyString :: Parser String String
 anyString = foldMap singleton <$> List.many anyChar
 
-timestamp :: Parser String Date
-timestamp = do
+date :: Parser String Date
+date = do
   year   <- digits
-  _      <- choice [string "/", string "-"]
+  _      <- string "-"
   month  <- digits
-  _      <- choice [string "/", string "-"]
+  _      <- string "-"
   day    <- digits
   _      <- string "T"
   hour   <- digits
@@ -79,10 +79,10 @@ timestamp = do
   second <- digits
   _      <- string "."
   millis <- digits
-  _      <- optional $ string "Z"
+  _      <- string "Z"
   result <- pure $ format year month day hour minute second millis 
   case Date.parse result of
-    (Left _)        -> fail "Invalid timestamp."
+    (Left _)        -> fail "Invalid date."
     (Right result') -> pure $ result'
   where
     format year month day hour minute second millis = foldl (<>) year $
