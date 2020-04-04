@@ -1,7 +1,27 @@
-module Windows.TaskCategory
+module Windows
   ( TaskCategory(..) 
-  , eventIDs
+  , Record(..)
+  , read
   ) where
+
+import Prelude
+
+import Control.Monad.Except (runExcept)
+
+import Data.Array as Array
+import Data.Maybe(Maybe(..))
+import Data.Either(Either(..))
+
+import Effect.Exception as Exception
+
+import Foreign (Foreign)
+import Foreign as Foreign
+import Foreign.Index ((!))
+
+import Text.Parsing.Parser (Parser, fail, runParser)
+import Text.Parsing.Parser.Combinators (choice)
+
+import Parser as Parser
 
 data TaskCategory = AccountLogon
   | AccountManagement
@@ -14,6 +34,55 @@ data TaskCategory = AccountLogon
   | ProcessTracking
   | System
   | Uncategorized
+
+data Record = Record
+  { taskCategory :: TaskCategory
+  }
+
+read :: Foreign -> Either Exception.Error Record
+read = \x -> do
+  taskCategory' <- read' taskCategory "eventID" $ x
+  pure $ Record
+    { taskCategory : taskCategory' }
+  where
+    read' = \x y z -> do
+      result  <- runExcept' (z ! y >>= Foreign.readString)
+      result' <- runParser' result x
+      pure result'
+    runExcept' = \x -> do
+      result <- pure $ runExcept x
+      case result of
+        (Left _)    -> Left (Exception.error "Invalid raw input.")
+        (Right raw) -> pure raw 
+    runParser' = \x y -> do
+      result <- pure $ runParser x y 
+      case result of
+        (Left _)    -> Left (Exception.error "Invalid input.")
+        (Right val) -> pure val
+
+taskCategory :: Parser String TaskCategory
+taskCategory = choice (taskCategory' <$> taskCategories)
+  where
+    taskCategory' = \tc -> do
+      eventID <- Parser.positiveInteger
+      case Array.elemIndex eventID (eventIDs tc) of
+        (Just _)  -> pure tc
+        (Nothing) -> fail "Invalid input."
+
+taskCategories :: Array TaskCategory
+taskCategories = 
+  [ AccountLogon
+  , AccountManagement
+  , DirectoryService
+  , LogonAndLogoff
+  , ObjectAccess
+  , NonAudit
+  , PolicyChange
+  , PrivilegeUse
+  , ProcessTracking
+  , System
+  , Uncategorized
+  ]
 
 eventIDs :: TaskCategory -> Array Int
 eventIDs AccountLogon      = accountLogon
