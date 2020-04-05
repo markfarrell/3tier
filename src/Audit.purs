@@ -2,6 +2,7 @@ module Audit
   ( EventType(..)
   , EventCategory(..)
   , EventID(..)
+  , EventURI
   , Event(..)
   , ReportType(..)
   , uri
@@ -18,6 +19,8 @@ data EventType = Success | Failure
 data EventID = Forward | Report | Reject 
 
 data EventCategory = Tier1 | Tier2 | Tier3
+
+type EventURI = String
 
 data ReportType = Source | Duration
 

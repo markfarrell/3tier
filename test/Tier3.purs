@@ -16,29 +16,30 @@ import Audit as Audit
 
 import Tier3 as Tier3
 
-import Test.UnitTest (UnitTest(..))
-import Test.UnitTest as UnitTest
+import Test.Test (Test(..))
+import Test.Test as Test
 
-unitTest :: Route -> UnitTest Route Tier3.Resource
-unitTest = \route -> UnitTest $
+test :: Route -> Test Tier3.Resource
+test = \route -> Test $
   { eventType     : Audit.Success
   , eventCategory : Audit.Tier3
   , eventID       : case route of
                       (Route.Forward _) -> Audit.Forward
                       (Route.Report  _) -> Audit.Report
-  , name          : Route.uri route 
-  , input         : route
-  , execute       : Tier3.execute <<< Tier3.request settings
+  , eventURI      : Route.uri route 
+  , execute       : \_ -> Tier3.execute $ Tier3.request settings route 
   }
   where
     settings = Tier3.Settings (Tier3.Local <$> ["Test.Tier3.db.1", "Test.Tier3.db.2"])
 
-unitTests :: Array (UnitTest Route Tier3.Resource) 
-unitTests = unitTest <$> Route.Report <$> Report.sample 
+tests :: Array (Test Tier3.Resource) 
+tests = do 
+  reports <- test <$> Route.Report <$> Report.sample
+  pure reports
 
 execute :: Aff Unit
 execute = supervise $ do
-  _ <- sequence (UnitTest.execute <$> unitTests)
+  _ <- sequence (Test.execute <$> tests)
   pure unit
 
 main :: Effect Unit
