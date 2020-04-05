@@ -1,10 +1,7 @@
 module Audit
   ( EventType(..)
   , EventCategory(..)
-  , EventClass(..)
-  , EventInstance(..)
   , EventID(..)
-  , EventSource(..)
   , Event(..)
   , ReportType(..)
   , uri
@@ -15,22 +12,14 @@ import Prelude
 import Data.Foldable (intercalate)
 
 import FFI.Date (Date)
-import FFI.HTTP as HTTP
-import FFI.Socket as Socket
 
 data EventType = Success | Failure
 
-data EventCategory = DatabaseRequest | ResourceRequest | RoutingRequest
+data EventID = Forward | Report | Reject 
 
-data EventClass = Audit | Flow
+data EventCategory = Tier1 | Tier2 | Tier3
 
-data EventInstance = Forward EventClass | Report EventClass
-
-type EventID = Array EventInstance
-
-data EventSource = Tier1 | Tier2 | Tier3
-
-data ReportType = Sources | Durations
+data ReportType = Source | Duration
 
 data Event = Event 
   { sourceAddress :: String
@@ -38,7 +27,6 @@ data Event = Event
   , eventType     :: EventType
   , eventCategory :: EventCategory
   , eventID       :: EventID
-  , eventSource   :: EventSource
   , startTime     :: Date
   , duration      :: Number
   , endTime       :: Date
@@ -48,21 +36,20 @@ instance showEventTypeAudit :: Show EventType where
   show Success = "SUCCESS"
   show Failure = "FAILURE"
 
-instance showEventCategoryAudit :: Show EventCategory where
-  show DatabaseRequest  = "DATABASE-REQUEST"
-  show ResourceRequest  = "RESOURCE-REQUEST"
-  show RoutingRequest   = "ROUTING-REQUEST"
+instance showEventIDAudit :: Show EventID where
+  show Forward = "FORWARD"
+  show Report  = "REPORT"
+  show Reject  = "REJECT"
 
-instance showEventInstanceAudit :: Show EventInstance where
-  show (Forward Flow)  = "FORWARD-FLOW"
-  show (Forward Audit) = "FORWARD-AUDIT"
-  show (Report  Flow)  = "REPORT-FLOW"
-  show (Report Audit)  = "REPORT-AUDIT"
-
-instance showEventSourceAudit :: Show EventSource where
+instance showEventCategory :: Show EventCategory where
   show Tier1 = "TIER-1"
   show Tier2 = "TIER-2"
   show Tier3 = "TIER-3"
+
+instance eqEventTypeAudit :: Eq EventType where
+  eq Success Success = true
+  eq Failure Failure = true
+  eq _       _       = false
 
 uri :: Event -> String
 uri (Event event') = intercalate separator $
@@ -71,7 +58,6 @@ uri (Event event') = intercalate separator $
   , show event'.eventType
   , show event'.eventCategory
   , show event'.eventID
-  , show event'.eventSource
   , show event'.duration
   ] 
   where separator = ","

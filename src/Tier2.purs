@@ -51,61 +51,6 @@ audit settings event = do
   _ <- Tier3.request settings $ Route.Forward (Forward.Audit event)
   pure unit
 
-databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource) 
-databaseRequest settings route req = do
-  startTime <- liftEffect $ Date.current
-  result    <- Tier3.execute $ Tier3.request settings route
-  endTime   <- liftEffect $ Date.current
-  duration  <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
-  eventType <- pure $ case result of
-                 (Left _)  -> Audit.Failure
-                 (Right _) -> Audit.Success
-  eventID <- pure $ case result of
-                 (Left _)  -> []
-                 (Right _) -> []
-  event     <- pure $ Audit.Event $
-                 { eventSource   : Audit.Tier2
-                 , eventType     : eventType
-                 , eventCategory : Audit.DatabaseRequest
-                 , eventID       : eventID
-                 , startTime     : startTime
-                 , duration      : duration
-                 , endTime       : endTime
-                 , sourceAddress : Socket.remoteAddress $ HTTP.socket req
-                 , sourcePort    : Socket.remotePort    $ HTTP.socket req
-                 }
-  _         <- Tier3.execute $ audit settings event
-  case result of 
-    (Left _)          -> pure  $ InternalServerError ""
-    (Right resultSet) -> pure  $ Ok (TextJSON resultSet)
-
-routingRequest :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Either Error Route)
-routingRequest settings req = do 
-  startTime <- liftEffect $ Date.current
-  result    <- Route.execute req
-  endTime   <- liftEffect $ Date.current
-  duration  <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
-  eventType <- pure $ case result of
-                 (Left _)  -> Audit.Failure
-                 (Right _) -> Audit.Success
-  eventID <- pure $ case result of
-                 (Left _)      -> []
-                 (Right route) -> Route.eventID route
-  event     <- pure $ Audit.Event $
-                 { eventSource   : Audit.Tier2
-                 , eventType     : eventType
-                 , eventCategory : Audit.RoutingRequest
-                 , eventID       : eventID
-                 , startTime     : startTime
-                 , duration      : duration
-                 , endTime       : endTime
-                 , sourceAddress : Socket.remoteAddress $ HTTP.socket req
-                 , sourcePort    : Socket.remotePort    $ HTTP.socket req
-                 }
-  _         <- Tier3.execute $ audit settings event
-  pure result
-
-
 textJSON :: Tier3.Resource -> String
 textJSON (Tier3.Forward _) = ""
 textJSON (Tier3.Report x)  = JSON.stringify $ unsafeCoerce x
@@ -131,10 +76,17 @@ sendResource (InternalServerError _) = \res -> liftEffect $ do
   _ <- HTTP.end $ res
   pure unit
 
+databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource) 
+databaseRequest settings route req = do
+  result    <- Tier3.execute $ Tier3.request settings route
+  case result of 
+    (Left _)          -> pure  $ InternalServerError ""
+    (Right resultSet) -> pure  $ Ok (TextJSON resultSet)
+
 resourceRequest :: Tier3.Settings -> HTTP.IncomingRequest -> Aff Unit
 resourceRequest settings (HTTP.IncomingRequest req res) = do
   startTime     <- liftEffect $ Date.current
-  routingResult <- routingRequest settings req
+  routingResult <- Route.execute req
   resource      <- case routingResult of
                      (Left _)      -> pure $ BadRequest (HTTP.messageURL req)
                      (Right route) -> databaseRequest settings route req 
@@ -142,8 +94,9 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
   endTime       <- liftEffect $ Date.current
   duration      <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
   eventID       <- pure $ case routingResult of
-                     (Left _)      -> []
-                     (Right route) -> Route.eventID route
+                     (Left _)                  -> Audit.Reject
+                     (Right (Route.Forward _)) -> Audit.Forward
+                     (Right (Route.Report _))  -> Audit.Report
   eventType     <- pure $ case routingResult of
                      (Left  _) -> Audit.Failure
                      (Right _) -> case resource of
@@ -152,9 +105,8 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
                          (Left _)  -> Audit.Failure
                          (Right _) -> Audit.Success
   event     <- pure $ Audit.Event $
-                 { eventSource   : Audit.Tier2
+                 { eventCategory : Audit.Tier2
                  , eventType     : eventType
-                 , eventCategory : Audit.ResourceRequest
                  , eventID       : eventID
                  , startTime     : startTime
                  , duration      : duration

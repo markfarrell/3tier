@@ -15,7 +15,6 @@ import Data.Either (Either)
 import Effect.Aff (Aff)
 import Effect.Exception(Error)
 
-import Audit as Audit
 import Forward (Forward)
 import Report (Report)
 

@@ -25,30 +25,30 @@ instance eqEventReport :: Eq Event where
 
 sample :: Array Report
 sample =
-  [ Audit Audit.DatabaseRequest Audit.Success Audit.Sources  
-  , Audit Audit.DatabaseRequest Audit.Failure Audit.Sources  
-  , Audit Audit.DatabaseRequest Audit.Success Audit.Durations
-  , Audit Audit.DatabaseRequest Audit.Failure Audit.Durations
-  , Audit Audit.ResourceRequest Audit.Success Audit.Sources  
-  , Audit Audit.ResourceRequest Audit.Failure Audit.Sources  
-  , Audit Audit.ResourceRequest Audit.Success Audit.Durations
-  , Audit Audit.ResourceRequest Audit.Failure Audit.Durations
-  , Audit Audit.RoutingRequest Audit.Success Audit.Sources   
-  , Audit Audit.RoutingRequest Audit.Failure Audit.Sources   
-  , Audit Audit.RoutingRequest Audit.Success Audit.Durations 
-  , Audit Audit.RoutingRequest Audit.Failure Audit.Durations 
+  [ Audit Audit.Tier3 Audit.Success Audit.Source  
+  , Audit Audit.Tier3 Audit.Failure Audit.Source  
+  , Audit Audit.Tier3 Audit.Success Audit.Duration
+  , Audit Audit.Tier3 Audit.Failure Audit.Duration
+  , Audit Audit.Tier2 Audit.Success Audit.Source  
+  , Audit Audit.Tier2 Audit.Failure Audit.Source  
+  , Audit Audit.Tier2 Audit.Success Audit.Duration
+  , Audit Audit.Tier2 Audit.Failure Audit.Duration
+  , Audit Audit.Tier1 Audit.Success Audit.Source  
+  , Audit Audit.Tier1 Audit.Failure Audit.Source  
+  , Audit Audit.Tier1 Audit.Success Audit.Duration
+  , Audit Audit.Tier1 Audit.Failure Audit.Duration
   ]
 
 uri :: Report -> String
-uri  (Audit Audit.DatabaseRequest Audit.Success Audit.Sources)   = "/report/audit/database-request/success/sources"
-uri  (Audit Audit.DatabaseRequest Audit.Failure Audit.Sources)   = "/report/audit/database-request/success/sources" 
-uri  (Audit Audit.DatabaseRequest Audit.Success Audit.Durations) = "/report/audit/database-request/success/durations"
-uri  (Audit Audit.DatabaseRequest Audit.Failure Audit.Durations) = "/report/audit/database-request/success/durations"
-uri  (Audit Audit.ResourceRequest Audit.Success Audit.Sources)   = "/report/audit/resource-request/success/sources"
-uri  (Audit Audit.ResourceRequest Audit.Failure Audit.Sources)   = "/report/audit/resource-request/success/sources"
-uri  (Audit Audit.ResourceRequest Audit.Success Audit.Durations) = "/report/audit/resource-request/success/durations"
-uri  (Audit Audit.ResourceRequest Audit.Failure Audit.Durations) = "/report/audit/resource-request/success/durations"
-uri  (Audit Audit.RoutingRequest Audit.Success Audit.Sources)    = "/report/audit/routing-request/success/sources" 
-uri  (Audit Audit.RoutingRequest Audit.Failure Audit.Sources)    = "/report/audit/routing-request/success/sources"
-uri  (Audit Audit.RoutingRequest Audit.Success Audit.Durations)  = "/report/audit/routing-request/success/durations"
-uri  (Audit Audit.RoutingRequest Audit.Failure Audit.Durations)  = "/report/audit/routing-request/success/durations"
+uri  (Audit Audit.Tier3 Audit.Success Audit.Source)   = "/report/audit/tier3/success/sources"
+uri  (Audit Audit.Tier3 Audit.Failure Audit.Source)   = "/report/audit/tier3/failure/sources"
+uri  (Audit Audit.Tier3 Audit.Success Audit.Duration) = "/report/audit/tier3/success/durations"
+uri  (Audit Audit.Tier3 Audit.Failure Audit.Duration) = "/report/audit/tier3/failure/durations"
+uri  (Audit Audit.Tier2 Audit.Success Audit.Source)   = "/report/audit/tier2/success/sources"
+uri  (Audit Audit.Tier2 Audit.Failure Audit.Source)   = "/report/audit/tier2/failure/sources"
+uri  (Audit Audit.Tier2 Audit.Success Audit.Duration) = "/report/audit/tier2/success/durations"
+uri  (Audit Audit.Tier2 Audit.Failure Audit.Duration) = "/report/audit/tier2/failure/durations"
+uri  (Audit Audit.Tier1 Audit.Success Audit.Source)   = "/report/audit/tier1/success/sources"
+uri  (Audit Audit.Tier1 Audit.Failure Audit.Source)   = "/report/audit/tier1/failure/sources"
+uri  (Audit Audit.Tier1 Audit.Success Audit.Duration) = "/report/audit/tier1/success/durations"
+uri  (Audit Audit.Tier1 Audit.Failure Audit.Duration) = "/report/audit/tier1/failure/durations"

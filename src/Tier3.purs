@@ -69,9 +69,9 @@ data Resource = Forward Unit | Report Report.Event
 
 type DSL a = DSL.DSL Settings Resource a
 
-type Request a = DSL.Request Settings Resource Audit.EventID a
+type Request a = DSL.Request Settings Resource (Array Audit.EventID) a
 
-type Interpreter a = DSL.Interpreter Audit.EventID a
+type Interpreter a = DSL.Interpreter (Array Audit.EventID) a
 
 type Result a = DSL.Result a
 
@@ -99,7 +99,6 @@ schemaURI AuditSchema = schemaURI' "Audit" [] $
   , Tuple "EventType" Text
   , Tuple "EventCategory" Text
   , Tuple "EventID" Text
-  , Tuple "EventSource" Text
   ]
 schemaURI FlowSchema = schemaURI' "Flow" [] $ 
   [ Tuple "SourceIPv4" Text
@@ -127,8 +126,7 @@ insertAuditURI (Audit.Event event) = do
       , Tuple "EndTime" (show event.endTime)
       , Tuple "EventType" (show event.eventType)
       , Tuple "EventCategory" (show event.eventCategory)
-      , Tuple "EventID" (intercalate "," (show <$> event.eventID))
-      , Tuple "EventSource" (show event.eventSource)
+      , Tuple "EventID" (show event.eventID)
       ]
 
 insertFlowURI :: Flow.Event -> Aff String
@@ -163,8 +161,8 @@ insertURI (Forward.Audit event) = insertAuditURI event
 insertURI (Forward.Flow  event) = insertFlowURI event
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
-reportAuditURI' Audit.Sources   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceAddress, SourcePort" 
-reportAuditURI' Audit.Durations = \table -> "SELECT Duration as X FROM (" <> table <> ")"
+reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceAddress, SourcePort" 
+reportAuditURI' Audit.Duration = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Report -> Table
 reportURI (Report.Audit eventCategory eventType reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "'"
@@ -192,11 +190,11 @@ varianceURI report avg = query
 
 interpret :: forall a. DSL (Request a) -> Interpreter (Request a)
 interpret (DSL.Forward settings query' next) = do
-  _      <- tell $ Route.eventID (Route.Forward query')
+  _      <- tell $ [Audit.Forward]
   result <- lift $ executeForward settings query'
   lift (next <$> (pure result))
 interpret (DSL.Report settings query' next) = do
-  _      <- tell $ Route.eventID (Route.Report query')
+  _      <- tell $ [Audit.Report]
   result <- lift $ executeReport settings query'
   lift (next <$> (pure result))
 
