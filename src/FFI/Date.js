@@ -15,6 +15,10 @@ exports.getMilliseconds = function(date) {
   return date.getMilliseconds();
 };
 
+exports.getYear = function(date) {
+  return date.getYear();
+};
+
 exports.getTime = function(date) {
   return date.getTime();
 };

@@ -2,6 +2,7 @@ module FFI.Date
   ( Date 
   , current
   , toISOString
+  , getYear
   , getMilliseconds
   , getTime
   , currentTime
@@ -22,6 +23,8 @@ foreign import data Date :: Type
 foreign import current :: Effect Date
 
 foreign import toISOString :: Date -> String
+
+foreign import getYear :: Date -> Number
 
 foreign import getMilliseconds :: Date -> Number
 
