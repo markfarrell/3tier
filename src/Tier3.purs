@@ -5,7 +5,7 @@ module Tier3
  , Result
  , Setting(..)
  , Settings(..)
- , ResultSet(..)
+ , Resource(..)
  , request
  , execute
  ) where
@@ -65,13 +65,13 @@ data ColumnType = Text | Real
 
 data Schema  = AuditSchema | FlowSchema
 
-data ResultSet = Forward Unit | Report Report.Event
+data Resource = Forward Unit | Report Report.Event
 
-type DSL a = DSL.DSL Settings ResultSet a
+type DSL a = DSL.DSL Settings Resource a
 
-type Request a = DSL.Request Settings ResultSet a
+type Request a = DSL.Request Settings Resource Audit.EventID a
 
-type Interpreter a = DSL.Interpreter a
+type Interpreter a = DSL.Interpreter Audit.EventID a
 
 type Result a = DSL.Result a
 
@@ -214,19 +214,19 @@ executeSchemas (Local setting) = do
   _        <- SQLite3.close database
   pure unit
 
-executeForward :: Settings -> Forward -> Aff ResultSet
+executeForward :: Settings -> Forward -> Aff Resource
 executeForward (Settings settings) query' = do
   result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward' query' <$> settings)) 
   pure result
 
-executeForward' :: Setting -> Forward -> Aff ResultSet
+executeForward' :: Setting -> Forward -> Aff Resource
 executeForward' setting query' = do
   _      <- executeTouch setting
   _      <- executeSchemas setting
   result <- executeForward'' setting query'
   pure result
 
-executeForward'' :: Setting -> Forward -> Aff ResultSet
+executeForward'' :: Setting -> Forward -> Aff Resource
 executeForward'' (Local setting) query' = do
   database <- SQLite3.connect setting SQLite3.OpenReadWrite
   uri      <- insertURI query'
@@ -234,19 +234,19 @@ executeForward'' (Local setting) query' = do
   _        <- SQLite3.close database
   pure (Forward unit)
 
-executeReport :: Settings -> Report -> Aff ResultSet
+executeReport :: Settings -> Report -> Aff Resource
 executeReport (Settings settings) query' = do
   result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport' query' <$> settings)) 
   pure result
 
-executeReport' :: Setting -> Report -> Aff ResultSet
+executeReport' :: Setting -> Report -> Aff Resource
 executeReport' setting query' = do
   _         <- executeTouch setting
   _         <- executeSchemas setting
   result    <- executeReport'' setting query'
   pure result
 
-executeReport'' :: Setting -> Report -> Aff ResultSet
+executeReport'' :: Setting -> Report -> Aff Resource
 executeReport'' (Local setting) report = do
   database   <- SQLite3.connect setting SQLite3.OpenReadOnly
   min        <- executeReport''' database (minURI report)
@@ -280,9 +280,12 @@ executeReport''' database uri = do
          (Right number') -> pure number'
     error = Exception.error "Unexpected results."
 
-request :: Settings -> Route -> Request ResultSet
+request :: Settings -> Route -> Request Resource
 request settings (Route.Forward query) = liftFreeT $ (DSL.Forward settings query identity)
 request settings (Route.Report query)  = liftFreeT $ (DSL.Report settings query identity)
 
 execute ::  forall a. Request a -> Aff (Result a)
-execute request' = try $ runWriterT $ runFreeT interpret request'
+execute request' =  do
+  result <- runWriterT (try $ runFreeT interpret request')
+  case result of
+    (Tuple result' _) -> pure result' 

@@ -11,7 +11,6 @@ import Control.Monad.Free.Trans (FreeT)
 import Control.Monad.Writer.Trans(WriterT)
 
 import Data.Either (Either)
-import Data.Tuple (Tuple)
 
 import Effect.Aff (Aff)
 import Effect.Exception(Error)
@@ -22,11 +21,11 @@ import Report (Report)
 
 data DSL a b c = Forward a Forward (b -> c) | Report a Report (b -> c)
 
-type Interpreter = WriterT Audit.EventID Aff 
+type Interpreter a = WriterT a Aff 
 
-type Request a b c = FreeT (DSL a b) Interpreter c
+type Request a b c d = FreeT (DSL a b) (Interpreter c) d
 
-type Result a = Either Error (Tuple a Audit.EventID)
+type Result a = Either Error a
 
 instance functorDSL :: Functor (DSL a b) where
   map :: forall c d. (c -> d) -> DSL a b c -> DSL a b d

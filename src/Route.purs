@@ -2,6 +2,7 @@ module Route
   ( Route(..)
   , execute
   , eventID
+  , uri
   ) where
 
 import Prelude
@@ -41,11 +42,11 @@ report report' = do
   pure $ (Report report')
 
 reports :: Parser String Route
-reports = choice (report <$> Report.reports)
+reports = choice (report <$> Report.sample)
 
 forwardFlow :: Parser String Route
 forwardFlow = do
-  _     <- string "/forward/flow/"
+  _     <- string "/forward/flow?"
   event <- Flow.event
   pure (Forward (Forward.Flow event))
 
@@ -61,3 +62,7 @@ execute req = do
   case result of
     (Left _)        -> pure (Left $ error "Invalid routing request.")
     (Right result') -> pure (Right $ result')
+
+uri :: Route -> String
+uri (Forward event)  = Forward.uri event
+uri (Report  event)  = Report.uri event

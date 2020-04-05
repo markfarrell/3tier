@@ -50,7 +50,7 @@ execute' = execute settings settings'
       , port : 4000
       }
 
-forwardFlow :: UnitTest Route Error HTTP.IncomingResponse
+forwardFlow :: UnitTest Route HTTP.IncomingResponse
 forwardFlow = UnitTest $
   { testSuite    : "Test.Tier2"
   , testName     : "Tier2.execute"
@@ -88,13 +88,13 @@ forwardFlow = UnitTest $
         }
       ]
 
-reportAudit :: UnitTest Route Error HTTP.IncomingResponse
+reportAudit :: UnitTest Route HTTP.IncomingResponse
 reportAudit = UnitTest $
   { testSuite    : "Test.Tier2"
   , testName     : "Tier2.execute"
   , testCase     : "/report/audit/*/*/*"
   , testFunction : execute'
-  , testInputs   : Route.Report <$> Report.reports
+  , testInputs   : Route.Report <$> Report.sample
   }
 
 unitTests :: Aff Unit

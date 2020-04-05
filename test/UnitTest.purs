@@ -18,6 +18,7 @@ import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 
+import Effect.Exception (Error)
 import Effect.Exception as Exception
 
 type TestSuite = String
@@ -26,21 +27,21 @@ type TestName = String
 
 type TestCase = String
 
-type TestFunction a b c = a -> Aff (Either b c)
+type TestFunction a b = a -> Aff (Either Error b)
 
 type TestInputs a = Array a
 
-type TestResult a b = Either a (Array b)
+type TestResult a = Either Error (Array a)
 
-data UnitTest a b c = UnitTest
+data UnitTest a b = UnitTest
   { testSuite    :: TestSuite
   , testName     :: TestName
   , testCase     :: TestCase
-  , testFunction :: TestFunction a b c
+  , testFunction :: TestFunction a b
   , testInputs   :: TestInputs a
   }
-  
-execute' :: forall a b c. UnitTest a b c -> TestResult b c -> Aff Unit
+
+execute' :: forall a b. UnitTest a b -> TestResult b -> Aff Unit
 execute' (UnitTest unitTest) (Left _) = liftEffect $ do 
   result <- pure (intercalate " " ["FAILURE", unitTest.testSuite, unitTest.testName, unitTest.testCase])
   _ <- log result 
@@ -51,7 +52,7 @@ execute' (UnitTest unitTest) (Right _) = liftEffect $ do
   _ <- log result
   pure unit
 
-execute :: forall a b c. UnitTest a b c -> Aff (TestResult b c)
+execute :: forall a b. UnitTest a b -> Aff (TestResult b)
 execute (UnitTest unitTest) = do 
   result <- sequence <$> (sequence (unitTest.testFunction <$> unitTest.testInputs))
   _      <- execute' (UnitTest unitTest) result

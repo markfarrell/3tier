@@ -18,8 +18,6 @@ import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 
-import Data.Tuple (Tuple(..))
-
 import Unsafe.Coerce (unsafeCoerce)
 
 import FFI.Date as Date
@@ -46,14 +44,14 @@ data ContentType a = TextJSON a
 
 data AuthenticationType = Bearer
 
-data Resource a = Ok (ContentType a) | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
+data Resource = Ok (ContentType Tier3.Resource) | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
 
 audit :: Tier3.Settings -> Audit.Event -> Tier3.Request Unit
 audit settings event = do
   _ <- Tier3.request settings $ Route.Forward (Forward.Audit event)
   pure unit
 
-databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource Tier3.ResultSet) 
+databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource) 
 databaseRequest settings route req = do
   startTime <- liftEffect $ Date.current
   result    <- Tier3.execute $ Tier3.request settings route
@@ -63,8 +61,8 @@ databaseRequest settings route req = do
                  (Left _)  -> Audit.Failure
                  (Right _) -> Audit.Success
   eventID <- pure $ case result of
-                 (Left _)                  -> []
-                 (Right (Tuple _ eventID)) -> eventID
+                 (Left _)  -> []
+                 (Right _) -> []
   event     <- pure $ Audit.Event $
                  { eventSource   : Audit.Tier2
                  , eventType     : eventType
@@ -78,8 +76,8 @@ databaseRequest settings route req = do
                  }
   _         <- Tier3.execute $ audit settings event
   case result of 
-    (Left _)                    -> pure  $ InternalServerError ""
-    (Right (Tuple resultSet _)) -> pure  $ Ok (TextJSON resultSet)
+    (Left _)          -> pure  $ InternalServerError ""
+    (Right resultSet) -> pure  $ Ok (TextJSON resultSet)
 
 routingRequest :: Tier3.Settings -> HTTP.IncomingMessage -> Aff (Either Error Route)
 routingRequest settings req = do 
@@ -108,11 +106,11 @@ routingRequest settings req = do
   pure result
 
 
-textJSON :: Tier3.ResultSet -> String
+textJSON :: Tier3.Resource -> String
 textJSON (Tier3.Forward _) = ""
 textJSON (Tier3.Report x)  = JSON.stringify $ unsafeCoerce x
 
-sendResource :: Resource Tier3.ResultSet -> HTTP.ServerResponse -> Aff Unit
+sendResource :: Resource -> HTTP.ServerResponse -> Aff Unit
 sendResource (Ok (TextJSON body)) = \res -> liftEffect $ do
   _ <- HTTP.setHeader "Content-Type" "text/json" $ res
   _ <- HTTP.writeHead 200 $ res

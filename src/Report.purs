@@ -1,7 +1,7 @@
 module Report
   ( Event(..)
   , Report(..)
-  , reports
+  , sample
   , uri
   ) where
 
@@ -23,8 +23,8 @@ data Event = Event
 instance eqEventReport :: Eq Event where
   eq (Event x) (Event y) = x == y
 
-reports :: Array Report
-reports =
+sample :: Array Report
+sample =
   [ Audit Audit.DatabaseRequest Audit.Success Audit.Sources  
   , Audit Audit.DatabaseRequest Audit.Failure Audit.Sources  
   , Audit Audit.DatabaseRequest Audit.Success Audit.Durations
