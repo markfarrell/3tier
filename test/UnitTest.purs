@@ -4,7 +4,7 @@ module Test.UnitTest
   , TestName
   , TestCase
   , TestFunction
-  , TestInputs
+  , TestResult(..)
   , execute
   ) where
 
@@ -12,7 +12,6 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Foldable (intercalate)
-import Data.Traversable (sequence)
 
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
@@ -25,35 +24,43 @@ type TestSuite = String
 
 type TestName = String
 
-type TestCase = String
+type TestCase a = a
 
 type TestFunction a b = a -> Aff (Either Error b)
 
-type TestInputs a = Array a
-
-type TestResult a = Either Error (Array a)
+data TestResult = Success | Failure
 
 data UnitTest a b = UnitTest
-  { testSuite    :: TestSuite
-  , testName     :: TestName
-  , testCase     :: TestCase
-  , testFunction :: TestFunction a b
-  , testInputs   :: TestInputs a
+  { suite   :: TestSuite
+  , name    :: TestName
+  , input   :: TestCase a
+  , expect  :: TestResult 
+  , execute :: TestFunction a b
   }
 
-execute' :: forall a b. UnitTest a b -> TestResult b -> Aff Unit
-execute' (UnitTest unitTest) (Left _) = liftEffect $ do 
-  result <- pure (intercalate " " ["FAILURE", unitTest.testSuite, unitTest.testName, unitTest.testCase])
-  _ <- log result 
-  _ <- Exception.throw result
-  pure unit
-execute' (UnitTest unitTest) (Right _) = liftEffect $ do 
-  result <- pure (intercalate " " ["SUCCESS", unitTest.testSuite, unitTest.testName, unitTest.testCase])
-  _ <- log result
-  pure unit
+instance showTestResult :: Show TestResult where
+  show Success = "SUCCESS"
+  show Failure = "FAILURE"
 
-execute :: forall a b. UnitTest a b -> Aff (TestResult b)
-execute (UnitTest unitTest) = do 
-  result <- sequence <$> (sequence (unitTest.testFunction <$> unitTest.testInputs))
-  _      <- execute' (UnitTest unitTest) result
+instance eqTestResult :: Eq TestResult where
+  eq Success Success = true
+  eq Failure Failure = true
+  eq _       _       = false
+
+instance showUnitTest :: Show (UnitTest a b) where
+  show (UnitTest test) = intercalate " " [show test.expect, test.suite, test.name]
+
+execute' :: forall a b. UnitTest a b -> TestResult -> Aff Unit
+execute' (UnitTest test) = \check -> liftEffect $ do
+  _ <- log $ show (UnitTest test)
+  case check == test.expect of
+    true   -> pure unit
+    false  -> Exception.throw $ show (UnitTest test)
+
+execute :: forall a b. UnitTest a b -> Aff (Either Error b)
+execute (UnitTest test) = do 
+  result <- test.execute $ test.input
+  case result of
+    (Left _)  -> execute' (UnitTest test) $ Failure 
+    (Right _) -> execute' (UnitTest test) $ Success
   pure result

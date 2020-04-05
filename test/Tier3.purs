@@ -19,11 +19,11 @@ import Test.UnitTest as UnitTest
 
 unitTest :: Route -> UnitTest Route Tier3.Resource
 unitTest = \route -> UnitTest $
-  { testSuite    : "Test.Tier3"
-  , testName     : "Tier3.execute" 
-  , testCase     : (Route.uri route)
-  , testFunction : Tier3.execute <<< Tier3.request settings
-  , testInputs   : [route]
+  { suite    : "Tier3.execute"
+  , name     : Route.uri route 
+  , input    : route
+  , expect   : UnitTest.Success
+  , execute  : Tier3.execute <<< Tier3.request settings
   }
   where
     settings = Tier3.Settings (Tier3.Local <$> ["Test.Tier3.db.1", "Test.Tier3.db.2"])
@@ -31,7 +31,11 @@ unitTest = \route -> UnitTest $
 unitTests :: Array (UnitTest Route Tier3.Resource) 
 unitTests = unitTest <$> Route.Report <$> Report.sample 
 
-main :: Effect Unit
-main = void $ launchAff $ supervise $ do
+execute :: Aff Unit
+execute = supervise $ do
   _ <- sequence (UnitTest.execute <$> unitTests)
   pure unit
+
+main :: Effect Unit
+main = void $ launchAff execute
+
