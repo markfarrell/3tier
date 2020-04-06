@@ -1,27 +1,12 @@
 module Report
-  ( Event(..)
-  , Report(..)
+  ( Report(..)
   , all
-  , uri
+  , uri 
   ) where
-
-import Prelude
 
 import Data.Audit as Audit
 
 data Report = Audit Audit.EventCategory Audit.EventType Audit.ReportType
-
-data Event = Event
-  { min                 :: Number
-  , max                 :: Number
-  , sum                 :: Number
-  , total               :: Number
-  , average             :: Number
-  , variance            :: Number 
-  }
-
-instance eqEventReport :: Eq Event where
-  eq (Event x) (Event y) = x == y
 
 all :: Array Report
 all =

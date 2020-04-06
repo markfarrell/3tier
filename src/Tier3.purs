@@ -48,6 +48,8 @@ import Forward as Forward
 import Report (Report)
 import Report as Report
 
+import Data.Report as Data.Report
+
 import Route (Route)
 import Route as Route
 
@@ -69,7 +71,7 @@ type Column = Tuple String ColumnType
  
 data ColumnType = Text | Integer
 
-data Resource = Forward Unit | Report Report.Event
+data Resource = Forward Unit | Report Data.Report.Event
 
 type Query = Route
 
@@ -249,7 +251,8 @@ executeForward (Local dbms) query        = do
   pure (Forward unit)
 
 executeReport :: DBMS -> Report -> Aff Resource
-executeReport (Replication dbms) report = do
+executeReport (Replication dbms) (Report.Audit w x y) = do
+  report <- pure $ Report.Audit w x y
   result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> dbms))
   pure result
 executeReport (Local dbms) report = do
@@ -263,15 +266,22 @@ executeReport (Local dbms) report = do
   average    <- executeReport'' database (averageURI report)
   variance   <- executeReport'' database (varianceURI report average)
   _          <- SQLite3.close database
-  pure $ Report $ Report.Event $
-    { min       : min
-    , max       : max
-    , sum       : sum
-    , total     : total
-    , average   : average
-    , variance  : variance
+  pure $ Report $ Data.Report.Event $
+    { eventCategory : eventCategory report
+    , eventType     : eventType report
+    , eventID       : eventID report
+    , min           : min
+    , max           : max
+    , sum           : sum
+    , total         : total
+    , average       : average
+    , variance      : variance
     }
-
+  where
+    eventID       (Report.Audit _ _ _)                = Data.Report.Audit
+    eventType     _                                   = Data.Report.Success
+    eventCategory (Report.Audit _ _ (Audit.Source))   = Data.Report.Source
+    eventCategory (Report.Audit _ _ (Audit.Duration)) = Data.Report.Duration
 executeReport'' :: Connection -> String -> Aff Number
 executeReport'' database uri = do
   rows    <- SQLite3.all uri database
