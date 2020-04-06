@@ -3,6 +3,8 @@ module Data.Report
   , EventType(..)
   , EventID(..)
   , Event(..)
+  , eventCategories
+  , eventIDs
   ) where
 
 import Prelude
@@ -49,6 +51,12 @@ instance showEventIDReport :: Show EventID where
   show Report    = "REPORT"
   show Linux     = "LINUX"
   show Windows   = "WINDOWS"
+
+eventCategories :: Array EventCategory
+eventCategories = [ Source, Duration, Unique ]
+
+eventIDs :: Array EventID
+eventIDs = [ Alert, Audit, Anomalous, Flow, Report, Linux, Windows ]
 
 uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
