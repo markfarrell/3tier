@@ -5,7 +5,6 @@ module Data.Audit
   , EventURI
   , Event(..)
   , ReportType(..)
-  , uri
   ) where
 
 import Prelude
@@ -38,6 +37,9 @@ data Event = Event
   , duration      :: Int
   , endTime       :: Date
   }
+
+instance showEventWindows :: Show Event where
+  show = uri
 
 instance showEventTypeAudit :: Show EventType where
   show Success = "SUCCESS"

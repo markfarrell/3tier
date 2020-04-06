@@ -6,7 +6,6 @@ module Data.Windows
   , event
   , eventCategories
   , eventIDs
-  , uri
   ) where
 
 import Prelude
@@ -59,6 +58,9 @@ data Event = Event
   , duration      :: Int
   , endTime       :: Date
   }
+
+instance showEventWindows :: Show Event where
+  show = uri
 
 instance showEventCategoryWindows :: Show EventCategory where
   show AccountLogon      = "ACCOUNT-LOGON"

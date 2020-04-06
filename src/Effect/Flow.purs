@@ -5,8 +5,6 @@ module Effect.Flow
 import Prelude
 
 import Data.Int as Int
-import Data.Maybe (Maybe)
-import Data.Either (Either(..))
 
 import Effect (Effect)
 import Effect.Date (random) as Date

@@ -2,7 +2,6 @@ module Data.Flow
   ( Event (..)
   , Flag (..)
   , event
-  , uri
   ) where
 
 import Prelude
@@ -11,13 +10,15 @@ import Data.List as List
 import Data.Foldable (intercalate)
 
 import Data.Traversable(foldMap)
-import Data.String.CodeUnits (singleton)
 
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.String (char, eof, string)
 import Text.Parsing.Parser.Combinators (choice)
 
+import Unsafe.Coerce (unsafeCoerce)
+
 import FFI.Date (Date)
+import FFI.JSON as JSON
 
 import Parser (date, port, ipv4, octet, positiveInteger)
 import Data.IPv4 (IPv4)
@@ -37,6 +38,9 @@ data Event = Event
   , duration  :: Int
   , endTime   :: Date
   }
+
+instance showEventFlow :: Show Event where
+  show = uri
 
 instance showFlag :: Show Flag where
   show U = "U"
@@ -120,17 +124,16 @@ event = do
   where comma = char delimiter
 
 uri :: Event -> String
-uri (Event event') = intercalate delimiter' $
-  [ show event'.sIP
-  , show event'.dIP
-  , show event'.sPort
-  , show event'.dPort
-  , show event'.protocol
-  , show event'.packets
-  , show event'.bytes
-  , show event'.flags
-  , show event'.startTime
-  , show event'.duration
-  , show event'.endTime
-  ]
-  where delimiter' = singleton delimiter
+uri (Event event') = JSON.stringify $ unsafeCoerce $
+  { sIP       : show event'.sIP
+  , dIP       : show event'.dIP
+  , sPort     : event'.sPort
+  , dPort     : event'.dPort
+  , protocol  : event'.protocol
+  , packets   : event'.packets
+  , bytes     : event'.bytes
+  , flags     : intercalate "" (show <$> event'.flags)
+  , startTime : show event'.startTime
+  , duration  : event'.duration
+  , end       : event'.endTime
+  }
