@@ -54,10 +54,10 @@ many = do
   _ <- replication 100
   pure unit
 
-forwardForward :: Tier3.Request Unit
-forwardForward = do
-  flow <- lift $ liftEffect Flow.random
-  _    <- Tier3.request settings (Route.Forward (Forward.Flow flow)) 
+forwardFlow :: Tier3.Request Unit
+forwardFlow = do
+  event <- lift $ liftEffect Flow.random
+  _     <- Tier3.request settings (Route.Forward (Forward.Flow event)) 
   pure unit 
   where
     settings = Tier3.Settings authorization authentication dbms
@@ -67,8 +67,8 @@ forwardForward = do
 
 forwardWindows :: Tier3.Request Unit
 forwardWindows = do
-  flow <- lift $ liftEffect Windows.random
---  _    <- Tier3.request settings (Route.Forward (Forward.Flow flow)) 
+  event <- lift $ liftEffect Windows.random
+  _     <- Tier3.request settings (Route.Forward (Forward.Windows event)) 
   pure unit 
   where
     settings = Tier3.Settings authorization authentication dbms
@@ -76,9 +76,8 @@ forwardWindows = do
     authorization  = Tier3.Authorization unit
     authentication = Tier3.Authentication unit
 
-
 request :: Tier3.Request Unit
 request = void $ sequence $ replication <$> Array.range 1 10
 
 main :: Effect Unit
-main = void $ launchAff $ Tier3.execute request
+main = void $ launchAff $ Tier3.execute (void $ sequence [request, forwardFlow, forwardWindows])

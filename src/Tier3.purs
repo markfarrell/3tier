@@ -37,6 +37,7 @@ import FFI.SQLite3 as SQLite3
 
 import Data.Audit as Audit
 import Data.Flow as Flow
+import Data.Windows as Windows
 
 import Data.Schema (Schema)
 import Data.Schema as Schema
@@ -154,6 +155,20 @@ insertFlowURI (Flow.Event event) = do
       , Tuple "EndTime" (show event.endTime)
       ]
 
+insertWindowsURI :: Windows.Event -> Aff String
+insertWindowsURI (Windows.Event event) = do
+  pure $ insertURI' "Windows" params
+  where 
+    params  =
+      [ Tuple "StartTime" (show event.startTime)
+      , Tuple "Duration" (show event.duration)
+      , Tuple "EndTime" (show event.endTime)
+      , Tuple "EventType" (show event.eventType)
+      , Tuple "EventCategory" (show event.eventCategory)
+      , Tuple "EventID" (show event.eventID)
+      ]
+
+
 insertURI' ::  Table -> Array (Tuple String String) -> String
 insertURI'  table' params = query
   where
@@ -164,8 +179,10 @@ insertURI'  table' params = query
      values'  = snd <$> params
 
 insertURI :: Forward ->  Aff String
-insertURI (Forward.Audit event) = insertAuditURI event
-insertURI (Forward.Flow  event) = insertFlowURI event
+insertURI (Forward.Audit event)    = insertAuditURI event
+insertURI (Forward.Flow  event)    = insertFlowURI event
+insertURI (Forward.Windows event)  = insertWindowsURI event
+
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
 reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SIP, SPort" 
@@ -212,8 +229,9 @@ executeTouch file = do
 executeSchemas :: String -> Aff Unit
 executeSchemas file = do
   database <- SQLite3.connect file SQLite3.OpenReadWrite
-  _        <- SQLite3.all (schemaURI Schema.Flow) database
   _        <- SQLite3.all (schemaURI Schema.Audit) database
+  _        <- SQLite3.all (schemaURI Schema.Flow) database
+  _        <- SQLite3.all (schemaURI Schema.Windows) database
   _        <- SQLite3.close database
   pure unit
 

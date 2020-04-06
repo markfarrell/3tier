@@ -15,7 +15,7 @@ import Effect.Console (log)
 import Effect.Exception (Error)
 import Effect.Exception as Exception
 
-import Audit as Audit
+import Data.Audit as Audit
 
 data Test a = Test
   { eventCategory :: Audit.EventCategory
