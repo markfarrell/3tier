@@ -35,7 +35,7 @@ import Foreign.Index ((!))
 
 import FFI.SQLite3 as SQLite3
 
-import Audit as Audit
+import Data.Audit as Audit
 import Data.Flow as Flow
 
 import Data.Schema (Schema)

@@ -15,7 +15,6 @@ import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
 import Text.Parsing.Parser.Combinators (choice)
 
-import Audit as Audit
 import Forward as Forward
 import Data.Flow as Flow
 import Report as Report

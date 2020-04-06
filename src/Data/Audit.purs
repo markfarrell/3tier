@@ -1,4 +1,4 @@
-module Audit
+module Data.Audit
   ( EventType(..)
   , EventCategory(..)
   , EventID(..)
@@ -10,12 +10,13 @@ module Audit
 
 import Prelude
 
-import Data.Foldable (intercalate)
-
 import Data.Schema (Schema)
 import Data.Schema as Schema
 
 import FFI.Date (Date)
+import FFI.JSON as JSON
+
+import Unsafe.Coerce (unsafeCoerce)
 
 data EventType = Success | Failure
 
@@ -62,12 +63,13 @@ instance eqEventTypeAudit :: Eq EventType where
   eq _       _       = false
 
 uri :: Event -> String
-uri (Event event') = intercalate separator $
-  [ event'.sIP
-  , show event'.sPort
-  , show event'.eventType
-  , show event'.eventCategory
-  , show event'.eventID
-  , show event'.duration
-  ] 
-  where separator = ","
+uri (Event event') = JSON.stringify $ unsafeCoerce $
+  { sIP           : event'.sIP
+  , sPort         : show event'.sPort
+  , eventType     : show event'.eventType
+  , eventCategory : show event'.eventCategory
+  , eventID       : show event'.eventID
+  , startTime     : show event'.startTime
+  , duration      : event'.duration
+  , endTime       : show event'.endTime
+  }

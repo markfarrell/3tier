@@ -30,7 +30,7 @@ import Data.Schema as Schema
 
 import Tier3 as Tier3
 
-import Audit as Audit
+import Data.Audit as Audit
 
 import Forward (Forward)
 import Forward as Forward

@@ -7,7 +7,6 @@ module DSL
 import Prelude
 
 import Control.Monad.Free.Trans (FreeT)
-import Control.Monad.Writer.Trans(WriterT)
 
 import Data.Either (Either)
 

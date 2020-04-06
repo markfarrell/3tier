@@ -6,6 +6,7 @@ module Data.Windows
   , event
   , eventCategories
   , eventIDs
+  , uri
   ) where
 
 import Prelude
@@ -27,7 +28,10 @@ import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.Combinators (choice)
 import Text.Parsing.Parser.String (string)
 
+import Unsafe.Coerce (unsafeCoerce)
+
 import FFI.Date (Date)
+import FFI.JSON as JSON
 
 import Parser (date, json, positiveInteger)
 
@@ -681,3 +685,12 @@ processTracking =
 privilegeUse :: Array Int
 privilegeUse = [ 4673, 4674 ]
 
+uri :: Event -> String
+uri (Event event') = JSON.stringify $ unsafeCoerce $
+ { eventCategory : show event'.eventCategory
+ , eventType     : show event'.eventType
+ , eventID       : event'.eventID
+ , startTime     : show event'.startTime
+ , duration      : event'.duration
+ , endTime       : show event'.endTime
+ }

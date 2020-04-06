@@ -7,7 +7,7 @@ module Report
 
 import Prelude
 
-import Audit as Audit
+import Data.Audit as Audit
 
 data Report = Audit Audit.EventCategory Audit.EventType Audit.ReportType
 
