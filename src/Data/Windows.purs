@@ -32,7 +32,8 @@ import Unsafe.Coerce (unsafeCoerce)
 import FFI.Date (Date)
 import FFI.JSON as JSON
 
-import Parser (date, json, positiveInteger)
+import Data.IPv4 (IPv4)
+import Parser (date, json, ipv4, port, positiveInteger)
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -57,6 +58,8 @@ data Event = Event
   , startTime     :: Date
   , duration      :: Int
   , endTime       :: Date
+  , sIP           :: IPv4
+  , sPort         :: Int
   }
 
 instance showEventWindows :: Show Event where
@@ -109,6 +112,8 @@ read = \x -> do
   startTime'     <- read' "startTime" date $ x
   duration'      <- read' "duration"  positiveInteger $ x
   endTime'       <- read' "endTime" date $ x
+  sIP'           <- read' "sIP" ipv4 $ x
+  sPort'         <- read' "sPort" port $ x
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
       case eventCategory' == eventCategory'' of
@@ -119,6 +124,8 @@ read = \x -> do
           , startTime     : startTime'
           , duration      : duration'
           , endTime       : endTime'
+          , sIP           : sIP'
+          , sPort         : sPort'
           }
         false -> Left (Exception.error "Invalid input.")
 
@@ -695,4 +702,6 @@ uri (Event event') = JSON.stringify $ unsafeCoerce $
  , startTime     : show event'.startTime
  , duration      : event'.duration
  , endTime       : show event'.endTime
+ , sIP           : show event'.sIP
+ , sPort         : event'.sPort
  }
