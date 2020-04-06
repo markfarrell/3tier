@@ -15,8 +15,9 @@ import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
 import Text.Parsing.Parser.Combinators (choice)
 
+import Text.Parsing.Flow (event) as Flow
+
 import Forward as Forward
-import Data.Flow as Flow
 import Report as Report
 
 import FFI.HTTP as HTTP
