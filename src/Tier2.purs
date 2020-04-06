@@ -97,7 +97,7 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
   endTime       <- liftEffect $ Date.current
   duration      <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   eventID       <- pure $ case routingResult of
-                     (Left _)                                     -> Audit.Invalid
+                     (Left _)                                     -> Audit.Anomalous
                      (Right (Route.Forward (Forward.Flow _)))     -> Audit.Forward Schema.Flow
                      (Right (Route.Forward (Forward.Audit _)))    -> Audit.Forward Schema.Audit
                      (Right (Route.Report  (Report.Audit _ _ _))) -> Audit.Report  Schema.Audit

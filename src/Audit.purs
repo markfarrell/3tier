@@ -19,7 +19,7 @@ import FFI.Date (Date)
 
 data EventType = Success | Failure
 
-data EventID = Forward Schema | Report Schema | Invalid 
+data EventID = Forward Schema | Report Schema | Anomalous 
 
 data EventCategory = Tier1 | Tier2 | Tier3
 
@@ -47,7 +47,7 @@ instance showEventIDAudit :: Show EventID where
   show (Forward Schema.Flow)  = "FORWARD-FLOW"
   show (Report  Schema.Audit) = "REPORT-AUDIT"
   show (Report  Schema.Flow)  = "REPORT-FLOW"
-  show (Invalid)              = "INVALID"
+  show (Anomalous)            = "ANOMALOUS"
 
 instance showEventCategory :: Show EventCategory where
   show Tier1 = "TIER-1"
