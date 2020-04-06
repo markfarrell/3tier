@@ -100,6 +100,7 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
                      (Left _)                                     -> Audit.Anomalous
                      (Right (Route.Forward (Forward.Audit _)))    -> Audit.Forward Schema.Audit
                      (Right (Route.Forward (Forward.Flow _)))     -> Audit.Forward Schema.Flow
+                     (Right (Route.Forward (Forward.Linux  _)))   -> Audit.Forward Schema.Linux
                      (Right (Route.Forward (Forward.Windows _)))  -> Audit.Forward Schema.Windows
                      (Right (Route.Report  (Report.Audit _ _ _))) -> Audit.Report  Schema.Audit
   eventType     <- pure $ case routingResult of

@@ -38,6 +38,7 @@ import FFI.SQLite3 as SQLite3
 
 import Data.Audit as Audit
 import Data.Flow as Flow
+import Data.Linux as Linux
 import Data.Windows as Windows
 
 import Data.Schema (Schema)
@@ -124,6 +125,15 @@ schemaURI Schema.Windows = schemaURI' "Windows" [] $
   , Tuple "EventCategory" Text
   , Tuple "EventID" Text
   ]
+schemaURI Schema.Linux = schemaURI' "Linux" [] $
+  [ Tuple "StartTime" Text
+  , Tuple "Duration" Integer
+  , Tuple "EndTime" Text
+  , Tuple "EventType" Text
+  , Tuple "EventCategory" Text
+  , Tuple "EventID" Text
+  ]
+
 
 insertAuditURI :: Audit.Event -> Aff String
 insertAuditURI (Audit.Event event) = do
@@ -171,6 +181,18 @@ insertWindowsURI (Windows.Event event) = do
       , Tuple "EventID" (show event.eventID)
       ]
 
+insertLinuxURI :: Linux.Event -> Aff String
+insertLinuxURI (Linux.Event event) = do
+  pure $ insertURI' "Linux" params
+  where 
+    params  =
+      [ Tuple "StartTime" (show event.startTime)
+      , Tuple "Duration" (show event.duration)
+      , Tuple "EndTime" (show event.endTime)
+      , Tuple "EventType" (show event.eventType)
+      , Tuple "EventCategory" (show event.eventCategory)
+      , Tuple "EventID" (show event.eventID)
+      ]
 
 insertURI' ::  Table -> Array (Tuple String String) -> String
 insertURI'  table' params = query
@@ -182,10 +204,10 @@ insertURI'  table' params = query
      values'  = snd <$> params
 
 insertURI :: Forward ->  Aff String
-insertURI (Forward.Audit event)    = insertAuditURI event
-insertURI (Forward.Flow  event)    = insertFlowURI event
-insertURI (Forward.Windows event)  = insertWindowsURI event
-
+insertURI (Forward.Audit event)   = insertAuditURI event
+insertURI (Forward.Flow  event)   = insertFlowURI event
+insertURI (Forward.Linux event)   = insertLinuxURI event
+insertURI (Forward.Windows event) = insertWindowsURI event
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
 reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SIP, SPort" 
@@ -234,6 +256,7 @@ executeSchemas file = do
   database <- SQLite3.connect file SQLite3.OpenReadWrite
   _        <- SQLite3.all (schemaURI Schema.Audit) database
   _        <- SQLite3.all (schemaURI Schema.Flow) database
+  _        <- SQLite3.all (schemaURI Schema.Linux) database
   _        <- SQLite3.all (schemaURI Schema.Windows) database
   _        <- SQLite3.close database
   pure unit
