@@ -114,4 +114,6 @@ uri (Event event') = JSON.stringify $ unsafeCoerce $
   , startTime     : show event'.startTime
   , duration      : event'.duration
   , endTime       : show event'.endTime
+  , sIP           : show event'.sIP
+  , sPort         : event'.sPort
   }

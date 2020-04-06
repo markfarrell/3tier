@@ -132,8 +132,9 @@ schemaURI Schema.Linux = schemaURI' "Linux" [] $
   , Tuple "EventType" Text
   , Tuple "EventCategory" Text
   , Tuple "EventID" Text
+  , Tuple "SIP" Text
+  , Tuple "SPort" Text
   ]
-
 
 insertAuditURI :: Audit.Event -> Aff String
 insertAuditURI (Audit.Event event) = do
@@ -192,6 +193,8 @@ insertLinuxURI (Linux.Event event) = do
       , Tuple "EventType" (show event.eventType)
       , Tuple "EventCategory" (show event.eventCategory)
       , Tuple "EventID" (show event.eventID)
+      , Tuple "SIP" (show event.sIP)
+      , Tuple "SPort" (show event.sPort)
       ]
 
 insertURI' ::  Table -> Array (Tuple String String) -> String
