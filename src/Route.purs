@@ -1,7 +1,6 @@
 module Route
   ( Route(..)
   , execute
-  , eventID
   , uri
   ) where
 
@@ -25,10 +24,6 @@ import FFI.HTTP as HTTP
 import Strings as Strings
 
 data Route = Forward Forward.Forward | Report Report.Report
-
-eventID :: Route -> Audit.EventID
-eventID (Forward _) = Audit.Forward
-eventID (Report _)  = Audit.Report
 
 report :: Report.Report -> Parser String Route
 report report' = do

@@ -12,11 +12,14 @@ import Prelude
 
 import Data.Foldable (intercalate)
 
+import Data.Schema (Schema)
+import Data.Schema as Schema
+
 import FFI.Date (Date)
 
 data EventType = Success | Failure
 
-data EventID = Forward | Report | Reject 
+data EventID = Forward Schema | Report Schema | Invalid 
 
 data EventCategory = Tier1 | Tier2 | Tier3
 
@@ -40,9 +43,11 @@ instance showEventTypeAudit :: Show EventType where
   show Failure = "FAILURE"
 
 instance showEventIDAudit :: Show EventID where
-  show Forward = "FORWARD"
-  show Report  = "REPORT"
-  show Reject  = "REJECT"
+  show (Forward Schema.Audit) = "FORWARD-AUDIT"
+  show (Forward Schema.Flow)  = "FORWARD-FLOW"
+  show (Report  Schema.Audit) = "REPORT-AUDIT"
+  show (Report  Schema.Flow)  = "REPORT-FLOW"
+  show (Invalid)              = "INVALID"
 
 instance showEventCategory :: Show EventCategory where
   show Tier1 = "TIER-1"

@@ -26,6 +26,8 @@ import FFI.Math as Math
 import FFI.Socket as Socket
 import FFI.JSON as JSON
 
+import Data.Schema as Schema
+
 import Tier3 as Tier3
 
 import Audit as Audit
@@ -95,9 +97,10 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
   endTime       <- liftEffect $ Date.current
   duration      <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   eventID       <- pure $ case routingResult of
-                     (Left _)                  -> Audit.Reject
-                     (Right (Route.Forward _)) -> Audit.Forward
-                     (Right (Route.Report _))  -> Audit.Report
+                     (Left _)                                     -> Audit.Invalid
+                     (Right (Route.Forward (Forward.Flow _)))     -> Audit.Forward Schema.Flow
+                     (Right (Route.Forward (Forward.Audit _)))    -> Audit.Forward Schema.Audit
+                     (Right (Route.Report  (Report.Audit _ _ _))) -> Audit.Report  Schema.Audit
   eventType     <- pure $ case routingResult of
                      (Left  _) -> Audit.Failure
                      (Right _) -> case resource of

@@ -1,7 +1,7 @@
 module Tier3
  ( DSL
+ , Query
  , Request
- , Interpreter
  , Result
  , Setting(..)
  , Settings(..)
@@ -15,11 +15,7 @@ import Prelude
 import Control.Monad.Except (runExcept, throwError)
 import Control.Monad.Free.Trans (liftFreeT, runFreeT)
 import Control.Monad.Error.Class (try)
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Writer.Class (tell)
-import Control.Monad.Writer.Trans (runWriterT)
 
-import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Traversable (sequence)
 
@@ -39,6 +35,9 @@ import FFI.SQLite3 as SQLite3
 
 import Audit as Audit
 import Data.Flow as Flow
+
+import Data.Schema (Schema)
+import Data.Schema as Schema
 
 import Forward (Forward)
 import Forward as Forward
@@ -63,15 +62,13 @@ type Column = Tuple String ColumnType
  
 data ColumnType = Text | Integer
 
-data Schema  = AuditSchema | FlowSchema
-
 data Resource = Forward Unit | Report Report.Event
+
+type Query = Route
 
 type DSL a = DSL.DSL Settings Resource a
 
-type Request a = DSL.Request Settings Resource (Array Audit.EventID) a
-
-type Interpreter a = DSL.Interpreter (Array Audit.EventID) a
+type Request a = DSL.Request Settings Resource a
 
 type Result a = DSL.Result a
 
@@ -86,7 +83,7 @@ schemaURI' table' params params' = query
      columnType Integer = "INTEGER NOT NULL"
 
 schemaURI :: Schema -> String
-schemaURI AuditSchema = schemaURI' "Audit" [] $
+schemaURI Schema.Audit = schemaURI' "Audit" [] $
   [ Tuple "SIP" Text
   , Tuple "SPort" Text
   , Tuple "StartTime" Text
@@ -96,7 +93,7 @@ schemaURI AuditSchema = schemaURI' "Audit" [] $
   , Tuple "EventCategory" Text
   , Tuple "EventID" Text
   ]
-schemaURI FlowSchema = schemaURI' "Flow" [] $ 
+schemaURI Schema.Flow = schemaURI' "Flow" [] $ 
   [ Tuple "SIP" Text
   , Tuple "DIP" Text
   , Tuple "SPort" Integer
@@ -184,15 +181,13 @@ varianceURI report avg = query
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
     query' = "(X - " <> show avg <> ")"
 
-interpret :: forall a. DSL (Request a) -> Interpreter (Request a)
+interpret :: forall a. DSL (Request a) -> Aff (Request a)
 interpret (DSL.Forward settings query' next) = do
-  _      <- tell $ [Audit.Forward]
-  result <- lift $ executeForward settings query'
-  lift (next <$> (pure result))
+  result <- executeForward settings query'
+  next <$> pure result
 interpret (DSL.Report settings query' next) = do
-  _      <- tell $ [Audit.Report]
-  result <- lift $ executeReport settings query'
-  lift (next <$> (pure result))
+  result <- executeReport settings query'
+  next <$> (pure result)
 
 executeTouch :: Setting -> Aff Unit
 executeTouch (Local setting) = do
@@ -203,8 +198,8 @@ executeTouch (Local setting) = do
 executeSchemas :: Setting -> Aff Unit
 executeSchemas (Local setting) = do
   database <- SQLite3.connect setting SQLite3.OpenReadWrite
-  _        <- SQLite3.all (schemaURI FlowSchema) database
-  _        <- SQLite3.all (schemaURI AuditSchema) database
+  _        <- SQLite3.all (schemaURI Schema.Flow) database
+  _        <- SQLite3.all (schemaURI Schema.Audit) database
   _        <- SQLite3.close database
   pure unit
 
@@ -274,12 +269,9 @@ executeReport''' database uri = do
          (Right number') -> pure number'
     error = Exception.error "Unexpected results."
 
-request :: Settings -> Route -> Request Resource
+request :: Settings -> Query -> Request Resource
 request settings (Route.Forward query) = liftFreeT $ (DSL.Forward settings query identity)
 request settings (Route.Report query)  = liftFreeT $ (DSL.Report settings query identity)
 
 execute ::  forall a. Request a -> Aff (Result a)
-execute request' =  do
-  result <- runWriterT (try $ runFreeT interpret request')
-  case result of
-    (Tuple result' _) -> pure result' 
+execute request' = try $ runFreeT interpret request'

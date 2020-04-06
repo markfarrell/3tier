@@ -1,6 +1,5 @@
 module DSL
   ( DSL(..)
-  , Interpreter
   , Request
   , Result
   ) where
@@ -20,9 +19,7 @@ import Report (Report)
 
 data DSL a b c = Forward a Forward (b -> c) | Report a Report (b -> c)
 
-type Interpreter a = WriterT a Aff 
-
-type Request a b c d = FreeT (DSL a b) (Interpreter c) d
+type Request a b c = FreeT (DSL a b) Aff c
 
 type Result a = Either Error a
 
