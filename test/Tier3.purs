@@ -2,15 +2,11 @@ module Test.Tier3 where
 
 import Prelude
 
-import Control.Monad.Trans.Class (lift)
-
 import Data.Array as Array
 import Data.Traversable (sequence)
 
 import Effect (Effect)
 import Effect.Aff (launchAff)
-
-import Data.Schema as Schema
 
 import Route as Route
 
@@ -26,12 +22,15 @@ replication n = do
   _ <- sequence $ Tier3.request settings <$> routes
   pure unit
   where 
-    settings   = Tier3.Settings $ setting <$> range n
-    setting  m = Tier3.Local $ "Test.Tier3.replication.db." <> show m
-    routes     = Route.Report <$> Report.all
-    range    m = case m > 0 of
-                 true  -> Array.range 1 n
-                 false -> []
+    settings       = Tier3.Settings authorization authentication replicated
+    replicated     = Tier3.Replication $ dbms <$> range n
+    dbms  m        = Tier3.Local $ "Test.Tier3.replication.db." <> show m
+    routes         = Route.Report <$> Report.all
+    range    m     = case m > 0 of
+                       true  -> Array.range 1 n
+                       false -> []
+    authorization  = Tier3.Authorization unit
+    authentication = Tier3.Authentication unit
 
 none :: Tier3.Request Unit
 none = do
@@ -39,8 +38,8 @@ none = do
   _ <- replication 0
   pure unit
 
-one :: Tier3.Request Unit
-one = do
+single :: Tier3.Request Unit
+single = do
   _ <- nothing
   _ <- replication 0
   _ <- replication 1
@@ -56,7 +55,7 @@ many = do
   pure unit
 
 request :: Tier3.Request Unit
-request = void $ sequence [nothing, none, one, many]
+request = void $ sequence [nothing, none, single, many]
 
 main :: Effect Unit
 main = void $ launchAff $ Tier3.execute request

@@ -3,7 +3,9 @@ module Tier3
  , Query
  , Request
  , Result
- , Setting(..)
+ , DBMS(..)
+ , Authorization(..)
+ , Authentication(..)
  , Settings(..)
  , Resource(..)
  , request
@@ -52,9 +54,13 @@ import DSL as DSL
 
 type Connection = SQLite3.Database
 
-data Setting = Local String
+data DBMS = Local String | Replication (Array DBMS)
 
-data Settings = Settings (Array Setting)
+data Authorization = Authorization Unit
+
+data Authentication = Authentication Unit
+
+data Settings = Settings Authorization Authentication DBMS
 
 type Table = String
 
@@ -75,7 +81,7 @@ type Result a = DSL.Result a
 schemaURI' :: Table -> Array Column -> Array Column -> String
 schemaURI' table' params params' = query
   where
-     query   = "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> ")"
+     query              = "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> ")"
      columns            = (intercalate "," columns')
      columns'           = column <$> (params <> params')
      column param       = intercalate " " $ [fst param, columnType $ snd param]
@@ -182,68 +188,70 @@ varianceURI report avg = query
     query' = "(X - " <> show avg <> ")"
 
 interpret :: forall a. DSL (Request a) -> Aff (Request a)
-interpret (DSL.Forward settings query' next) = do
-  result <- executeForward settings query'
+interpret (DSL.Forward (Settings _ _ dbms) query next) = do
+  result <- executeForward dbms query
   next <$> pure result
-interpret (DSL.Report settings query' next) = do
-  result <- executeReport settings query'
+interpret (DSL.Report (Settings _ _ dbms) query next) = do
+  result <- executeReport dbms query
   next <$> (pure result)
 
-executeTouch :: Setting -> Aff Unit
-executeTouch (Local setting) = do
-  database <- SQLite3.connect setting SQLite3.OpenCreate
+executeTouch :: DBMS -> Aff Unit
+executeTouch (Replication dbms) = do
+  _ <- sequence $ executeTouch <$> dbms
+  pure unit
+executeTouch (Local dbms) = do
+  database <- SQLite3.connect dbms SQLite3.OpenCreate
   _        <- SQLite3.close database
   pure unit
 
-executeSchemas :: Setting -> Aff Unit
-executeSchemas (Local setting) = do
-  database <- SQLite3.connect setting SQLite3.OpenReadWrite
+executeSchemas :: DBMS -> Aff Unit
+executeSchemas (Replication dbms) = do
+  _ <- sequence $ executeSchemas <$> dbms
+  pure unit
+executeSchemas (Local dbms)        = do
+  database <- SQLite3.connect dbms SQLite3.OpenReadWrite
   _        <- SQLite3.all (schemaURI Schema.Flow) database
   _        <- SQLite3.all (schemaURI Schema.Audit) database
   _        <- SQLite3.close database
   pure unit
 
-executeForward :: Settings -> Forward -> Aff Resource
-executeForward (Settings settings) query' = do
-  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward' query' <$> settings)) 
+executeForward :: DBMS -> Forward -> Aff Resource
+executeForward dbms query = do
+  _      <- executeTouch dbms
+  _      <- executeSchemas dbms
+  result <- executeForward' dbms query
   pure result
 
-executeForward' :: Setting -> Forward -> Aff Resource
-executeForward' setting query' = do
-  _      <- executeTouch setting
-  _      <- executeSchemas setting
-  result <- executeForward'' setting query'
+executeForward' :: DBMS -> Forward -> Aff Resource
+executeForward' (Replication dbms) query  = do
+  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward' query <$> dbms)) 
   pure result
-
-executeForward'' :: Setting -> Forward -> Aff Resource
-executeForward'' (Local setting) query' = do
-  database <- SQLite3.connect setting SQLite3.OpenReadWrite
-  uri      <- insertURI query'
+executeForward' (Local dbms) query        = do
+  database <- SQLite3.connect dbms SQLite3.OpenReadWrite
+  uri      <- insertURI query
   _        <- SQLite3.all uri database
   _        <- SQLite3.close database
   pure (Forward unit)
 
-executeReport :: Settings -> Report -> Aff Resource
-executeReport (Settings settings) query' = do
-  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport' query' <$> settings)) 
+executeReport :: DBMS -> Report -> Aff Resource
+executeReport dbms query = do
+  _         <- executeTouch dbms
+  _         <- executeSchemas dbms
+  result    <- executeReport' dbms query
   pure result
 
-executeReport' :: Setting -> Report -> Aff Resource
-executeReport' setting query' = do
-  _         <- executeTouch setting
-  _         <- executeSchemas setting
-  result    <- executeReport'' setting query'
+executeReport' :: DBMS -> Report -> Aff Resource
+executeReport' (Replication dbms) report = do
+  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport' report <$> dbms)) 
   pure result
-
-executeReport'' :: Setting -> Report -> Aff Resource
-executeReport'' (Local setting) report = do
-  database   <- SQLite3.connect setting SQLite3.OpenReadOnly
-  min        <- executeReport''' database (minURI report)
-  max        <- executeReport''' database (maxURI report)
-  sum        <- executeReport''' database (sumURI report)
-  total      <- executeReport''' database (totalURI report)
-  average    <- executeReport''' database (averageURI report)
-  variance   <- executeReport''' database (varianceURI report average)
+executeReport' (Local dbms) report = do
+  database   <- SQLite3.connect dbms SQLite3.OpenReadOnly
+  min        <- executeReport'' database (minURI report)
+  max        <- executeReport'' database (maxURI report)
+  sum        <- executeReport'' database (sumURI report)
+  total      <- executeReport'' database (totalURI report)
+  average    <- executeReport'' database (averageURI report)
+  variance   <- executeReport'' database (varianceURI report average)
   _          <- SQLite3.close database
   pure $ Report $ Report.Event $
     { min       : min
@@ -254,8 +262,8 @@ executeReport'' (Local setting) report = do
     , variance  : variance
     }
 
-executeReport''' :: Connection -> String -> Aff Number
-executeReport''' database uri = do
+executeReport'' :: Connection -> String -> Aff Number
+executeReport'' database uri = do
   rows    <- SQLite3.all uri database
   results <- sequence (runResult <$> rows)
   case results of
