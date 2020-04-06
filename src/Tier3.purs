@@ -195,38 +195,27 @@ interpret (DSL.Report (Settings _ _ dbms) query next) = do
   result <- executeReport dbms query
   next <$> (pure result)
 
-executeTouch :: DBMS -> Aff Unit
-executeTouch (Replication dbms) = do
-  _ <- sequence $ executeTouch <$> dbms
-  pure unit
-executeTouch (Local dbms) = do
-  database <- SQLite3.connect dbms SQLite3.OpenCreate
+executeTouch :: String -> Aff Unit
+executeTouch file = do
+  database <- SQLite3.connect file SQLite3.OpenCreate
   _        <- SQLite3.close database
   pure unit
 
-executeSchemas :: DBMS -> Aff Unit
-executeSchemas (Replication dbms) = do
-  _ <- sequence $ executeSchemas <$> dbms
-  pure unit
-executeSchemas (Local dbms)        = do
-  database <- SQLite3.connect dbms SQLite3.OpenReadWrite
+executeSchemas :: String -> Aff Unit
+executeSchemas file = do
+  database <- SQLite3.connect file SQLite3.OpenReadWrite
   _        <- SQLite3.all (schemaURI Schema.Flow) database
   _        <- SQLite3.all (schemaURI Schema.Audit) database
   _        <- SQLite3.close database
   pure unit
 
 executeForward :: DBMS -> Forward -> Aff Resource
-executeForward dbms query = do
-  _      <- executeTouch dbms
-  _      <- executeSchemas dbms
-  result <- executeForward' dbms query
+executeForward (Replication dbms) query  = do
+  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward query <$> dbms)) 
   pure result
-
-executeForward' :: DBMS -> Forward -> Aff Resource
-executeForward' (Replication dbms) query  = do
-  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward' query <$> dbms)) 
-  pure result
-executeForward' (Local dbms) query        = do
+executeForward (Local dbms) query        = do
+  _        <- executeTouch dbms
+  _        <- executeSchemas dbms
   database <- SQLite3.connect dbms SQLite3.OpenReadWrite
   uri      <- insertURI query
   _        <- SQLite3.all uri database
@@ -234,17 +223,12 @@ executeForward' (Local dbms) query        = do
   pure (Forward unit)
 
 executeReport :: DBMS -> Report -> Aff Resource
-executeReport dbms query = do
-  _         <- executeTouch dbms
-  _         <- executeSchemas dbms
-  result    <- executeReport' dbms query
+executeReport (Replication dbms) report = do
+  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> dbms))
   pure result
-
-executeReport' :: DBMS -> Report -> Aff Resource
-executeReport' (Replication dbms) report = do
-  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport' report <$> dbms)) 
-  pure result
-executeReport' (Local dbms) report = do
+executeReport (Local dbms) report = do
+  _          <- executeTouch dbms
+  _          <- executeSchemas dbms
   database   <- SQLite3.connect dbms SQLite3.OpenReadOnly
   min        <- executeReport'' database (minURI report)
   max        <- executeReport'' database (maxURI report)
