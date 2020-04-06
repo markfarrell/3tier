@@ -53,8 +53,8 @@ many = do
   _ <- replication 100
   pure unit
 
-forward :: Tier3.Request Unit
-forward = do
+forwardForward :: Tier3.Request Unit
+forwardForward = do
   flow <- lift $ liftEffect Flow.random
   _    <- Tier3.request settings (Route.Forward (Forward.Flow flow)) 
   pure unit 

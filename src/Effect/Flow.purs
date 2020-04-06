@@ -9,9 +9,9 @@ import Data.Maybe (Maybe)
 import Data.Either (Either(..))
 
 import Effect (Effect)
+import Effect.Date (random) as Date
 
-import FFI.Date (Date)
-import FFI.Date as Date
+import FFI.Date (epoch, getTime) as Date
 
 import FFI.Math as Math
 
@@ -41,28 +41,6 @@ ipv4 = do
   z <- octet
   pure $ IPv4 w x y z
 
-year :: Effect Int
-year = do
-  w <- Date.current
-  x <- pure $ Date.getYear w
-  y <- pure $ Math.floor x
-  z <- pure $ 1900 + y
-  range 1970 z
-
-isoString :: Effect String
-isoString = do
-  x <- year
-  y <- pure $ show x <> "-01-01T00:00:00.000Z"
-  pure y 
-
-date :: Effect Date
-date = do
-  x <- isoString
-  y <- pure $ Date.parse x
-  case y of
-    (Left _)  -> pure Date.epoch
-    (Right z) -> pure z
-
 random :: Effect Flow.Event
 random = do
   sIP       <- ipv4
@@ -74,7 +52,7 @@ random = do
   protocol  <- octet
   flags     <- pure [Flow.U, Flow.R, Flow.F, Flow.S, Flow.P, Flow.A]
   startTime <- pure $ Date.epoch
-  endTime   <- date
+  endTime   <- Date.random
   duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   pure $ Flow.Event $
     { sIP       : sIP

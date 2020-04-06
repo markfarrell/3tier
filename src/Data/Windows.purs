@@ -1,9 +1,11 @@
-module Event
+module Data.Windows
   ( EventCategory(..) 
   , EventID
   , EventType(..)
   , Event(..)
   , event
+  , eventCategories
+  , eventIDs
   ) where
 
 import Prelude
@@ -27,7 +29,7 @@ import Text.Parsing.Parser.String (string)
 
 import FFI.Date (Date)
 
-import Parser (date, json, positiveFloat, positiveInteger)
+import Parser (date, json, positiveInteger, positiveInteger)
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -50,7 +52,7 @@ data Event = Event
   , eventID       :: EventID
   , eventType     :: EventType
   , startTime     :: Date
-  , duration      :: Number
+  , duration      :: Int
   , endTime       :: Date
   }
 
@@ -82,7 +84,7 @@ read = \x -> do
   eventID'       <- read' "eventID" eventID $ x
   eventType'     <- read' "eventType" eventType $ x
   startTime'     <- read' "startTime" date $ x
-  duration'      <- read' "duration"  positiveFloat $ x
+  duration'      <- read' "duration"  positiveInteger $ x
   endTime'       <- read' "endTime" date $ x
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
