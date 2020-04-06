@@ -21,12 +21,12 @@ data Event = Event
   { eventCategory :: EventCategory
   , eventType     :: EventType
   , eventID       :: EventID
-  , min           :: Number
-  , max           :: Number
-  , sum           :: Number
-  , total         :: Number
-  , average       :: Number
-  , variance      :: Number 
+  , min           :: Int
+  , max           :: Int
+  , sum           :: Int
+  , total         :: Int
+  , average       :: Int
+  , variance      :: Int 
   }
 
 instance showEventReport :: Show Event where

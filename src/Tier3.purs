@@ -33,6 +33,7 @@ import Effect.Exception as Exception
 import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
 
+import FFI.Math as Math
 import FFI.SQLite3 as SQLite3
 
 import Data.Audit as Audit
@@ -270,12 +271,12 @@ executeReport (Local dbms) report = do
     { eventCategory : eventCategory report
     , eventType     : eventType report
     , eventID       : eventID report
-    , min           : min
-    , max           : max
-    , sum           : sum
-    , total         : total
-    , average       : average
-    , variance      : variance
+    , min           : Math.floor min
+    , max           : Math.floor max
+    , sum           : Math.floor sum
+    , total         : Math.floor total
+    , average       : Math.floor average
+    , variance      : Math.floor variance
     }
   where
     eventID       (Report.Audit _ _ _)                = Data.Report.Audit
