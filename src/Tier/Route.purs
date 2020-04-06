@@ -1,5 +1,5 @@
-module Tier.Route
-  ( Route(..)
+  module Tier.Route
+    ( Route(..)
   , execute
   , uri
   ) where
@@ -21,7 +21,7 @@ import Tier.Forward as Forward
 import Tier.Report as Report
 
 import FFI.HTTP as HTTP
-import Strings as Strings
+import FFI.String as String
 
 data Route = Forward Forward.Forward | Report Report.Report
 
@@ -47,7 +47,7 @@ route = choice [forward, reports]
 
 execute :: HTTP.IncomingMessage -> Aff (Either Error Route)
 execute req = do 
-  result <- pure (flip runParser route $ Strings.decodeURIComponent (HTTP.messageURL req)) 
+  result <- pure (flip runParser route $ String.decodeURIComponent (HTTP.messageURL req)) 
   case result of
     (Left _)        -> pure (Left $ error "Invalid routing request.")
     (Right result') -> pure (Right $ result')

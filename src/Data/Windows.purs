@@ -33,7 +33,7 @@ import FFI.Date (Date)
 import FFI.JSON as JSON
 
 import Data.IPv4 (IPv4)
-import Parser (date, json, ipv4, port, positiveInteger)
+import Text.Parsing.Common (date, json, ipv4, port, positiveInteger)
 
 data EventCategory = AccountLogon
   | AccountManagement

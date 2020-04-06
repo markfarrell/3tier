@@ -6,15 +6,13 @@ import Prelude
 
 import Data.List as List
 
-import Data.Foldable (intercalate)
-
 import Data.Traversable (foldMap) as Traversable
 
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.String (char, eof, string)
 import Text.Parsing.Parser.Combinators (choice)
 
-import Parser (date, port, ipv4, octet, positiveInteger)
+import Text.Parsing.Common (date, port, ipv4, octet, positiveInteger)
 
 import Data.Flow as Flow
 

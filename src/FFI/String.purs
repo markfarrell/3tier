@@ -1,4 +1,4 @@
-module Strings
+module FFI.String
   ( decodeURI
   , decodeURIComponent
   , encodeBase64

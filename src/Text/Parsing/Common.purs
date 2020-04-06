@@ -1,4 +1,4 @@
-module Parser
+module Text.Parsing.Common
   ( digit
   , digits
   , positiveInteger

@@ -23,7 +23,7 @@ import Text.Parsing.Parser.Combinators (sepBy)
 
 import FFI.Buffer as Buffer
 
-import Parser as Parser
+import Text.Parsing.Common as Parser
 
 data Packet = Packet Header FlowSets
 
