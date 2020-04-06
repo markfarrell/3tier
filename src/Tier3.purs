@@ -92,7 +92,7 @@ schemaURI' table' params params' = query
 schemaURI :: Schema -> String
 schemaURI AuditSchema = schemaURI' "Audit" [] $
   [ Tuple "SourceAddress" Text
-  , Tuple "SourcePort" Text
+  , Tuple "SPort" Text
   , Tuple "StartTime" Text
   , Tuple "Duration" Real
   , Tuple "EndTime" Text
@@ -101,10 +101,10 @@ schemaURI AuditSchema = schemaURI' "Audit" [] $
   , Tuple "EventID" Text
   ]
 schemaURI FlowSchema = schemaURI' "Flow" [] $ 
-  [ Tuple "SourceIPv4" Text
-  , Tuple "DestinationIPv4" Text
-  , Tuple "SourcePort" Text
-  , Tuple "DestinationPort" Text
+  [ Tuple "SIP" Text
+  , Tuple "DIP" Text
+  , Tuple "SPort" Text
+  , Tuple "DPort" Text
   , Tuple "Protocol" Text
   , Tuple "Packets" Text
   , Tuple "Bytes" Text
@@ -119,8 +119,8 @@ insertAuditURI (Audit.Event event) = do
   pure $ insertURI' "Audit" params
   where 
     params  =
-      [ Tuple "SourceAddress" event.sourceAddress
-      , Tuple "SourcePort" (show event.sourcePort)
+      [ Tuple "SIP" event.sIP
+      , Tuple "SPort" (show event.sPort)
       , Tuple "StartTime" (show event.startTime)
       , Tuple "Duration" (show event.duration)
       , Tuple "EndTime" (show event.endTime)
@@ -134,14 +134,14 @@ insertFlowURI (Flow.Event event) = do
   pure $ insertURI' "Flow" params
   where
     params = 
-      [ Tuple "SourceIPv4" (show event.sourceIPv4)
-      , Tuple "DestinationIPv4" (show event.destinationIPv4)
-      , Tuple "SourcePort" (show event.sourcePort)
-      , Tuple "DestinationPort" (show event.destinationPort)
+      [ Tuple "SIP" (show event.sIP)
+      , Tuple "DIP" (show event.dIP)
+      , Tuple "SPort" (show event.sPort)
+      , Tuple "DPort" (show event.dPort)
       , Tuple "Protocol" (show event.protocol)
       , Tuple "Packets" (show event.packets)
       , Tuple "Bytes" (show event.bytes)
-      , Tuple "Flags" event.flags
+      , Tuple "Flags" (intercalate "" (show <$> event.flags))
       , Tuple "StartTIme" (show event.startTime)
       , Tuple "Duration" (show event.duration)
       , Tuple "EndTime" (show event.endTime)
@@ -161,7 +161,7 @@ insertURI (Forward.Audit event) = insertAuditURI event
 insertURI (Forward.Flow  event) = insertFlowURI event
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
-reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceAddress, SourcePort" 
+reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceAddress, SPort" 
 reportAuditURI' Audit.Duration = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Report -> Table

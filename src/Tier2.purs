@@ -111,8 +111,8 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
                  , startTime     : startTime
                  , duration      : duration
                  , endTime       : endTime
-                 , sourceAddress : Socket.remoteAddress $ HTTP.socket req
-                 , sourcePort    : Socket.remotePort    $ HTTP.socket req
+                 , sIP           : Socket.remoteAddress $ HTTP.socket req
+                 , sPort         : Socket.remotePort    $ HTTP.socket req
                  }
   _     <- Tier3.execute $ audit settings event
   pure unit

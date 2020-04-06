@@ -25,8 +25,8 @@ type EventURI = String
 data ReportType = Source | Duration
 
 data Event = Event 
-  { sourceAddress :: String
-  , sourcePort    :: Int 
+  { sIP           :: String
+  , sPort         :: Int 
   , eventType     :: EventType
   , eventCategory :: EventCategory
   , eventID       :: EventID
@@ -56,8 +56,8 @@ instance eqEventTypeAudit :: Eq EventType where
 
 uri :: Event -> String
 uri (Event event') = intercalate separator $
-  [ event'.sourceAddress
-  , show event'.sourcePort
+  [ event'.sIP
+  , show event'.sPort
   , show event'.eventType
   , show event'.eventCategory
   , show event'.eventID

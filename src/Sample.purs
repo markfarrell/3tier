@@ -74,27 +74,27 @@ date = do
 
 flow :: Effect Flow.Event
 flow = do
-  sourceIPv4      <- ipv4
-  sourcePort      <- port
-  destinationIPv4 <- ipv4
-  destinationPort <- port
-  packets         <- range 0 999999999
-  bytes           <- range 0 999999999
-  protocol        <- octet
-  flags           <- pure ""
-  startTime       <- pure $ Date.epoch
-  endTime         <- date
-  duration        <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
+  sIP       <- ipv4
+  sPort     <- port
+  dIP       <- ipv4
+  dPort     <- port
+  packets   <- range 0 999999999
+  bytes     <- range 0 999999999
+  protocol  <- octet
+  flags     <- pure [Flow.U, Flow.R, Flow.F, Flow.S, Flow.P, Flow.A]
+  startTime <- pure $ Date.epoch
+  endTime   <- date
+  duration  <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
   pure $ Flow.Event $
-    { sourceIPv4      : sourceIPv4
-    , sourcePort      : sourcePort
-    , destinationIPv4 : destinationIPv4
-    , destinationPort : destinationPort
-    , protocol        : protocol
-    , packets         : packets
-    , bytes           : bytes
-    , flags           : flags
-    , startTime       : startTime
-    , duration        : duration
-    , endTime         : endTime 
+    { sIP       : sIP
+    , sPort     : sPort
+    , dIP       : dIP
+    , dPort     : dPort
+    , protocol  : protocol
+    , packets   : packets
+    , bytes     : bytes
+    , flags     : flags
+    , startTime : startTime
+    , duration  : duration
+    , endTime   : endTime 
     }
