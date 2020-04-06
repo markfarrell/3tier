@@ -112,6 +112,14 @@ schemaURI Schema.Flow = schemaURI' "Flow" [] $
   , Tuple "Duration" Integer
   , Tuple "EndTime" Text
   ]
+schemaURI Schema.Windows = schemaURI' "Windows" [] $
+  [ Tuple "StartTime" Text
+  , Tuple "Duration" Integer
+  , Tuple "EndTime" Text
+  , Tuple "EventType" Text
+  , Tuple "EventCategory" Text
+  , Tuple "EventID" Text
+  ]
 
 insertAuditURI :: Audit.Event -> Aff String
 insertAuditURI (Audit.Event event) = do

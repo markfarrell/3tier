@@ -43,11 +43,13 @@ instance showEventTypeAudit :: Show EventType where
   show Failure = "FAILURE"
 
 instance showEventIDAudit :: Show EventID where
-  show (Forward Schema.Audit) = "FORWARD-AUDIT"
-  show (Forward Schema.Flow)  = "FORWARD-FLOW"
-  show (Report  Schema.Audit) = "REPORT-AUDIT"
-  show (Report  Schema.Flow)  = "REPORT-FLOW"
-  show (Anomalous)            = "ANOMALOUS"
+  show (Forward Schema.Audit)   = "FORWARD-AUDIT"
+  show (Forward Schema.Flow)    = "FORWARD-FLOW"
+  show (Forward Schema.Windows) = "FORWARD-WINDOWS"
+  show (Report  Schema.Audit)   = "REPORT-AUDIT"
+  show (Report  Schema.Flow)    = "REPORT-FLOW"
+  show (Report  Schema.Windows) = "REPORT-WINDOWS"
+  show (Anomalous)              = "ANOMALOUS"
 
 instance showEventCategory :: Show EventCategory where
   show Tier1 = "TIER-1"

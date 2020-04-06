@@ -12,6 +12,7 @@ import Effect.Aff (launchAff)
 import Effect.Class (liftEffect)
 
 import Effect.Flow (random) as Flow
+import Effect.Windows (random) as Windows
 
 import Forward as Forward
 
@@ -60,9 +61,21 @@ forwardForward = do
   pure unit 
   where
     settings = Tier3.Settings authorization authentication dbms
-    dbms     = Tier3.Local $ "Test.Tier3.forward.db"
+    dbms     = Tier3.Local $ "Test.Tier3.forwardFlow.db"
     authorization  = Tier3.Authorization unit
     authentication = Tier3.Authentication unit
+
+forwardWindows :: Tier3.Request Unit
+forwardWindows = do
+  flow <- lift $ liftEffect Windows.random
+--  _    <- Tier3.request settings (Route.Forward (Forward.Flow flow)) 
+  pure unit 
+  where
+    settings = Tier3.Settings authorization authentication dbms
+    dbms     = Tier3.Local $ "Test.Tier3.forwardWindows.db"
+    authorization  = Tier3.Authorization unit
+    authentication = Tier3.Authentication unit
+
 
 request :: Tier3.Request Unit
 request = void $ sequence $ replication <$> Array.range 1 10
