@@ -65,7 +65,7 @@ forwardAudit = do
   pure unit 
   where
     settings = Tier3.Settings authorization authentication dbms
-    dbms     = Tier3.Local $ "Test.Tier3.forwardAudit.db"
+    dbms     = Tier3.Local $ "Test.Tier3.forwards.db"
     authorization  = Tier3.Authorization unit
     authentication = Tier3.Authentication unit
 
@@ -76,7 +76,7 @@ forwardAlert = do
   pure unit 
   where
     settings = Tier3.Settings authorization authentication dbms
-    dbms     = Tier3.Local $ "Test.Tier3.forwardAlert.db"
+    dbms     = Tier3.Local $ "Test.Tier3.forwards.db"
     authorization  = Tier3.Authorization unit
     authentication = Tier3.Authentication unit
 
@@ -88,7 +88,7 @@ forwardFlow = do
   pure unit 
   where
     settings = Tier3.Settings authorization authentication dbms
-    dbms     = Tier3.Local $ "Test.Tier3.forwardFlow.db"
+    dbms     = Tier3.Local $ "Test.Tier3.forwards.db"
     authorization  = Tier3.Authorization unit
     authentication = Tier3.Authentication unit
 
@@ -99,7 +99,7 @@ forwardLinux = do
   pure unit 
   where
     settings = Tier3.Settings authorization authentication dbms
-    dbms     = Tier3.Local $ "Test.Tier3.forwardLinux.db"
+    dbms     = Tier3.Local $ "Test.Tier3.forwards.db"
     authorization  = Tier3.Authorization unit
     authentication = Tier3.Authentication unit
 
@@ -110,7 +110,7 @@ forwardReport = do
   pure unit 
   where
     settings = Tier3.Settings authorization authentication dbms
-    dbms     = Tier3.Local $ "Test.Tier3.forwardReport.db"
+    dbms     = Tier3.Local $ "Test.Tier3.forwards.db"
     authorization  = Tier3.Authorization unit
     authentication = Tier3.Authentication unit
 
@@ -121,13 +121,13 @@ forwardWindows = do
   pure unit 
   where
     settings = Tier3.Settings authorization authentication dbms
-    dbms     = Tier3.Local $ "Test.Tier3.forwardWindows.db"
+    dbms     = Tier3.Local $ "Test.Tier3.forwards.db"
     authorization  = Tier3.Authorization unit
     authentication = Tier3.Authentication unit
    
 forward :: Tier3.Request Unit
 forward = do
-  choice <- lift $ liftEffect (Math.floor <$> ((*) 5.0) <$> Math.random)
+  choice <- lift $ liftEffect (Math.floor <$> ((*) 6.0) <$> Math.random)
   case choice of
     0 -> forwardAudit
     1 -> forwardAlert
