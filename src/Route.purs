@@ -18,7 +18,7 @@ import Text.Parsing.Parser.Combinators (choice)
 
 import Audit as Audit
 import Forward as Forward
-import Flow as Flow
+import Data.Flow as Flow
 import Report as Report
 
 import FFI.HTTP as HTTP

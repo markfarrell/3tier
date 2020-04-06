@@ -32,7 +32,7 @@ import FFI.Date (Date)
 import FFI.Date as Date
 import FFI.JSON as JSON
 
-import IPv4(IPv4(..))
+import Data.IPv4(IPv4(..))
 
 foreign import parseInt :: String -> Int
 

@@ -16,9 +16,9 @@ import FFI.Date as Date
 
 import FFI.Math as Math
 
-import IPv4 (IPv4(..))
+import Data.IPv4 (IPv4(..))
 
-import Flow as Flow 
+import Data.Flow as Flow 
 
 range :: Int -> Int -> Effect Int
 range min max = do

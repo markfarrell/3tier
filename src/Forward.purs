@@ -6,7 +6,7 @@ module Forward
 import Prelude
 
 import Audit as Audit
-import Flow as Flow
+import Data.Flow as Flow
 
 data Forward = Flow Flow.Event | Audit Audit.Event
 

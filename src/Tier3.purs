@@ -38,7 +38,7 @@ import Foreign.Index ((!))
 import FFI.SQLite3 as SQLite3
 
 import Audit as Audit
-import Flow as Flow
+import Data.Flow as Flow
 
 import Forward (Forward)
 import Forward as Forward

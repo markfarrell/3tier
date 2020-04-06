@@ -1,4 +1,4 @@
-module IPv4
+module Data.IPv4
   ( IPv4(..)
   ) where
 

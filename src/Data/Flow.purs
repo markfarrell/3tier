@@ -1,4 +1,4 @@
-module Flow
+module Data.Flow
   ( Event (..)
   , Flag (..)
   , event
@@ -20,7 +20,7 @@ import Text.Parsing.Parser.Combinators (choice)
 import FFI.Date (Date)
 
 import Parser (date, port, ipv4, octet, positiveFloat, positiveInteger)
-import IPv4 (IPv4)
+import Data.IPv4 (IPv4)
 
 data Flag = U | R | F | S | P | A
 
