@@ -18,6 +18,8 @@ import Effect.Linux (random) as Linux
 import Effect.Report (random) as Report
 import Effect.Windows (random) as Windows
 
+import FFI.Math as Math
+
 import Tier.Forward as Forward
 import Tier.Report (all) as Report
 import Tier.Route as Route
@@ -122,6 +124,20 @@ forwardWindows = do
     dbms     = Tier3.Local $ "Test.Tier3.forwardWindows.db"
     authorization  = Tier3.Authorization unit
     authentication = Tier3.Authentication unit
+   
+forward :: Tier3.Request Unit
+forward = do
+  choice <- lift $ liftEffect (Math.floor <$> ((*) 5.0) <$> Math.random)
+  case choice of
+    0 -> forwardAudit
+    1 -> forwardAlert
+    2 -> forwardFlow
+    3 -> forwardReport
+    4 -> forwardLinux
+    _ -> forwardWindows 
+
+forwards :: Tier3.Request Unit
+forwards = void $ sequence (const forward <$> Array.range 1 1000) 
 
 replications :: Tier3.Request Unit
 replications = void $ sequence $ replication <$> Array.range 1 10
@@ -129,13 +145,10 @@ replications = void $ sequence $ replication <$> Array.range 1 10
 requests :: Tier3.Request Unit
 requests = void $ sequence $
   [ replications
-  , forwardAudit
-  , forwardAlert
-  , forwardFlow
-  , forwardLinux
-  , forwardReport
-  , forwardWindows
+  , forwards
   ]
 
 main :: Effect Unit
-main = void $ launchAff $ Tier3.execute requests
+main = void $ launchAff $ do
+  result <- Tier3.execute requests
+  pure unit
