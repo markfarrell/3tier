@@ -124,6 +124,8 @@ schemaURI Schema.Windows = schemaURI' "Windows" [] $
   , Tuple "EventType" Text
   , Tuple "EventCategory" Text
   , Tuple "EventID" Text
+  , Tuple "SIP" Text
+  , Tuple "SPort" Text
   ]
 schemaURI Schema.Linux = schemaURI' "Linux" [] $
   [ Tuple "StartTime" Text
@@ -180,6 +182,8 @@ insertWindowsURI (Windows.Event event) = do
       , Tuple "EventType" (show event.eventType)
       , Tuple "EventCategory" (show event.eventCategory)
       , Tuple "EventID" (show event.eventID)
+      , Tuple "SIP" (show event.sIP)
+      , Tuple "SPort" (show event.sPort)
       ]
 
 insertLinuxURI :: Linux.Event -> Aff String
