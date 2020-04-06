@@ -61,7 +61,7 @@ type Table = String
 
 type Column = Tuple String ColumnType
  
-data ColumnType = Text | Real
+data ColumnType = Text | Integer
 
 data Schema  = AuditSchema | FlowSchema
 
@@ -78,23 +78,19 @@ type Result a = DSL.Result a
 schemaURI' :: Table -> Array Column -> Array Column -> String
 schemaURI' table' params params' = query
   where
-     query   = case Array.length params > 0 of
-       true  -> "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> "," <> primaryKey <> ")"
-       false -> "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> ")"
-     columns                = (intercalate "," columns')
-     columns'               = column <$> (params <> params')
-     column param           = intercalate " " $ [fst param, columnType $ snd param]
-     columnType Text = "TEXT NOT NULL"
-     columnType Real = "REAL NOT NULL"
-     primaryKey       = "PRIMARY KEY (" <> primaryKey' <> ")"
-     primaryKey'      = intercalate "," (fst <$> params)
+     query   = "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> ")"
+     columns            = (intercalate "," columns')
+     columns'           = column <$> (params <> params')
+     column param       = intercalate " " $ [fst param, columnType $ snd param]
+     columnType Text    = "TEXT NOT NULL"
+     columnType Integer = "INTEGER NOT NULL"
 
 schemaURI :: Schema -> String
 schemaURI AuditSchema = schemaURI' "Audit" [] $
-  [ Tuple "SourceAddress" Text
+  [ Tuple "SIP" Text
   , Tuple "SPort" Text
   , Tuple "StartTime" Text
-  , Tuple "Duration" Real
+  , Tuple "Duration" Integer
   , Tuple "EndTime" Text
   , Tuple "EventType" Text
   , Tuple "EventCategory" Text
@@ -103,14 +99,14 @@ schemaURI AuditSchema = schemaURI' "Audit" [] $
 schemaURI FlowSchema = schemaURI' "Flow" [] $ 
   [ Tuple "SIP" Text
   , Tuple "DIP" Text
-  , Tuple "SPort" Text
-  , Tuple "DPort" Text
-  , Tuple "Protocol" Text
-  , Tuple "Packets" Text
-  , Tuple "Bytes" Text
+  , Tuple "SPort" Integer
+  , Tuple "DPort" Integer
+  , Tuple "Protocol" Integer
+  , Tuple "Packets" Integer
+  , Tuple "Bytes" Integer
   , Tuple "Flags" Text
   , Tuple "StartTIme" Text
-  , Tuple "Duration" Real
+  , Tuple "Duration" Integer
   , Tuple "EndTime" Text
   ]
 
@@ -161,7 +157,7 @@ insertURI (Forward.Audit event) = insertAuditURI event
 insertURI (Forward.Flow  event) = insertFlowURI event
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
-reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceAddress, SPort" 
+reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SIP, SPort" 
 reportAuditURI' Audit.Duration = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Report -> Table

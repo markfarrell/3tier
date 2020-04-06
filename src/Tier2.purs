@@ -22,6 +22,7 @@ import Unsafe.Coerce (unsafeCoerce)
 
 import FFI.Date as Date
 import FFI.HTTP as HTTP
+import FFI.Math as Math
 import FFI.Socket as Socket
 import FFI.JSON as JSON
 
@@ -92,7 +93,7 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
                      (Right route) -> databaseRequest settings route req 
   response      <- try $ sendResource resource res 
   endTime       <- liftEffect $ Date.current
-  duration      <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
+  duration      <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   eventID       <- pure $ case routingResult of
                      (Left _)                  -> Audit.Reject
                      (Right (Route.Forward _)) -> Audit.Forward

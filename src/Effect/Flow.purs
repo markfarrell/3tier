@@ -1,10 +1,9 @@
-module Sample
-  ( flow
+module Effect.Flow
+  ( random
   ) where
 
 import Prelude
 
-import Data.Array as Array
 import Data.Int as Int
 import Data.Maybe (Maybe)
 import Data.Either (Either(..))
@@ -27,14 +26,6 @@ range min max = do
   y <- pure $ Int.toNumber max
   z <- pure $ w * (y - x) + x 
   pure $ Math.floor z
-
-index :: forall a. Array a -> Effect Int
-index x = range 0 (Array.length x) 
-
-array :: forall a. Array a -> Effect (Maybe a)
-array x = do
-  y <- index x
-  pure $ Array.index x y
 
 octet :: Effect Int
 octet = range 0 255
@@ -72,8 +63,8 @@ date = do
     (Left _)  -> pure Date.epoch
     (Right z) -> pure z
 
-flow :: Effect Flow.Event
-flow = do
+random :: Effect Flow.Event
+random = do
   sIP       <- ipv4
   sPort     <- port
   dIP       <- ipv4
@@ -84,7 +75,7 @@ flow = do
   flags     <- pure [Flow.U, Flow.R, Flow.F, Flow.S, Flow.P, Flow.A]
   startTime <- pure $ Date.epoch
   endTime   <- date
-  duration  <- pure $ (Date.getTime endTime) - (Date.getTime startTime)
+  duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   pure $ Flow.Event $
     { sIP       : sIP
     , sPort     : sPort

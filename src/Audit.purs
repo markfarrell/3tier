@@ -31,7 +31,7 @@ data Event = Event
   , eventCategory :: EventCategory
   , eventID       :: EventID
   , startTime     :: Date
-  , duration      :: Number
+  , duration      :: Int
   , endTime       :: Date
   }
 

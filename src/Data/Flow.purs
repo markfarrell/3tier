@@ -19,7 +19,7 @@ import Text.Parsing.Parser.Combinators (choice)
 
 import FFI.Date (Date)
 
-import Parser (date, port, ipv4, octet, positiveFloat, positiveInteger)
+import Parser (date, port, ipv4, octet, positiveInteger)
 import Data.IPv4 (IPv4)
 
 data Flag = U | R | F | S | P | A
@@ -34,7 +34,7 @@ data Event = Event
   , bytes     :: Int
   , flags     :: Array Flag
   , startTime :: Date
-  , duration  :: Number
+  , duration  :: Int
   , endTime   :: Date
   }
 
@@ -100,7 +100,7 @@ event = do
   _         <- comma
   startTime <- date
   _         <- comma
-  duration' <- positiveFloat
+  duration' <- positiveInteger
   _         <- comma
   endTime   <- date
   _         <- eof
