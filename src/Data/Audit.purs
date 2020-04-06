@@ -5,6 +5,8 @@ module Data.Audit
   , EventURI
   , Event(..)
   , ReportType(..)
+  , eventCategories
+  , eventIDs
   ) where
 
 import Prelude
@@ -65,6 +67,22 @@ instance eqEventTypeAudit :: Eq EventType where
   eq Success Success = true
   eq Failure Failure = true
   eq _       _       = false
+
+eventCategories :: Array EventCategory
+eventCategories = [Tier1, Tier2, Tier3]
+
+eventIDs :: Array EventID
+eventIDs =
+  [ Anomalous
+  , Forward Schema.Audit
+  , Forward Schema.Flow
+  , Forward Schema.Linux
+  , Forward Schema.Windows
+  , Report Schema.Audit
+  , Report Schema.Flow
+  , Report Schema.Linux
+  , Report Schema.Windows
+  ]
 
 uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
