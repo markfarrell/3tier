@@ -137,6 +137,17 @@ schemaURI Schema.Linux = schemaURI' "Linux" [] $
   , Tuple "SIP" Text
   , Tuple "SPort" Text
   ]
+schemaURI Schema.Report = schemaURI' "Report" [] $
+  [ Tuple "EventType" Text
+  , Tuple "EventCategory" Text
+  , Tuple "EventID" Text
+  , Tuple "Min" Text
+  , Tuple "Max" Text
+  , Tuple "Sum" Text
+  , Tuple "Total" Text
+  , Tuple "Average" Text
+  , Tuple "Variance" Text
+  ]
 
 insertAuditURI :: Audit.Event -> Aff String
 insertAuditURI (Audit.Event event) = do
@@ -201,6 +212,22 @@ insertLinuxURI (Linux.Event event) = do
       , Tuple "SPort" (show event.sPort)
       ]
 
+insertReportURI :: Data.Report.Event -> Aff String
+insertReportURI (Data.Report.Event event) = do
+  pure $ insertURI' "Report" params
+  where 
+    params  =
+      [ Tuple "EventType" (show event.eventType)
+      , Tuple "EventCategory" (show event.eventCategory)
+      , Tuple "EventID" (show event.eventID)
+      , Tuple "Min" (show event.min)
+      , Tuple "Max" (show event.max)
+      , Tuple "Sum" (show event.sum)
+      , Tuple "Total" (show event.total)
+      , Tuple "Average" (show event.average)
+      , Tuple "Variance" (show event.variance)
+      ]
+
 insertURI' ::  Table -> Array (Tuple String String) -> String
 insertURI'  table' params = query
   where
@@ -214,6 +241,7 @@ insertURI :: Forward ->  Aff String
 insertURI (Forward.Audit event)   = insertAuditURI event
 insertURI (Forward.Flow  event)   = insertFlowURI event
 insertURI (Forward.Linux event)   = insertLinuxURI event
+insertURI (Forward.Report event)  = insertReportURI event
 insertURI (Forward.Windows event) = insertWindowsURI event
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
@@ -263,6 +291,7 @@ executeSchemas file = do
   database <- SQLite3.connect file SQLite3.OpenReadWrite
   _        <- SQLite3.all (schemaURI Schema.Audit) database
   _        <- SQLite3.all (schemaURI Schema.Flow) database
+  _        <- SQLite3.all (schemaURI Schema.Report) database
   _        <- SQLite3.all (schemaURI Schema.Linux) database
   _        <- SQLite3.all (schemaURI Schema.Windows) database
   _        <- SQLite3.close database
