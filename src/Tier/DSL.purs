@@ -1,4 +1,4 @@
-module DSL
+module Tier.DSL
   ( DSL(..)
   , Request
   , Result
@@ -13,8 +13,8 @@ import Data.Either (Either)
 import Effect.Aff (Aff)
 import Effect.Exception(Error)
 
-import Forward (Forward)
-import Report (Report)
+import Tier.Forward (Forward)
+import Tier.Report (Report)
 
 data DSL a b c = Forward a Forward (b -> c) | Report a Report (b -> c)
 

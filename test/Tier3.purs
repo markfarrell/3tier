@@ -14,11 +14,9 @@ import Effect.Class (liftEffect)
 import Effect.Flow (random) as Flow
 import Effect.Windows (random) as Windows
 
-import Forward as Forward
-
-import Route as Route
-
-import Report as Report
+import Tier.Forward as Forward
+import Tier.Report as Report
+import Tier.Route as Route
 
 import Tier3 as Tier3
 

@@ -32,14 +32,14 @@ import Tier3 as Tier3
 
 import Data.Audit as Audit
 
-import Forward (Forward)
-import Forward as Forward
+import Tier.Forward (Forward)
+import Tier.Forward as Forward
 
-import Report (Report)
-import Report as Report
+import Tier.Report (Report)
+import Tier.Report as Report
 
-import Route (Route)
-import Route as Route
+import Tier.Route (Route)
+import Tier.Route as Route
 
 data Settings = Settings { host :: String, port :: Int }
 

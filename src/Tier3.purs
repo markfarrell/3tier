@@ -43,18 +43,18 @@ import Data.Windows as Windows
 import Data.Schema (Schema)
 import Data.Schema as Schema
 
-import Forward (Forward)
-import Forward as Forward
+import Tier.Forward (Forward)
+import Tier.Forward as Forward
 
-import Report (Report)
-import Report as Report
+import Tier.Report (Report)
+import Tier.Report as Report
 
 import Data.Report as Data.Report
 
-import Route (Route)
-import Route as Route
+import Tier.Route (Route)
+import Tier.Route as Route
 
-import DSL as DSL
+import Tier.DSL as DSL
 
 type Connection = SQLite3.Database
 
