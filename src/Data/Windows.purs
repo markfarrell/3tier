@@ -29,7 +29,7 @@ import Text.Parsing.Parser.String (string)
 
 import FFI.Date (Date)
 
-import Parser (date, json, positiveInteger, positiveInteger)
+import Parser (date, json, positiveInteger)
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -56,7 +56,24 @@ data Event = Event
   , endTime       :: Date
   }
 
-instance eqEventCategoryEvent :: Eq EventCategory where
+instance showEventCategoryWindows :: Show EventCategory where
+  show AccountLogon      = "ACCOUNT-LOGON"
+  show AccountManagement = "ACCOUNT-MANAGEMENT" 
+  show DirectoryService  = "DIRECTORY-SERVICE"
+  show LogonAndLogoff    = "LOGON-AND-LOGOFF"
+  show ObjectAccess      = "OBJECT-ACCESS"
+  show NonAudit          = "NON-AUDIT"
+  show PolicyChange      = "POLICY-CHANGE"
+  show PrivilegeUse      = "PRIVILEGE-USE"
+  show ProcessTracking   = "PROCESS-TRACKING"
+  show System            = "SYSTEM"
+  show Uncategorized     = "UNCATEGORIZED"
+
+instance showEventTypeWindows :: Show EventType where
+  show Success = "SUCCESS"
+  show Failure = "FAILURE"
+
+instance eqEventCategoryWindows :: Eq EventCategory where
   eq AccountLogon      AccountLogon      = true 
   eq AccountManagement AccountManagement = true
   eq DirectoryService  DirectoryService  = true 
