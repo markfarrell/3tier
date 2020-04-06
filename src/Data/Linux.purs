@@ -3,9 +3,12 @@ module Data.Linux
  , EventType(..)
  , EventID
  , Event(..)
+ , eventCategories
  ) where
 
 import Prelude
+
+import Data.IPv4 (IPv4)
 
 import FFI.Date (Date)
 import FFI.JSON as JSON
@@ -45,6 +48,8 @@ data Event = Event
   , startTime     :: Date
   , duration      :: Int
   , endTime       :: Date
+  , sIP           :: IPv4
+  , sPort         :: Int
   }
 
 instance showEventLinux :: Show Event where
@@ -75,6 +80,31 @@ instance showEventCategoryLinux :: Show EventCategory where
   show CredRefr       = "CRED-REFR"
   show AnomPromisc    = "ANOM-PROMISCUOUS"
   show Login          = "LOGIN"
+
+
+eventCategories :: Array EventCategory
+eventCategories =
+  [ DaemonStart
+  , ConfigChange
+  , SystemBoot
+  , SystemRunLevel
+  , ServiceStart
+  , NetfilterCfg
+  , Syscall
+  , Proctitle
+  , ServiceStop
+  , UserStart
+  , UserCmd
+  , UserEnd
+  , UserLogin
+  , UserAuth
+  , UserAcct
+  , CredAcq
+  , CredDisp
+  , CredRefr
+  , AnomPromisc
+  , Login
+  ]
 
 uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
