@@ -11,6 +11,7 @@ import Effect (Effect)
 import Effect.Aff (launchAff)
 import Effect.Class (liftEffect)
 
+import Effect.Audit (random) as Audit
 import Effect.Flow (random) as Flow
 import Effect.Linux (random) as Linux
 import Effect.Windows (random) as Windows
@@ -53,6 +54,17 @@ many = do
   _ <- replication 100
   pure unit
 
+forwardAudit :: Tier3.Request Unit
+forwardAudit = do
+  event <- lift $ liftEffect Audit.random
+  _     <- Tier3.request settings (Route.Forward (Forward.Audit event)) 
+  pure unit 
+  where
+    settings = Tier3.Settings authorization authentication dbms
+    dbms     = Tier3.Local $ "Test.Tier3.forwardAudit.db"
+    authorization  = Tier3.Authorization unit
+    authentication = Tier3.Authentication unit
+
 forwardFlow :: Tier3.Request Unit
 forwardFlow = do
   event <- lift $ liftEffect Flow.random
@@ -92,6 +104,7 @@ replications = void $ sequence $ replication <$> Array.range 1 10
 requests :: Tier3.Request Unit
 requests = void $ sequence $
   [ replications
+  , forwardAudit
   , forwardFlow
   , forwardLinux
   , forwardWindows
