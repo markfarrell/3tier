@@ -2,4 +2,4 @@ module Data.Schema
   ( Schema(..)
   ) where
 
-data Schema = Audit | Flow | Report | Linux | Windows
+data Schema = Audit | Alert | Flow | Report | Linux | Windows

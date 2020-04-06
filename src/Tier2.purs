@@ -99,6 +99,7 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
   eventID       <- pure $ case routingResult of
                      (Left _)                                     -> Audit.Anomalous
                      (Right (Route.Forward (Forward.Audit _)))    -> Audit.Forward Schema.Audit
+                     (Right (Route.Forward (Forward.Alert _)))    -> Audit.Forward Schema.Alert
                      (Right (Route.Forward (Forward.Flow _)))     -> Audit.Forward Schema.Flow
                      (Right (Route.Forward (Forward.Report _)))   -> Audit.Forward Schema.Report
                      (Right (Route.Forward (Forward.Linux  _)))   -> Audit.Forward Schema.Linux

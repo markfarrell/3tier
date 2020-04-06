@@ -37,6 +37,7 @@ import FFI.Math as Math
 import FFI.SQLite3 as SQLite3
 
 import Data.Audit as Audit
+import Data.Alert as Alert
 import Data.Flow as Flow
 import Data.Linux as Linux
 import Data.Windows as Windows
@@ -104,6 +105,16 @@ schemaURI Schema.Audit = schemaURI' "Audit" [] $
   , Tuple "EventCategory" Text
   , Tuple "EventID" Text
   ]
+schemaURI Schema.Alert = schemaURI' "Alert" [] $
+  [ Tuple "StartTime" Text
+  , Tuple "Duration" Integer
+  , Tuple "EndTime" Text
+  , Tuple "EventType" Text
+  , Tuple "EventCategory" Text
+  , Tuple "EventID" Text
+  , Tuple "SIP" Text
+  , Tuple "SPort" Text
+  ]
 schemaURI Schema.Flow = schemaURI' "Flow" [] $ 
   [ Tuple "SIP" Text
   , Tuple "DIP" Text
@@ -155,6 +166,21 @@ insertAuditURI (Audit.Event event) = do
   where 
     params  =
       [ Tuple "SIP" event.sIP
+      , Tuple "SPort" (show event.sPort)
+      , Tuple "StartTime" (show event.startTime)
+      , Tuple "Duration" (show event.duration)
+      , Tuple "EndTime" (show event.endTime)
+      , Tuple "EventType" (show event.eventType)
+      , Tuple "EventCategory" (show event.eventCategory)
+      , Tuple "EventID" (show event.eventID)
+      ]
+
+insertAlertURI :: Alert.Event -> Aff String
+insertAlertURI (Alert.Event event) = do
+  pure $ insertURI' "Alert" params
+  where 
+    params  =
+      [ Tuple "SIP" (show event.sIP)
       , Tuple "SPort" (show event.sPort)
       , Tuple "StartTime" (show event.startTime)
       , Tuple "Duration" (show event.duration)
@@ -239,6 +265,7 @@ insertURI'  table' params = query
 
 insertURI :: Forward ->  Aff String
 insertURI (Forward.Audit event)   = insertAuditURI event
+insertURI (Forward.Alert event)   = insertAlertURI event
 insertURI (Forward.Flow  event)   = insertFlowURI event
 insertURI (Forward.Linux event)   = insertLinuxURI event
 insertURI (Forward.Report event)  = insertReportURI event
@@ -290,6 +317,7 @@ executeSchemas :: String -> Aff Unit
 executeSchemas file = do
   database <- SQLite3.connect file SQLite3.OpenReadWrite
   _        <- SQLite3.all (schemaURI Schema.Audit) database
+  _        <- SQLite3.all (schemaURI Schema.Alert) database
   _        <- SQLite3.all (schemaURI Schema.Flow) database
   _        <- SQLite3.all (schemaURI Schema.Report) database
   _        <- SQLite3.all (schemaURI Schema.Linux) database

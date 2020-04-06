@@ -49,11 +49,13 @@ instance showEventTypeAudit :: Show EventType where
 
 instance showEventIDAudit :: Show EventID where
   show (Forward Schema.Audit)   = "FORWARD-AUDIT"
+  show (Forward Schema.Alert)   = "FORWARD-ALERT"
   show (Forward Schema.Flow)    = "FORWARD-FLOW"
   show (Forward Schema.Linux)   = "FORWARD-LINUX"
   show (Forward Schema.Report)  = "FORWARD-REPORT"
   show (Forward Schema.Windows) = "FORWARD-WINDOWS"
   show (Report  Schema.Audit)   = "REPORT-AUDIT"
+  show (Report  Schema.Alert)   = "REPORT-ALERT"
   show (Report  Schema.Flow)    = "REPORT-FLOW"
   show (Report  Schema.Linux)   = "REPORT-LINUX"
   show (Report  Schema.Report)  = "REPORT-REPORT"
@@ -77,11 +79,13 @@ eventIDs :: Array EventID
 eventIDs =
   [ Anomalous
   , Forward Schema.Audit
+  , Forward Schema.Alert
   , Forward Schema.Flow
   , Forward Schema.Linux
   , Forward Schema.Report
   , Forward Schema.Windows
   , Report Schema.Audit
+  , Report Schema.Alert
   , Report Schema.Flow
   , Report Schema.Report
   , Report Schema.Linux
