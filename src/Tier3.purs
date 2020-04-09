@@ -36,6 +36,8 @@ import Foreign.Index ((!))
 import FFI.Math as Math
 import FFI.SQLite3 as SQLite3
 
+import Control.DSL as DSL
+
 import Data.Audit as Audit
 import Data.Alert as Alert
 import Data.Flow as Flow
@@ -45,18 +47,16 @@ import Data.Windows as Windows
 import Data.Schema (Schema)
 import Data.Schema as Schema
 
-import Tier.Forward (Forward)
-import Tier.Forward as Forward
+import Data.Tier3.Route (Route)
+import Data.Tier3.Route as Route
 
-import Tier.Report (Report)
-import Tier.Report as Report
+import Data.Tier3.Forward (Forward)
+import Data.Tier3.Forward as Forward
+
+import Data.Tier3.Report (Report)
+import Data.Tier3.Report as Report
 
 import Data.Report as Data.Report
-
-import Tier.Route (Route)
-import Tier.Route as Route
-
-import Tier.DSL as DSL
 
 type Connection = SQLite3.Database
 
@@ -78,9 +78,9 @@ data Resource = Forward Unit | Report Data.Report.Event
 
 type Query = Route
 
-type DSL a = DSL.DSL Settings Resource a
+type DSL a = DSL.DSL Settings Resource Forward Report a
 
-type Request a = DSL.Request Settings Resource a
+type Request a = DSL.Request Settings Resource Forward Report a
 
 type Result a = DSL.Result a
 

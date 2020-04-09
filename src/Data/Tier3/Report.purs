@@ -1,4 +1,4 @@
-module Tier.Report
+module Data.Tier3.Report
   ( Report(..)
   , all
   , uri 

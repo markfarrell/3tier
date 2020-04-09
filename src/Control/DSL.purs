@@ -1,4 +1,4 @@
-module Tier.DSL
+module Control.DSL
   ( DSL(..)
   , Request
   , Result
@@ -13,16 +13,13 @@ import Data.Either (Either)
 import Effect.Aff (Aff)
 import Effect.Exception(Error)
 
-import Tier.Forward (Forward)
-import Tier.Report (Report)
+data DSL a b c d e = Forward a c (b -> e) | Report a d (b -> e)
 
-data DSL a b c = Forward a Forward (b -> c) | Report a Report (b -> c)
-
-type Request a b c = FreeT (DSL a b) Aff c
+type Request a b c d e = FreeT (DSL a b c d) Aff e
 
 type Result a = Either Error a
 
-instance functorDSL :: Functor (DSL a b) where
-  map :: forall c d. (c -> d) -> DSL a b c -> DSL a b d
+instance functorDSL :: Functor (DSL a b c d) where
+  map :: forall e e'. (e -> e') -> DSL a b c d e -> DSL a b c d e'
   map f (Forward settings query' next) = (Forward settings query' (f <<< next))
   map f (Report settings query' next)  = (Report settings query' (f <<< next))

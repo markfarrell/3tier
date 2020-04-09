@@ -1,4 +1,4 @@
-module Tier.Forward
+module Data.Tier3.Forward
   (Forward(..)
   , uri
   ) where

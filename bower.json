@@ -1,5 +1,5 @@
 {
-  "name": "purescript-siem",
+  "name": "3tier",
   "ignore": [
     "**/.*",
     "node_modules",
@@ -7,15 +7,10 @@
     "output"
   ],
   "dependencies": {
-    "purescript-prelude": "^4.1.1",
-    "purescript-console": "^4.2.0",
-    "purescript-effect": "^2.0.1",
     "purescript-aff-coroutines": "^7.0.0",
     "purescript-aff": "^5.1.2",
     "purescript-parsing": "^5.0.3",
-    "purescript-foreign": "^5.0.0",
-    "purescript-identity": "^4.1.0",
-    "purescript-newtype": "^3.0.0"
+    "purescript-foreign": "^5.0.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0"

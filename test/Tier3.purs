@@ -20,9 +20,9 @@ import Effect.Windows (random) as Windows
 
 import FFI.Math as Math
 
-import Tier.Forward as Forward
-import Tier.Report (all) as Report
-import Tier.Route as Route
+import Data.Tier3.Forward as Forward
+import Data.Tier3.Report (all) as Report
+import Data.Tier3.Route as Route
 
 import Tier3 as Tier3
 

@@ -1,4 +1,4 @@
-  module Tier.Route
+  module Data.Tier3.Route
     ( Route(..)
   , execute
   , uri
@@ -17,8 +17,8 @@ import Text.Parsing.Parser.Combinators (choice)
 
 import Text.Parsing.Flow (event) as Flow
 
-import Tier.Forward as Forward
-import Tier.Report as Report
+import Data.Tier3.Forward as Forward
+import Data.Tier3.Report as Report
 
 import FFI.HTTP as HTTP
 import FFI.String as String
