@@ -1,4 +1,4 @@
-module Test.Tier3 where
+module Test.Control.Tier3 where
 
 import Prelude
 
@@ -24,7 +24,7 @@ import Data.Tier3.Forward as Forward
 import Data.Tier3.Report (all) as Report
 import Data.Tier3.Route as Route
 
-import Tier3 as Tier3
+import Control.Tier3 as Tier3
 
 nothing :: Tier3.Request Unit
 nothing = pure unit

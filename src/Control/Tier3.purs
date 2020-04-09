@@ -1,6 +1,5 @@
-module Tier3
- ( DSL
- , Query
+module Control.Tier3
+ ( Query
  , Request
  , Result
  , DBMS(..)
@@ -76,9 +75,7 @@ data ColumnType = Text | Integer
 
 data Resource = Forward Unit | Report Data.Report.Event
 
-type Query = Route
-
-type DSL a = DSL.DSL Settings Resource Forward Report a
+type Query a = DSL.Query Settings Resource Forward Report a
 
 type Request a = DSL.Request Settings Resource Forward Report a
 
@@ -299,7 +296,7 @@ varianceURI report avg = query
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
     query' = "(X - " <> show avg <> ")"
 
-interpret :: forall a. DSL (Request a) -> Aff (Request a)
+interpret :: forall a. Query (Request a) -> Aff (Request a)
 interpret (DSL.Forward (Settings _ _ dbms) query next) = do
   result <- executeForward dbms query
   next <$> pure result
@@ -370,6 +367,7 @@ executeReport (Local dbms) report = do
     eventType     _                                   = Data.Report.Success
     eventCategory (Report.Audit _ _ (Audit.Source))   = Data.Report.Source
     eventCategory (Report.Audit _ _ (Audit.Duration)) = Data.Report.Duration
+
 executeReport'' :: Connection -> String -> Aff Number
 executeReport'' database uri = do
   rows    <- SQLite3.all uri database
@@ -385,7 +383,7 @@ executeReport'' database uri = do
          (Right number') -> pure number'
     error = Exception.error "Unexpected results."
 
-request :: Settings -> Query -> Request Resource
+request :: Settings -> Route -> Request Resource
 request settings (Route.Forward query) = liftFreeT $ (DSL.Forward settings query identity)
 request settings (Route.Report query)  = liftFreeT $ (DSL.Report settings query identity)
 

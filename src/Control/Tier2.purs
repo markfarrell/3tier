@@ -1,4 +1,4 @@
-module Tier2 
+module Control.Tier2 
   ( Settings(..)
   , execute
   , process
@@ -28,7 +28,7 @@ import FFI.JSON as JSON
 
 import Data.Schema as Schema
 
-import Tier3 as Tier3
+import Control.Tier3 as Tier3
 
 import Data.Audit as Audit
 

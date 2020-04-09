@@ -1,5 +1,5 @@
 module Control.DSL
-  ( DSL(..)
+  ( Query(..)
   , Request
   , Result
   ) where
@@ -13,13 +13,13 @@ import Data.Either (Either)
 import Effect.Aff (Aff)
 import Effect.Exception(Error)
 
-data DSL a b c d e = Forward a c (b -> e) | Report a d (b -> e)
+data Query a b c d e = Forward a c (b -> e) | Report a d (b -> e)
 
-type Request a b c d e = FreeT (DSL a b c d) Aff e
+type Request a b c d e = FreeT (Query a b c d) Aff e
 
 type Result a = Either Error a
 
-instance functorDSL :: Functor (DSL a b c d) where
-  map :: forall e e'. (e -> e') -> DSL a b c d e -> DSL a b c d e'
+instance functorQuery :: Functor (Query a b c d) where
+  map :: forall e e'. (e -> e') -> Query a b c d e -> Query a b c d e'
   map f (Forward settings query' next) = (Forward settings query' (f <<< next))
   map f (Report settings query' next)  = (Report settings query' (f <<< next))
