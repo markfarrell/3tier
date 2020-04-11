@@ -97,14 +97,14 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
   endTime       <- liftEffect $ Date.current
   duration      <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   eventID       <- pure $ case routingResult of
-                     (Left _)                                     -> Audit.Anomalous
-                     (Right (Route.Forward (Forward.Audit _)))    -> Audit.Forward Schema.Audit
-                     (Right (Route.Forward (Forward.Alert _)))    -> Audit.Forward Schema.Alert
-                     (Right (Route.Forward (Forward.Flow _)))     -> Audit.Forward Schema.Flow
-                     (Right (Route.Forward (Forward.Report _)))   -> Audit.Forward Schema.Report
-                     (Right (Route.Forward (Forward.Linux  _)))   -> Audit.Forward Schema.Linux
-                     (Right (Route.Forward (Forward.Windows _)))  -> Audit.Forward Schema.Windows
-                     (Right (Route.Report  (Report.Audit _ _ _))) -> Audit.Report  Schema.Audit
+                     (Left _)                                       -> Audit.Anomalous
+                     (Right (Route.Forward (Forward.Audit _)))      -> Audit.Forward Schema.Audit
+                     (Right (Route.Forward (Forward.Alert _)))      -> Audit.Forward Schema.Alert
+                     (Right (Route.Forward (Forward.Flow _)))       -> Audit.Forward Schema.Flow
+                     (Right (Route.Forward (Forward.Report _)))     -> Audit.Forward Schema.Report
+                     (Right (Route.Forward (Forward.Linux  _)))     -> Audit.Forward Schema.Linux
+                     (Right (Route.Forward (Forward.Windows _)))    -> Audit.Forward Schema.Windows
+                     (Right (Route.Report  (Report.Audit _ _ _ _))) -> Audit.Report  Schema.Audit
   eventType     <- pure $ case routingResult of
                      (Left  _) -> Audit.Failure
                      (Right _) -> case resource of

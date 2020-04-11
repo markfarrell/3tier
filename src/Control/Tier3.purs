@@ -273,7 +273,7 @@ reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> tabl
 reportAuditURI' Audit.Duration = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Report -> Table
-reportURI (Report.Audit eventCategory eventType reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "'"
+reportURI (Report.Audit eventCategory eventType eventID reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "' AND EventID='" <> show eventID <> "'"
 
 maxURI :: Report -> String
 maxURI report = "SELECT MAX(X) AS Y FROM (" <> (reportURI report) <> ")"
@@ -336,8 +336,8 @@ executeForward (Local dbms) query        = do
   pure (Forward unit)
 
 executeReport :: DBMS -> Report -> Aff Resource
-executeReport (Replication dbms) (Report.Audit w x y) = do
-  report <- pure $ Report.Audit w x y
+executeReport (Replication dbms) (Report.Audit w x y z) = do
+  report <- pure $ Report.Audit w x y z
   result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> dbms))
   pure result
 executeReport (Local dbms) report = do
@@ -363,10 +363,10 @@ executeReport (Local dbms) report = do
     , variance      : Math.floor variance
     }
   where
-    eventID       (Report.Audit _ _ _)                = Data.Report.Audit
-    eventType     _                                   = Data.Report.Success
-    eventCategory (Report.Audit _ _ (Audit.Source))   = Data.Report.Source
-    eventCategory (Report.Audit _ _ (Audit.Duration)) = Data.Report.Duration
+    eventID       (Report.Audit _ _ _ _)                = Data.Report.Audit
+    eventType     _                                     = Data.Report.Success
+    eventCategory (Report.Audit _ _ _ (Audit.Source))   = Data.Report.Source
+    eventCategory (Report.Audit _ _ _ (Audit.Duration)) = Data.Report.Duration
 
 executeReport'' :: Connection -> String -> Aff Number
 executeReport'' database uri = do
