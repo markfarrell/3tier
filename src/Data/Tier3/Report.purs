@@ -1,5 +1,5 @@
 module Data.Tier3.Report
-  ( Report(..)
+  ( URI(..)
   , all
   , uri 
   ) where
@@ -9,12 +9,12 @@ import Prelude
 import Data.Audit as Audit
 import Data.Schema as Schema
 
-data Report = Audit Audit.EventCategory Audit.EventType Audit.EventID Audit.ReportType
+data URI = Audit Audit.EventCategory Audit.EventType Audit.EventID Audit.ReportType
 
-all :: Array Report
+all :: Array URI
 all = anomalies <> forwards <> reports
 
-anomalies :: Array Report
+anomalies :: Array URI
 anomalies =
   [ Audit Audit.Tier3 Audit.Failure Audit.Anomalous Audit.Source  
   , Audit Audit.Tier3 Audit.Success Audit.Anomalous Audit.Duration
@@ -29,7 +29,7 @@ anomalies =
   , Audit Audit.Tier1 Audit.Failure Audit.Anomalous Audit.Duration
   ]
 
-forwards :: Array Report
+forwards :: Array URI
 forwards =
   [ Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Audit) Audit.Source  
   , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Audit) Audit.Source  
@@ -107,7 +107,7 @@ forwards =
 
   ]
 
-reports :: Array Report
+reports :: Array URI
 reports =
   [ Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Audit) Audit.Source  
   , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Audit) Audit.Source  
@@ -185,7 +185,7 @@ reports =
 
   ]
 
-uri :: Report -> String
+uri :: URI -> String
 uri  (Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Audit) Audit.Source)   = "/report/audit/tier3/success/forward-audit/source"
 uri  (Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Audit) Audit.Source)   = "/report/audit/tier3/failure/forward-audit/source"
 uri  (Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Audit) Audit.Duration) = "/report/audit/tier3/success/forward-audit/duration"

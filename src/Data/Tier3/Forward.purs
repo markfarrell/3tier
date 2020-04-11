@@ -1,5 +1,5 @@
 module Data.Tier3.Forward
-  (Forward(..)
+  ( URI(..)
   , uri
   ) where
 
@@ -12,9 +12,9 @@ import Data.Linux as Linux
 import Data.Report as Report
 import Data.Windows as Windows
 
-data Forward = Audit Audit.Event | Alert Alert.Event | Flow Flow.Event | Report Report.Event | Linux Linux.Event | Windows Windows.Event 
+data URI = Audit Audit.Event | Alert Alert.Event | Flow Flow.Event | Report Report.Event | Linux Linux.Event | Windows Windows.Event 
 
-uri :: Forward -> String
+uri :: URI -> String
 uri (Audit event)   = "/forward/audit?"   <> show event
 uri (Alert event)   = "/forward/audit?"   <> show event
 uri (Flow event)    = "/forward/flow?"    <> show event

@@ -49,10 +49,8 @@ import Data.Schema as Schema
 import Data.Tier3.Route (Route)
 import Data.Tier3.Route as Route
 
-import Data.Tier3.Forward (Forward)
 import Data.Tier3.Forward as Forward
 
-import Data.Tier3.Report (Report)
 import Data.Tier3.Report as Report
 
 import Data.Report as Data.Report
@@ -75,9 +73,9 @@ data ColumnType = Text | Integer
 
 data Resource = Forward Unit | Report Data.Report.Event
 
-type Query a = DSL.Query Settings Resource Forward Report a
+type Query a = DSL.Query Settings Resource Forward.URI Report.URI a
 
-type Request a = DSL.Request Settings Resource Forward Report a
+type Request a = DSL.Request Settings Resource Forward.URI Report.URI a
 
 type Result a = DSL.Result a
 
@@ -260,7 +258,7 @@ insertURI'  table' params = query
      columns' = fst <$> params
      values'  = snd <$> params
 
-insertURI :: Forward ->  Aff String
+insertURI :: Forward.URI ->  Aff String
 insertURI (Forward.Audit event)   = insertAuditURI event
 insertURI (Forward.Alert event)   = insertAlertURI event
 insertURI (Forward.Flow  event)   = insertFlowURI event
@@ -272,25 +270,25 @@ reportAuditURI' :: Audit.ReportType -> Table -> Table
 reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SIP, SPort" 
 reportAuditURI' Audit.Duration = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
-reportURI :: Report -> Table
+reportURI :: Report.URI -> Table
 reportURI (Report.Audit eventCategory eventType eventID reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "' AND EventID='" <> show eventID <> "'"
 
-maxURI :: Report -> String
+maxURI :: Report.URI -> String
 maxURI report = "SELECT MAX(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-minURI :: Report -> String
+minURI :: Report.URI -> String
 minURI report = "SELECT MIN(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-averageURI :: Report -> String
+averageURI :: Report.URI -> String
 averageURI report = "SELECT AVG(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-sumURI :: Report -> String
+sumURI :: Report.URI -> String
 sumURI report = "SELECT SUM(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-totalURI :: Report -> String
+totalURI :: Report.URI -> String
 totalURI report = "SELECT COUNT(*) as Y FROM (" <> (reportURI report) <> ")"
 
-varianceURI :: Report -> Number -> String
+varianceURI :: Report.URI -> Number -> String
 varianceURI report avg = query
   where 
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
@@ -322,7 +320,7 @@ executeSchemas file = do
   _        <- SQLite3.close database
   pure unit
 
-executeForward :: DBMS -> Forward -> Aff Resource
+executeForward :: DBMS -> Forward.URI -> Aff Resource
 executeForward (Replication dbms) query  = do
   result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward query <$> dbms)) 
   pure result
@@ -335,7 +333,7 @@ executeForward (Local dbms) query        = do
   _        <- SQLite3.close database
   pure (Forward unit)
 
-executeReport :: DBMS -> Report -> Aff Resource
+executeReport :: DBMS -> Report.URI -> Aff Resource
 executeReport (Replication dbms) (Report.Audit w x y z) = do
   report <- pure $ Report.Audit w x y z
   result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> dbms))

@@ -32,10 +32,8 @@ import Control.Tier3 as Tier3
 
 import Data.Audit as Audit
 
-import Data.Tier3.Forward (Forward)
 import Data.Tier3.Forward as Forward
 
-import Data.Tier3.Report (Report)
 import Data.Tier3.Report as Report
 
 import Data.Tier3.Route (Route)
@@ -142,13 +140,13 @@ url :: Settings -> String -> String
 url (Settings settings) uri = location <> uri
   where location = "http://" <> settings.host <> ":" <> show settings.port
 
-executeForward :: Settings -> Forward -> Aff (Either Error HTTP.IncomingResponse)
+executeForward :: Settings -> Forward.URI -> Aff (Either Error HTTP.IncomingResponse)
 executeForward settings query = do
   req <- HTTP.createRequest HTTP.Post $ url settings (Forward.uri query)
   res <- try $ HTTP.endRequest req
   pure res
 
-executeReport :: Settings -> Report -> Aff (Either Error HTTP.IncomingResponse)
+executeReport :: Settings -> Report.URI -> Aff (Either Error HTTP.IncomingResponse)
 executeReport settings query = do
   req <- HTTP.createRequest HTTP.Get $ url settings (Report.uri query)
   res <- try $ HTTP.endRequest req

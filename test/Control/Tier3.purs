@@ -20,8 +20,11 @@ import Effect.Windows (random) as Windows
 
 import FFI.Math as Math
 
+import Data.Audit (EventCategory(..), EventID(..), EventType(..), ReportType(..)) as Audit
+import Data.Schema as Schema
+
 import Data.Tier3.Forward as Forward
-import Data.Tier3.Report (all) as Report
+import Data.Tier3.Report (URI(..), all) as Report
 import Data.Tier3.Route as Route
 
 import Control.Tier3 as Tier3
@@ -57,6 +60,16 @@ many = do
   _ <- replication 10
   _ <- replication 100
   pure unit
+
+reportAudit :: Tier3.Request Unit
+reportAudit = do
+  _     <- Tier3.request settings (Route.Report (Report.Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Flow) Audit.Source)) 
+  pure unit 
+  where
+    settings = Tier3.Settings authorization authentication dbms
+    dbms     = Tier3.Local $ "Test.Tier3.reports.db"
+    authorization  = Tier3.Authorization unit
+    authentication = Tier3.Authentication unit
 
 forwardAudit :: Tier3.Request Unit
 forwardAudit = do

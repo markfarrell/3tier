@@ -1,5 +1,5 @@
   module Data.Tier3.Route
-    ( Route(..)
+  ( Route(..)
   , execute
   , uri
   ) where
@@ -23,9 +23,9 @@ import Data.Tier3.Report as Report
 import FFI.HTTP as HTTP
 import FFI.String as String
 
-data Route = Forward Forward.Forward | Report Report.Report
+data Route = Forward Forward.URI | Report Report.URI
 
-report :: Report.Report -> Parser String Route
+report :: Report.URI -> Parser String Route
 report report' = do
   _ <- string $ Report.uri report'
   pure $ (Report report')
