@@ -9,7 +9,7 @@ import Control.Monad.Trans.Class (lift)
 
 import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Foldable (foldl, intercalate)
+import Data.Foldable (foldl)
 import Data.Traversable (sequence)
 
 import Effect (Effect)
@@ -38,6 +38,8 @@ import Data.Tier3.Report (URI(..), uris) as Report
 import Data.Tier3.Route as Route
 
 import Control.Tier3 as Tier3
+
+import Test.Data.Test as Test
 
 report :: Tier3.Settings -> Report.URI -> Tier3.Request Unit
 report settings uri = do
@@ -167,15 +169,24 @@ successes settings request = void $ sequence $ apply request <$>
   ]
   where apply x = \f -> f x
 
-requests :: Tier3.Request Unit
-requests = void $ sequence $
-  [ test ["[RUNNING]", "RELEASE-01/TIER-03", "LOCAL/FORWARD"]       *> forwards (settings $ local 0 0) 100
-  , test ["[RUNNING]", "RELEASE-01/TIER-03", "REPLICATION/FORWARD"] *> forwards (settings $ replication 0 1) 100
-  , test ["[RUNNING]", "RELEASE-01/TIER-03", "LOCAL/REPORT"]        *> reports  (settings $ local 1 0)
-  , test ["[RUNNING]", "RELEASE-01/TIER-03", "REPLICATION/REPORT"]  *> reports (settings $ replication 1 1)
+debug :: Test.EventState -> Test.EventCategory -> Test.EventType -> Test.EventID  -> Tier3.Request Unit
+debug eventState eventCategory eventType eventID = lift $ liftEffect $ Console.log $ show event 
+  where 
+    event = Test.Event $
+      { eventCategory : eventCategory
+      , eventType     : eventType
+      , eventID       : eventID
+      , eventState    : eventState
+      }
+
+tests :: Tier3.Request Unit
+tests = void $ sequence $
+  [ debug Test.Running Test.Tier3 Test.Local Test.Forward       *> forwards (settings $ local 0 0) 50
+  , debug Test.Running Test.Tier3 Test.Replication Test.Forward *> forwards (settings $ replication 0 0) 50
+  , debug Test.Running Test.Tier3 Test.Local Test.Report        *> reports  (settings $ local 1 0)
+  , debug Test.Running Test.Tier3 Test.Replication Test.Report  *> reports (settings $ replication 1 1)
   ]
   where
-    test x          = lift $ liftEffect $ Console.log $ intercalate " " x
     settings x      = Tier3.Settings (Tier3.Authorization unit) (Tier3.Authentication origin) x
     local n m       = Tier3.Local $ "Test.Control.Tier3." <> show n <> "." <> show m <> ".db"
     replication n m = Tier3.Replication $ local n <$> Array.range 0 1
@@ -183,15 +194,12 @@ requests = void $ sequence $
 
 suite :: Aff Unit
 suite =  do
-  _ <- liftEffect $ Console.log $ intercalate " " ["[RUNNING]", "RELEASE-01/TIER-03", "*", "*"]
-  x <- Tier3.execute requests
+  x <- Tier3.execute tests
   case x of
     (Left _)  -> do
-       _ <- liftEffect $ Console.log     $ intercalate " " ["[FAILURE]", "RELEASE-01/TIER-03", "*", "*"]
-       _ <- liftEffect $ Exception.throw $ intercalate " " ["[FAILURE]", "RELEASE-01/TIER-03", "*", "*"]
+       _ <- liftEffect $ Exception.throw "Unexpected behaviour."
        pure unit
     (Right _) -> do
-       _ <- liftEffect $ Console.log $ intercalate " " ["[SUCCESS]", "RELEASE-01/TIER-03", "*", "*"]
        pure unit
   pure unit
 
