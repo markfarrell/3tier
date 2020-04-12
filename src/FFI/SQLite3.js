@@ -13,7 +13,6 @@ exports.connectImpl = function(filename) {
         }
       });
       return function(cancelError, onCancelerError, onCancelerSuccess) {
-        onCancelerError(cancelError);
       };
     };
   };
@@ -29,7 +28,6 @@ exports.closeImpl = function(db) {
       }
     });
     return function(cancelError, onCancelerError, onCancelerSuccess) {
-      onCancelerError(cancelError);
     };
   };
 };
@@ -45,7 +43,6 @@ exports.allImpl = function(query) {
         }
       });
       return function(cancelError, onCancelerError, onCancelerSuccess) {
-        onCancelerError(cancelError);
       };
     };
   };
