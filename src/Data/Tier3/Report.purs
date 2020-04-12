@@ -1,6 +1,6 @@
 module Data.Tier3.Report
   ( URI(..)
-  , all
+  , uris
   , uri 
   ) where
 
@@ -11,8 +11,8 @@ import Data.Schema as Schema
 
 data URI = Audit Audit.EventCategory Audit.EventType Audit.EventID Audit.ReportType
 
-all :: Array URI
-all = anomalies <> forwards <> reports
+uris :: Array URI
+uris = anomalies <> forwards <> reports
 
 anomalies :: Array URI
 anomalies =

@@ -31,7 +31,7 @@ report report' = do
   pure $ (Report report')
 
 reports :: Parser String Route
-reports = choice (report <$> Report.all)
+reports = choice (report <$> Report.uris)
 
 forwardFlow :: Parser String Route
 forwardFlow = do
