@@ -9,6 +9,8 @@ module Data.Report
 
 import Prelude
 
+import Data.Foldable (foldl)
+
 import FFI.JSON as JSON
 
 import Unsafe.Coerce (unsafeCoerce)
@@ -51,6 +53,41 @@ instance showEventIDReport :: Show EventID where
   show Report    = "REPORT"
   show Linux     = "LINUX"
   show Windows   = "WINDOWS"
+
+instance eqEventCategoryReport :: Eq EventCategory where
+  eq Source Source     = true
+  eq Duration Duration = true
+  eq Unique Unique     = true
+  eq _      _          = false
+
+instance eqEventTypeReport :: Eq EventType where
+  eq Success Success = true
+  eq Failure Failure = true
+  eq _       _       = false
+
+instance eqEventIDReport :: Eq EventID where
+  eq Alert     Alert     = true 
+  eq Audit     Audit     = true
+  eq Anomalous Anomalous = true
+  eq Flow      Flow      = true
+  eq Report    Report    = true
+  eq Linux     Linux     = true
+  eq Windows   Windows   = true
+  eq _         _         = false
+
+instance eqEventReport :: Eq Event where
+  eq (Event x) (Event y) = foldl (&&) true comparison
+    where
+      comparison = 
+        [ eq x.eventCategory y.eventCategory
+        , eq x.eventType  y.eventType
+        , eq x.eventID  y.eventID
+        , eq x.min  y.min
+        , eq x.max  y.max
+        , eq x.sum  y.sum
+        , eq x.total  y.total
+        , eq x.average  y.average
+        ]
 
 eventCategories :: Array EventCategory
 eventCategories = [ Source, Duration, Unique ]
