@@ -330,8 +330,8 @@ executeSchemas file = do
 
 executeForward :: DBMS -> Forward.URI -> Aff Resource
 executeForward (Replication dbms) query  = do
-  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward query <$> dbms)) 
-  pure result
+  _ <- Aff.sequential (sequence (Aff.parallel <$> flip executeForward query <$> dbms)) 
+  pure (Forward unit)
 executeForward (Local dbms) query        = do
   _        <- executeTouch dbms
   _        <- executeSchemas dbms

@@ -29,10 +29,12 @@ import FFI.Math as Math
 
 import Data.IPv4 (IPv4(..))
 
+import Data.Audit (EventCategory(..), EventType(..), EventID(..), ReportType(..)) as Audit
 import Data.Report (Event(..)) as Report
+import Data.Schema as Schema
 
 import Data.Tier3.Forward as Forward
-import Data.Tier3.Report (URI, uris) as Report
+import Data.Tier3.Report (URI(..), uris) as Report
 import Data.Tier3.Route as Route
 
 import Control.Tier3 as Tier3
@@ -47,7 +49,11 @@ report settings uri = do
        pure unit
 
 reports :: Tier3.Settings -> Tier3.Request Unit
-reports settings = void $ sequence (report settings <$> Report.uris) 
+reports settings = do
+  _ <- failures settings
+  _ <- sequence (report settings <$> Report.uris) 
+  _ <- failures settings
+  pure unit
 
 forwardAudit :: Tier3.Settings -> Tier3.Request Unit
 forwardAudit settings  = do
@@ -96,21 +102,83 @@ forward settings = do
     4 -> forwardLinux   settings
     _ -> forwardWindows settings 
 
-forwards :: Tier3.Settings -> Tier3.Request Unit
-forwards settings = void $ sequence (const (forward settings) <$> Array.range 1 100) 
+forwards :: Tier3.Settings -> Int -> Tier3.Request Unit
+forwards = \settings n ->  do
+  _ <- failures settings
+  _ <- sequence ((const (successes settings $ forward settings)) <$> Array.range 1 n) 
+  _ <- failures settings
+  pure unit
+
+failure :: Tier3.Settings -> Audit.ReportType -> Audit.EventID -> Tier3.Request Unit
+failure settings reportType eventID = do
+  x <- Tier3.request settings (Route.Report (Report.Audit Audit.Tier3 Audit.Failure eventID reportType))
+  case x of
+    (Tier3.Forward _)                -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
+    (Tier3.Report (Report.Event y))  -> do
+      result <- pure $ foldl (&&) true (flip (==) 0 <$> [y.min, y.max, y.sum, y.total, y.average, y.variance])
+      case result of
+        true  -> pure unit 
+        _     -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
+
+failures :: Tier3.Settings -> Tier3.Request Unit
+failures settings = void $ sequence $
+  [ failure settings Audit.Source $ Audit.Forward Schema.Audit
+  , failure settings Audit.Source $ Audit.Forward Schema.Alert
+  , failure settings Audit.Source $ Audit.Forward Schema.Flow
+  , failure settings Audit.Source $ Audit.Forward Schema.Report
+  , failure settings Audit.Source $ Audit.Forward Schema.Linux
+  , failure settings Audit.Source $ Audit.Forward Schema.Windows
+  , failure settings Audit.Duration $ Audit.Forward Schema.Audit
+  , failure settings Audit.Duration $ Audit.Forward Schema.Alert
+  , failure settings Audit.Duration $ Audit.Forward Schema.Flow
+  , failure settings Audit.Duration $ Audit.Forward Schema.Report
+  , failure settings Audit.Duration $ Audit.Forward Schema.Linux
+  , failure settings Audit.Duration $ Audit.Forward Schema.Windows
+  ]
+
+success :: forall a. Tier3.Settings -> Audit.ReportType -> Audit.EventID -> Tier3.Request a -> Tier3.Request Unit
+success settings reportType eventID = \request -> do
+  w <- Tier3.request settings (Route.Report (Report.Audit Audit.Tier3 Audit.Success eventID reportType))
+  _ <- request
+  x <- Tier3.request settings (Route.Report (Report.Audit Audit.Tier3 Audit.Success eventID reportType))
+  case [w,x] of
+    [(Tier3.Report (Report.Event y)), (Tier3.Report (Report.Event z))]  -> do
+      result <- pure $ case settings of
+                  (Tier3.Settings _ _ (Tier3.Local _)) -> foldl (&&) true [y.min >= 0, z.max >= y.max, z.sum >= y.sum, z.total >= y.total, y.average >= 0, y.variance >= 0]
+                  _                                    -> foldl (&&) true [y.min >= 0, z.max >= y.max, z.sum >= y.sum, z.total >= y.total, y.average >= 0, y.variance >= 0]
+--      result <- pure $ foldl (&&) true ([z.min <= y.min, z.max >= y.max, z.sum > y.sum, z.total <= (y.total + 1), z.average >= 0, z.variance >= 0])
+      case result of
+        true  -> pure unit
+        false -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
+    _         -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
+
+successes :: forall a. Tier3.Settings -> Tier3.Request a -> Tier3.Request Unit
+successes settings request = void $ sequence $ apply request <$>
+  [ success settings Audit.Source $ Audit.Forward Schema.Alert
+  , success settings Audit.Source $ Audit.Forward Schema.Flow
+  , success settings Audit.Source $ Audit.Forward Schema.Report
+  , success settings Audit.Source $ Audit.Forward Schema.Linux
+  , success settings Audit.Source $ Audit.Forward Schema.Windows
+  , success settings Audit.Duration $ Audit.Forward Schema.Alert
+  , success settings Audit.Duration $ Audit.Forward Schema.Flow
+  , success settings Audit.Duration $ Audit.Forward Schema.Report
+  , success settings Audit.Duration $ Audit.Forward Schema.Linux 
+  , success settings Audit.Duration $ Audit.Forward Schema.Windows
+  ]
+  where apply x = \f -> f x
 
 requests :: Tier3.Request Unit
 requests = void $ sequence $
-  [ test ["[RUNNING]", "RELEASE-01/TIER-03", "LOCAL", "FORWARD"]       *> forwards (settings $ local 0 0)
-  , test ["[RUNNING]", "RELEASE-01/TIER-03", "LOCAL", "REPORT"]        *> reports  (settings $ local 1 0)
-  , test ["[RUNNING]", "RELEASE-01/TIER-03", "REPLICATION", "FORWARD"] *> forwards (settings $ replication 0 1)
-  , test ["[RUNNING]", "RELEASE-01/TIER-03", "REPLICATION", "REPORT"]  *> reports (settings $ replication 1 1)
+  [ test ["[RUNNING]", "RELEASE-01/TIER-03", "LOCAL/FORWARD"]       *> forwards (settings $ local 0 0) 100
+  , test ["[RUNNING]", "RELEASE-01/TIER-03", "REPLICATION/FORWARD"] *> forwards (settings $ replication 0 1) 100
+  , test ["[RUNNING]", "RELEASE-01/TIER-03", "LOCAL/REPORT"]        *> reports  (settings $ local 1 0)
+  , test ["[RUNNING]", "RELEASE-01/TIER-03", "REPLICATION/REPORT"]  *> reports (settings $ replication 1 1)
   ]
   where
     test x          = lift $ liftEffect $ Console.log $ intercalate " " x
     settings x      = Tier3.Settings (Tier3.Authorization unit) (Tier3.Authentication origin) x
     local n m       = Tier3.Local $ "Test.Control.Tier3." <> show n <> "." <> show m <> ".db"
-    replication n m = Tier3.Replication $ local n <$> Array.range 0 m
+    replication n m = Tier3.Replication $ local n <$> Array.range 0 1
     origin          = { sIP : IPv4 0 0 0 0, sPort : 0 }
 
 suite :: Aff Unit
