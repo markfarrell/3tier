@@ -1,7 +1,6 @@
   module Data.Tier3.Route
   ( Route(..)
   , execute
-  , uri
   ) where
 
 import Prelude
@@ -24,6 +23,9 @@ import FFI.HTTP as HTTP
 import FFI.String as String
 
 data Route = Forward Forward.URI | Report Report.URI
+
+instance showRouteTier3 :: Show Route where
+  show = uri
 
 report :: Report.URI -> Parser String Route
 report report' = do

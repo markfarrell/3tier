@@ -16,6 +16,7 @@ import Prelude
 import Control.Monad.Except (runExcept, throwError)
 import Control.Monad.Free.Trans (liftFreeT, runFreeT)
 import Control.Monad.Error.Class (try)
+import Control.Monad.Trans.Class (lift)
 
 import Data.Either (Either(..))
 import Data.Traversable (sequence)
@@ -27,15 +28,19 @@ import Data.Tuple (Tuple(..), fst, snd)
 
 import Effect.Aff (Aff)
 import Effect.Aff (parallel, sequential) as Aff
+import Effect.Class (liftEffect)
 import Effect.Exception as Exception
 
 import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
 
+import FFI.Date as Date
 import FFI.Math as Math
 import FFI.SQLite3 as SQLite3
 
 import Control.DSL as DSL
+
+import Data.IPv4 (IPv4)
 
 import Data.Audit as Audit
 import Data.Alert as Alert
@@ -61,7 +66,10 @@ data DBMS = Local String | Replication (Array DBMS)
 
 data Authorization = Authorization Unit
 
-data Authentication = Authentication Unit
+data Authentication = Authentication
+  { sIP   :: IPv4
+  , sPort :: Int
+  }
 
 data Settings = Settings Authorization Authentication DBMS
 
@@ -381,9 +389,46 @@ executeReport'' database uri = do
          (Right number') -> pure number'
     error = Exception.error "Unexpected results."
 
+resource :: Settings -> Route -> Request Resource
+resource settings (Route.Forward query) = liftFreeT $ (DSL.Forward settings query identity)
+resource settings (Route.Report query)  = liftFreeT $ (DSL.Report settings query identity)
+
+audit :: Settings -> Route -> Request Resource
+audit = \settings route -> do
+  startTime <- lift $ liftEffect $ Date.current
+  result    <- lift $ execute (resource settings route)
+  endTime   <- lift $ liftEffect $ Date.current
+  duration  <- pure $ Math.floor $ (Date.getTime endTime) - (Date.getTime startTime)
+  eventID   <- pure $ case route of
+                 (Route.Forward (Forward.Audit _))     -> Audit.Forward Schema.Audit
+                 (Route.Forward (Forward.Alert _))     -> Audit.Forward Schema.Alert
+                 (Route.Forward (Forward.Flow _))      -> Audit.Forward Schema.Flow
+                 (Route.Forward (Forward.Report _))    -> Audit.Forward Schema.Report
+                 (Route.Forward (Forward.Linux _))     -> Audit.Forward Schema.Linux
+                 (Route.Forward (Forward.Windows _))   -> Audit.Forward Schema.Windows
+                 (Route.Report (Report.Audit _ _ _ _)) -> Audit.Report Schema.Audit
+  eventType <- pure $ case result of
+                 (Left _)  -> Audit.Failure
+                 (Right _) -> Audit.Success
+  origin    <- pure $ case settings of
+                 (Settings _ (Authentication origin) _) -> origin 
+  event     <- pure $ Audit.Event $
+                 { eventCategory : Audit.Tier3
+                 , eventType     : eventType
+                 , eventID       : eventID
+                 , startTime     : startTime
+                 , duration      : duration
+                 , endTime       : endTime 
+                 , sIP           : show origin.sIP
+                 , sPort         : origin.sPort
+                 }
+  _         <- lift $ execute (resource settings $ Route.Forward (Forward.Audit event))
+  case result of
+    (Left _)  -> lift $ liftEffect $ Exception.throw (show route)
+    (Right x) -> pure x
+
 request :: Settings -> Route -> Request Resource
-request settings (Route.Forward query) = liftFreeT $ (DSL.Forward settings query identity)
-request settings (Route.Report query)  = liftFreeT $ (DSL.Report settings query identity)
+request = audit
 
 execute ::  forall a. Request a -> Aff (Result a)
-execute request' = try $ runFreeT interpret request'
+execute = try <<< runFreeT interpret

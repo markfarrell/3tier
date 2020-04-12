@@ -27,6 +27,8 @@ import Effect.Windows (random) as Windows
 
 import FFI.Math as Math
 
+import Data.IPv4 (IPv4(..))
+
 import Data.Report (Event(..)) as Report
 
 import Data.Tier3.Forward as Forward
@@ -106,9 +108,10 @@ requests = void $ sequence $
   ]
   where
     test x          = lift $ liftEffect $ Console.log $ intercalate " " x
-    settings x      = Tier3.Settings (Tier3.Authorization unit) (Tier3.Authentication unit) x
+    settings x      = Tier3.Settings (Tier3.Authorization unit) (Tier3.Authentication origin) x
     local n m       = Tier3.Local $ "Test.Control.Tier3." <> show n <> "." <> show m <> ".db"
     replication n m = Tier3.Replication $ local n <$> Array.range 0 m
+    origin          = { sIP : IPv4 0 0 0 0, sPort : 0 }
 
 suite :: Aff Unit
 suite =  do

@@ -42,7 +42,7 @@ array w x = do
     (Nothing) -> pure w
 
 eventCategory :: Effect Audit.EventCategory
-eventCategory = array default $ Audit.eventCategories
+eventCategory = array default [Audit.Tier1, Audit.Tier2]
   where default = Audit.Tier1
 
 eventID :: Effect Audit.EventID
