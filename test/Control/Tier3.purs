@@ -182,14 +182,14 @@ debug eventState eventCategory eventType eventID = lift $ liftEffect $ Console.l
 tests :: Tier3.Request Unit
 tests = void $ sequence $
   [ debug Test.Running Test.Tier3 Test.Local Test.Forward       *> forwards (settings $ local 0 0) 50
-  , debug Test.Running Test.Tier3 Test.Replication Test.Forward *> forwards (settings $ replication 0 0) 50
-  , debug Test.Running Test.Tier3 Test.Local Test.Report        *> reports  (settings $ local 1 0)
-  , debug Test.Running Test.Tier3 Test.Replication Test.Report  *> reports (settings $ replication 1 1)
+  , debug Test.Running Test.Tier3 Test.Replication Test.Forward *> forwards (settings $ replication 1 1) 50
+  , debug Test.Running Test.Tier3 Test.Local Test.Report        *> reports  (settings $ local 2 0)
+  , debug Test.Running Test.Tier3 Test.Replication Test.Report  *> reports (settings $ replication 3 1)
   ]
   where
     settings x      = Tier3.Settings (Tier3.Authorization unit) (Tier3.Authentication origin) x
     local n m       = Tier3.Local $ "Test.Control.Tier3." <> show n <> "." <> show m <> ".db"
-    replication n m = Tier3.Replication $ local n <$> Array.range 0 1
+    replication n m = Tier3.Replication $ local n <$> Array.range 0 m
     origin          = { sIP : IPv4 0 0 0 0, sPort : 0 }
 
 suite :: Aff Unit

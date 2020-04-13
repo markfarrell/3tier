@@ -18,11 +18,12 @@ import Control.Monad.Free.Trans (liftFreeT, runFreeT)
 import Control.Monad.Error.Class (try)
 import Control.Monad.Trans.Class (lift)
 
+import Data.Array as Array
 import Data.Either (Either(..))
+import Data.Maybe (Maybe(..))
 import Data.Traversable (sequence)
 
-import Data.Foldable (intercalate)
-import Data.Foldable (oneOf) as Foldable
+import Data.Foldable (foldl, intercalate)
 
 import Data.Tuple (Tuple(..), fst, snd)
 
@@ -341,11 +342,22 @@ executeForward (Local dbms) query        = do
   _        <- SQLite3.close database
   pure (Forward unit)
 
+{-- | Combines replicated resources if they are equivalent. --}
+replication :: Array Resource -> Maybe Resource
+replication w = foldl f (Array.head w) (sequence $ Array.tail w)
+  where
+    f :: Maybe Resource -> Maybe Resource -> Maybe Resource
+    f (Just (Forward x)) (Just (Forward y)) = if (x == y) then (Just (Forward x)) else (Nothing)
+    f (Just (Report x)) (Just (Report y))   = if (x == y) then (Just (Report x))  else (Nothing)
+    f  _                _                   = Nothing
+
 executeReport :: DBMS -> Report.URI -> Aff Resource
-executeReport (Replication dbms) (Report.Audit w x y z) = do
-  report <- pure $ Report.Audit w x y z
-  result <- Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> dbms))
-  pure result
+executeReport (Replication dbms) report = do
+  events <- Aff.sequential (sequence (Aff.parallel <$> flip executeReport report <$> dbms))
+  result <- pure $ replication events
+  case result of
+    (Just event) -> pure event
+    (Nothing)    -> liftEffect $ Exception.throw "Replication failure."
 executeReport (Local dbms) report = do
   _          <- executeTouch dbms
   _          <- executeSchemas dbms
