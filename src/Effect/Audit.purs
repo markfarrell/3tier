@@ -15,6 +15,8 @@ import Effect.Date (random) as Date
 import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
 
+import Data.IPv4 (IPv4(..))
+
 import Data.Audit as Audit 
 
 range :: Int -> Int -> Effect Int
@@ -60,7 +62,7 @@ random = do
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
-  sIP            <- pure $ "::ffff:0.0.0.0"
+  sIP            <- pure $ IPv4 0 0 0 0
   sPort          <- pure $ 0
   pure $ Audit.Event $
     { eventCategory : eventCategory'

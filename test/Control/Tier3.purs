@@ -25,6 +25,8 @@ import Effect.Linux (random) as Linux
 import Effect.Report (random) as Report
 import Effect.Windows (random) as Windows
 
+import FFI.Date as Date
+import FFI.FS as FS
 import FFI.Math as Math
 
 import Data.IPv4 (IPv4(..))
@@ -145,10 +147,9 @@ success settings reportType eventID = \request -> do
   x <- Tier3.request settings (Route.Report (Report.Audit Audit.Tier3 Audit.Success eventID reportType))
   case [w,x] of
     [(Tier3.Report (Report.Event y)), (Tier3.Report (Report.Event z))]  -> do
-      result <- pure $ case settings of
-                  (Tier3.Settings _ _ (Tier3.Local _)) -> foldl (&&) true [y.min >= 0, z.max >= y.max, z.sum >= y.sum, z.total >= y.total, y.average >= 0, y.variance >= 0]
-                  _                                    -> foldl (&&) true [y.min >= 0, z.max >= y.max, z.sum >= y.sum, z.total >= y.total, y.average >= 0, y.variance >= 0]
---      result <- pure $ foldl (&&) true ([z.min <= y.min, z.max >= y.max, z.sum > y.sum, z.total <= (y.total + 1), z.average >= 0, z.variance >= 0])
+      result <- pure $ case reportType of
+        Audit.Source   -> foldl (&&) true [z.min >= 0, z.max >= y.max, z.sum >= y.sum,  z.total >= y.total, z.average >= 0, z.variance >= 0]
+        Audit.Duration -> foldl (&&) true [z.min <= y.min, z.max >= y.max, z.sum >= y.sum, z.total >= y.total, y.average >= 0, y.variance >= 0]
       case result of
         true  -> pure unit
         false -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
@@ -169,28 +170,183 @@ successes settings request = void $ sequence $ apply request <$>
   ]
   where apply x = \f -> f x
 
-debug :: Test.EventState -> Test.EventCategory -> Test.EventType -> Test.EventID  -> Tier3.Request Unit
-debug eventState eventCategory eventType eventID = lift $ liftEffect $ Console.log $ show event 
+unlink :: Tier3.URI -> Tier3.Request Unit
+unlink (Tier3.Primary Tier3.Testing)   = lift $ void $ FS.unlink "testing.primary.db"
+unlink (Tier3.Secondary Tier3.Testing) = lift $ void $ FS.unlink "testing.secondary.db"
+unlink (Tier3.Offsite Tier3.Testing)   = lift $ void $ FS.unlink "testing.offsite.db"
+unlink _                               = pure unit
+
+fresh :: Tier3.Request Unit
+fresh = unlink (Tier3.Primary Tier3.Testing) *> unlink (Tier3.Secondary Tier3.Testing) *> unlink (Tier3.Offsite Tier3.Testing)
+
+testLocalForward :: Tier3.Request Unit
+testLocalForward = do
+  _         <- fresh
+  startTime <- lift $ liftEffect $ Date.current
+  _         <- forwards settings n
+  endTime   <- lift $ liftEffect $ Date.current
+  _         <- fresh
+  duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
+  event     <- pure $ Test.Event $
+    { eventCategory : Test.Tier3
+    , eventType     : Test.Local
+    , eventID       : Test.Forward
+    , eventURI      : unit
+    , startTime     : startTime
+    , duration      : duration
+    , endTime       : endTime
+    , sIP           : origin.sIP
+    , sPort         : origin.sPort
+    }
+  _     <- lift $ liftEffect (Console.log $ show event)
+  pure unit
   where 
-    event = Test.Event $
-      { eventCategory : eventCategory
-      , eventType     : eventType
-      , eventID       : eventID
-      , eventState    : eventState
-      }
+    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
+    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    dbms     = Tier3.Local $ Tier3.Primary Tier3.Testing
+    n        = 10
+
+testReplicationForward :: Tier3.Request Unit
+testReplicationForward = do
+  _         <- fresh
+  startTime <- lift $ liftEffect $ Date.current
+  _         <- forwards settings n
+  endTime   <- lift $ liftEffect $ Date.current
+  _         <- fresh
+  duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
+  event     <- pure $ Test.Event $
+    { eventCategory : Test.Tier3
+    , eventType     : Test.Replication
+    , eventID       : Test.Forward
+    , eventURI      : unit
+    , startTime     : startTime
+    , duration      : duration
+    , endTime       : endTime
+    , sIP           : origin.sIP
+    , sPort         : origin.sPort
+    }
+  _     <- lift $ liftEffect (Console.log $ show event)
+  pure unit
+  where 
+    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
+    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    dbms     = Tier3.Replication $ Tier3.Primary Tier3.Testing
+    n        = 100
+
+testLocalReports :: Tier3.Request Unit
+testLocalReports = do
+  _         <- fresh
+  startTime <- lift $ liftEffect $ Date.current
+  _         <- reports settings
+  endTime   <- lift $ liftEffect $ Date.current
+  _         <- fresh
+  duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
+  event     <- pure $ Test.Event $
+    { eventCategory : Test.Tier3
+    , eventType     : Test.Local
+    , eventID       : Test.Report
+    , eventURI      : unit
+    , startTime     : startTime
+    , duration      : duration
+    , endTime       : endTime
+    , sIP           : origin.sIP
+    , sPort         : origin.sPort
+    }
+  _     <- lift $ liftEffect (Console.log $ show event)
+  pure unit
+  where 
+    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
+    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    dbms     = Tier3.Local $ Tier3.Primary Tier3.Testing
+
+testReplicationReports :: Tier3.Request Unit
+testReplicationReports = do
+  _         <- fresh
+  startTime <- lift $ liftEffect $ Date.current
+  _         <- reports settings
+  endTime   <- lift $ liftEffect $ Date.current
+  _         <- fresh
+  duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
+  event     <- pure $ Test.Event $
+    { eventCategory : Test.Tier3
+    , eventType     : Test.Replication
+    , eventID       : Test.Report
+    , eventURI      : unit
+    , startTime     : startTime
+    , duration      : duration
+    , endTime       : endTime
+    , sIP           : origin.sIP
+    , sPort         : origin.sPort
+    }
+  _     <- lift $ liftEffect (Console.log $ show event)
+  pure unit
+  where 
+    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
+    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    dbms     = Tier3.Replication $ Tier3.Primary Tier3.Testing
+
+testFailoverForwards :: Tier3.Request Unit
+testFailoverForwards = do
+  _         <- fresh
+  startTime <- lift $ liftEffect $ Date.current
+  _         <- forwards settings n
+  endTime   <- lift $ liftEffect $ Date.current
+  _         <- fresh
+  duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
+  event     <- pure $ Test.Event $
+    { eventCategory : Test.Tier3
+    , eventType     : Test.Failover
+    , eventID       : Test.Forward
+    , eventURI      : unit
+    , startTime     : startTime
+    , duration      : duration
+    , endTime       : endTime
+    , sIP           : origin.sIP
+    , sPort         : origin.sPort
+    }
+  _     <- lift $ liftEffect (Console.log $ show event)
+  pure unit
+  where 
+    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
+    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    dbms     = Tier3.Failover $ Tier3.Primary Tier3.Testing
+    n        = 100
+
+testFailoverReports :: Tier3.Request Unit
+testFailoverReports = do
+  _         <- fresh
+  startTime <- lift $ liftEffect $ Date.current
+  _         <- reports settings
+  endTime   <- lift $ liftEffect $ Date.current
+  _         <- fresh
+  duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
+  event     <- pure $ Test.Event $
+    { eventCategory : Test.Tier3
+    , eventType     : Test.Failover
+    , eventID       : Test.Report
+    , eventURI      : unit
+    , startTime     : startTime
+    , duration      : duration
+    , endTime       : endTime
+    , sIP           : origin.sIP
+    , sPort         : origin.sPort
+    }
+  _     <- lift $ liftEffect (Console.log $ show event)
+  pure unit
+  where 
+    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
+    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    dbms     = Tier3.Failover $ Tier3.Primary Tier3.Testing
 
 tests :: Tier3.Request Unit
 tests = void $ sequence $
-  [ debug Test.Running Test.Tier3 Test.Local Test.Forward       *> forwards (settings $ local 0 0) 50
-  , debug Test.Running Test.Tier3 Test.Replication Test.Forward *> forwards (settings $ replication 1 1) 50
-  , debug Test.Running Test.Tier3 Test.Local Test.Report        *> reports  (settings $ local 2 0)
-  , debug Test.Running Test.Tier3 Test.Replication Test.Report  *> reports (settings $ replication 3 1)
+  [ testLocalForward
+  , testReplicationForward
+  , testLocalReports
+  , testReplicationReports
+  , testFailoverForwards
+  , testFailoverReports
   ]
-  where
-    settings x      = Tier3.Settings (Tier3.Authorization unit) (Tier3.Authentication origin) x
-    local n m       = Tier3.Local $ "Test.Control.Tier3." <> show n <> "." <> show m <> ".db"
-    replication n m = Tier3.Replication $ local n <$> Array.range 0 m
-    origin          = { sIP : IPv4 0 0 0 0, sPort : 0 }
 
 suite :: Aff Unit
 suite =  do

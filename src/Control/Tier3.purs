@@ -7,6 +7,8 @@ module Control.Tier3
  , Authentication(..)
  , Settings(..)
  , Resource(..)
+ , Role(..)
+ , URI(..)
  , request
  , execute
  ) where
@@ -24,6 +26,7 @@ import Data.Maybe (Maybe(..))
 import Data.Traversable (sequence)
 
 import Data.Foldable (foldl, intercalate)
+import Data.Foldable (oneOf) as Foldable
 
 import Data.Tuple (Tuple(..), fst, snd)
 
@@ -61,13 +64,17 @@ import Data.Tier3.Report as Report
 
 import Data.Report as Data.Report
 
+data Role = Production | Testing
+
+data URI = Primary Role | Secondary Role | Offsite Role
+
 type Connection = SQLite3.Database
 
-data DBMS = Local String | Replication (Array DBMS)
+data DBMS = Local URI | Replication URI | Failover URI
 
 data Authorization = Authorization Unit
 
-data Authentication = Authentication
+data Authentication = Origin
   { sIP   :: IPv4
   , sPort :: Int
   }
@@ -169,7 +176,7 @@ insertAuditURI (Audit.Event event) = do
   pure $ insertURI' "Audit" params
   where 
     params  =
-      [ Tuple "SIP" event.sIP
+      [ Tuple "SIP" (show event.sIP)
       , Tuple "SPort" (show event.sPort)
       , Tuple "StartTime" (show event.startTime)
       , Tuple "Duration" (show event.duration)
@@ -330,17 +337,49 @@ executeSchemas file = do
   pure unit
 
 executeForward :: DBMS -> Forward.URI -> Aff Resource
-executeForward (Replication dbms) query  = do
-  _ <- Aff.sequential (sequence (Aff.parallel <$> flip executeForward query <$> dbms)) 
+executeForward (Failover uri) query = do
+  result  <- try $ executeForward (Local uri) query
+  result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward query <$> failoverSites uri))
+  case result of
+    (Left _) -> case result' of
+      (Left _)          -> liftEffect $ Exception.throw "Failover failure."
+      (Right resource') -> pure resource'
+    (Right resource') -> pure $ resource'
+executeForward (Replication uri) query  = do
+  _ <- Aff.sequential (sequence (Aff.parallel <$> flip executeForward query <$> replicationSites uri)) 
   pure (Forward unit)
-executeForward (Local dbms) query        = do
-  _        <- executeTouch dbms
-  _        <- executeSchemas dbms
-  database <- SQLite3.connect dbms SQLite3.OpenReadWrite
-  uri      <- insertURI query
-  _        <- SQLite3.all uri database
+executeForward (Local uri) query = do
+  _        <- executeTouch (path uri)
+  _        <- executeSchemas (path uri)
+  database <- SQLite3.connect (path uri) SQLite3.OpenReadWrite
+  uri'     <- insertURI query
+  _        <- SQLite3.all uri' database
   _        <- SQLite3.close database
   pure (Forward unit)
+
+path :: URI -> String
+path (Primary Production)   = "production.primary.db"
+path (Secondary Production) = "production.secondary.db"
+path (Offsite Production)   = "production.offsite.db"
+path (Primary Testing)      = "testing.primary.db"
+path (Secondary Testing)    = "testing.secondary.db" 
+path (Offsite Testing)      = "testing.offsite.db"
+
+failoverSites :: URI -> Array DBMS
+failoverSites (Primary Production)   = [Local (Secondary Production), Local (Offsite Production)]
+failoverSites (Secondary Production) = [Local (Primary Production), Local (Offsite Production)]
+failoverSites (Offsite Production)   = []
+failoverSites (Primary Testing)      = [Local (Secondary Testing), Local (Offsite Testing)]
+failoverSites (Secondary Testing)    = [Local (Primary Testing), Local (Offsite Testing)]
+failoverSites (Offsite Testing)      = []
+
+replicationSites :: URI -> Array DBMS
+replicationSites (Primary Production)   = [Local (Primary Production), Local (Secondary Production)]
+replicationSites (Secondary Production) = [Local (Primary Production), Local (Secondary Production)]
+replicationSites (Offsite Production)   = [Local (Offsite Production)]
+replicationSites (Primary Testing)      = [Local (Primary Testing), Local (Secondary Testing)]
+replicationSites (Secondary Testing)    = [Local (Primary Testing), Local (Secondary Testing)]
+replicationSites (Offsite Testing)      = [Local (Offsite Testing)]
 
 {-- | Combines replicated resources if they are equivalent. --}
 replication :: Array Resource -> Maybe Resource
@@ -352,16 +391,25 @@ replication w = foldl f (Array.head w) (sequence $ Array.tail w)
     f  _                _                   = Nothing
 
 executeReport :: DBMS -> Report.URI -> Aff Resource
-executeReport (Replication dbms) report = do
-  events <- Aff.sequential (sequence (Aff.parallel <$> flip executeReport report <$> dbms))
+executeReport (Failover uri) report = do
+  result  <- try $ executeReport (Local uri) report
+  case result of
+    (Left _) -> do
+      result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> failoverSites uri))
+      case result' of
+        (Left _)          -> liftEffect $ Exception.throw "Failover failure."
+        (Right resource') -> pure resource'
+    (Right resource') -> pure $ resource'
+executeReport (Replication uri) report = do
+  events <- Aff.sequential (sequence (Aff.parallel <$> flip executeReport report <$> replicationSites uri))
   result <- pure $ replication events
   case result of
     (Just event) -> pure event
     (Nothing)    -> liftEffect $ Exception.throw "Replication failure."
-executeReport (Local dbms) report = do
-  _          <- executeTouch dbms
-  _          <- executeSchemas dbms
-  database   <- SQLite3.connect dbms SQLite3.OpenReadOnly
+executeReport (Local uri) report = do
+  _          <- executeTouch (path uri)
+  _          <- executeSchemas (path uri)
+  database   <- SQLite3.connect (path uri) SQLite3.OpenReadOnly
   min        <- executeReport'' database (minURI report)
   max        <- executeReport'' database (maxURI report)
   sum        <- executeReport'' database (sumURI report)
@@ -423,7 +471,7 @@ audit = \settings route -> do
                  (Left _)  -> Audit.Failure
                  (Right _) -> Audit.Success
   origin    <- pure $ case settings of
-                 (Settings _ (Authentication origin) _) -> origin 
+                 (Settings _ (Origin origin) _) -> origin 
   event     <- pure $ Audit.Event $
                  { eventCategory : Audit.Tier3
                  , eventType     : eventType
@@ -431,7 +479,7 @@ audit = \settings route -> do
                  , startTime     : startTime
                  , duration      : duration
                  , endTime       : endTime 
-                 , sIP           : show origin.sIP
+                 , sIP           : origin.sIP
                  , sPort         : origin.sPort
                  }
   _         <- lift $ execute (resource settings $ Route.Forward (Forward.Audit event))

@@ -11,6 +11,8 @@ module Data.Audit
 
 import Prelude
 
+import Data.IPv4 (IPv4)
+
 import Data.Schema (Schema)
 import Data.Schema as Schema
 
@@ -30,7 +32,7 @@ type EventURI = String
 data ReportType = Source | Duration
 
 data Event = Event 
-  { sIP           :: String
+  { sIP           :: IPv4
   , sPort         :: Int 
   , eventType     :: EventType
   , eventCategory :: EventCategory
@@ -94,8 +96,8 @@ eventIDs =
 
 uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
-  { sIP           : event'.sIP
-  , sPort         : show event'.sPort
+  { sIP           : show event'.sIP
+  , sPort         : event'.sPort
   , eventType     : show event'.eventType
   , eventCategory : show event'.eventCategory
   , eventID       : show event'.eventID

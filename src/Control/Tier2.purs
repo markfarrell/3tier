@@ -18,6 +18,8 @@ import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 
+import Text.Parsing.Parser (runParser)
+
 import Unsafe.Coerce (unsafeCoerce)
 
 import FFI.Date as Date
@@ -26,18 +28,20 @@ import FFI.Math as Math
 import FFI.Socket as Socket
 import FFI.JSON as JSON
 
-import Data.Schema as Schema
-
 import Control.Tier3 as Tier3
 
+import Data.IPv4 (IPv4(..))
+
 import Data.Audit as Audit
+import Data.Schema as Schema
 
 import Data.Tier3.Forward as Forward
-
 import Data.Tier3.Report as Report
 
 import Data.Tier3.Route (Route)
 import Data.Tier3.Route as Route
+
+import Text.Parsing.Common (ipv4)
 
 data Settings = Settings { host :: String, port :: Int }
 
@@ -110,17 +114,21 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
                        _      -> case response of
                          (Left _)  -> Audit.Failure
                          (Right _) -> Audit.Success
-  event     <- pure $ Audit.Event $
-                 { eventCategory : Audit.Tier2
-                 , eventType     : eventType
-                 , eventID       : eventID
-                 , startTime     : startTime
-                 , duration      : duration
-                 , endTime       : endTime
-                 , sIP           : Socket.remoteAddress $ HTTP.socket req
-                 , sPort         : Socket.remotePort    $ HTTP.socket req
-                 }
-  _     <- Tier3.execute $ audit settings event
+  sIP           <- pure $ case (runParser (Socket.remoteAddress $ HTTP.socket req) ipv4) of
+                     (Left _)  -> (IPv4 (-1) (-1) (-1) (-1))
+                     (Right x) -> x
+  sPort         <- pure $ Socket.remotePort $ HTTP.socket req
+  event         <- pure $ Audit.Event $
+                     { eventCategory : Audit.Tier2
+                     , eventType     : eventType
+                     , eventID       : eventID
+                     , startTime     : startTime
+                     , duration      : duration
+                     , endTime       : endTime
+                     , sIP           : sIP
+                     , sPort         : sPort
+                     }
+  _             <- Tier3.execute $ audit settings event
   pure unit
 
 producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit

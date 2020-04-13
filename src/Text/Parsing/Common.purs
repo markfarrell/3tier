@@ -26,7 +26,7 @@ import Foreign (Foreign)
 
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.String (string, anyChar)
-import Text.Parsing.Parser.Combinators (choice)
+import Text.Parsing.Parser.Combinators (optional,choice)
 
 import FFI.Date (Date)
 import FFI.Date as Date
@@ -141,6 +141,8 @@ port = do
 
 ipv4 :: Parser String IPv4
 ipv4 = do
+  _ <- optional $ string "::"
+  _ <- optional $ string "ffff:"
   w <- octet
   _ <- string dot
   x <- octet
