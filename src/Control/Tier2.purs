@@ -1,5 +1,11 @@
 module Control.Tier2 
   ( Settings(..)
+  , Query
+  , Request
+  , Resource
+  , Result
+  , request
+  , execute
   , process
   ) where 
   
@@ -8,6 +14,7 @@ import Prelude
 import Control.Coroutine (Producer, Consumer, Process, pullFrom, await)
 import Control.Coroutine.Aff (produce, emit)
 import Control.Monad.Error.Class (try)
+import Control.Monad.Free.Trans (liftFreeT, runFreeT)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
 
@@ -15,6 +22,7 @@ import Data.Either (Either(..))
 
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
+import Effect.Exception (throw) as Exception
 
 import Text.Parsing.Parser (runParser)
 
@@ -31,7 +39,7 @@ import Control.Tier3 as Tier3
 import Control.DSL as DSL
 
 import Control.Forward as Forward
-import Control.Report as Report
+import Control.Report (URI(..), uri) as Report
 
 import Control.Route (Route)
 import Control.Route as Route
@@ -42,18 +50,20 @@ import Data.Audit as Audit
 import Data.Schema as Schema
 
 import Text.Parsing.Common (ipv4)
+import Text.Parsing.Report (event) as Report
 
 data Settings = Settings { host :: String, port :: Int }
 
-data ContentType a = TextJSON a
-
 data AuthenticationType = Bearer
 
-data Resource = Ok (ContentType Tier3.Resource) | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
+type Resource = Tier3.Resource
 
-type Query a = DSL.Query Settings String Forward.URI Report.URI a
+data Response = Ok Resource | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
 
-type Request a = DSL.Request Settings String Forward.URI Report.URI a
+
+type Query a = DSL.Query Settings Resource Forward.URI Report.URI a
+
+type Request a = DSL.Request Settings Resource Forward.URI Report.URI a
 
 type Result a = DSL.Result a
 
@@ -62,37 +72,37 @@ audit settings event = do
   _ <- Tier3.request settings $ Route.Forward (Forward.Audit event)
   pure unit
 
-textJSON :: Tier3.Resource -> String
+textJSON :: Resource -> String
 textJSON (Tier3.Forward _) = ""
 textJSON (Tier3.Report x)  = JSON.stringify $ unsafeCoerce x
 
-sendResource :: Resource -> HTTP.ServerResponse -> Aff Unit
-sendResource (Ok (TextJSON body)) = \res -> liftEffect $ do
+sendResponse :: Response -> HTTP.ServerResponse -> Aff Unit
+sendResponse (Ok body) = \res -> liftEffect $ do
   _ <- HTTP.setHeader "Content-Type" "text/json" $ res
   _ <- HTTP.writeHead 200 $ res
   _ <- HTTP.write (textJSON body) $ res
   _ <- HTTP.end $ res
   pure unit
-sendResource (BadRequest _) = \res -> liftEffect $ do
+sendResponse (BadRequest _) = \res -> liftEffect $ do
   _ <- HTTP.writeHead 400 $ res
   _ <- HTTP.end $ res
   pure unit  
-sendResource (Forbidden Bearer realm) = \res -> liftEffect $ do
+sendResponse (Forbidden Bearer realm) = \res -> liftEffect $ do
   _ <- HTTP.setHeader "WWW-Authenticate" ("Bearer realm=" <> realm) $ res
   _ <- HTTP.writeHead 401 $ res
   _ <- HTTP.end $ res
   pure unit  
-sendResource (InternalServerError _) = \res -> liftEffect $ do
+sendResponse (InternalServerError _) = \res -> liftEffect $ do
   _ <- HTTP.writeHead 500 $ res
   _ <- HTTP.end $ res
   pure unit
 
-databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Resource) 
+databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Response) 
 databaseRequest settings route req = do
   result    <- Tier3.execute $ Tier3.request settings route
   case result of 
     (Left _)          -> pure  $ InternalServerError ""
-    (Right resultSet) -> pure  $ Ok (TextJSON resultSet)
+    (Right resultSet) -> pure  $ Ok resultSet
 
 resourceRequest :: Tier3.Settings -> HTTP.IncomingRequest -> Aff Unit
 resourceRequest settings (HTTP.IncomingRequest req res) = do
@@ -101,7 +111,7 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
   resource      <- case routingResult of
                      (Left _)      -> pure $ BadRequest (HTTP.messageURL req)
                      (Right route) -> databaseRequest settings route req 
-  response      <- try $ sendResource resource res 
+  response      <- try $ sendResponse resource res 
   endTime       <- liftEffect $ Date.current
   duration      <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   eventID       <- pure $ case routingResult of
@@ -143,8 +153,8 @@ producer server = produce \emitter -> do
 
 consumer :: Tier3.Settings -> Consumer HTTP.IncomingRequest Aff Unit
 consumer settings = forever $ do
-  request <- await
-  _       <- lift $ resourceRequest settings request
+  request' <- await
+  _       <- lift $ resourceRequest settings request'
   pure unit
 
 process :: Tier3.Settings -> HTTP.Server -> Process Aff Unit
@@ -154,19 +164,28 @@ url :: Settings -> String -> String
 url (Settings settings) uri = location <> uri
   where location = "http://" <> settings.host <> ":" <> show settings.port
 
-executeForward :: Settings -> Forward.URI -> Aff String
+executeForward :: Settings -> Forward.URI -> Aff Resource
 executeForward settings query = do
   req <- HTTP.createRequest HTTP.Post $ url settings (Forward.uri query)
   res <- HTTP.endRequest req
   case res of
-    (HTTP.IncomingResponse body _) -> pure body
+    (HTTP.IncomingResponse _ req') -> 
+      case HTTP.statusCode req' of
+        200 -> pure $ Tier3.Forward unit
+        _   -> liftEffect $ Exception.throw "Invalid status code (forward reply)."
 
-executeReport :: Settings -> Report.URI -> Aff String
+executeReport :: Settings -> Report.URI -> Aff Resource
 executeReport settings query = do
   req <- HTTP.createRequest HTTP.Get $ url settings (Report.uri query)
   res <- HTTP.endRequest req
   case res of
-    (HTTP.IncomingResponse body _) -> pure body
+    (HTTP.IncomingResponse body req') ->
+       case HTTP.statusCode req' of
+         200 ->
+           case runParser body Report.event of
+             (Left _)      -> liftEffect $ Exception.throw "Invalid body (report reply)."
+             (Right event) -> pure $ Tier3.Report event
+         _   -> liftEffect $ Exception.throw "Invalid status code (report reply)."
 
 interpret :: forall a. Query (Request a) -> Aff (Request a)
 interpret (DSL.Forward settings query next) = do
@@ -175,3 +194,10 @@ interpret (DSL.Forward settings query next) = do
 interpret (DSL.Report settings query next) = do
   result <- executeReport settings query
   next <$> (pure result)
+
+request :: Settings -> Route -> Request Resource
+request settings (Route.Forward query) = liftFreeT $ (DSL.Forward settings query identity)
+request settings (Route.Report query)  = liftFreeT $ (DSL.Report settings query identity)
+
+execute ::  forall a. Request a -> Aff (Result a)
+execute = try <<< runFreeT interpret

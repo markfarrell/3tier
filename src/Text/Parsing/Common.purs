@@ -11,9 +11,13 @@ module Text.Parsing.Common
   , port
   , ipv4
   , json
+  , property
+  , showable
   ) where
 
 import Prelude
+
+import Control.Monad.Except (runExcept)
 
 import Data.Array as Array
 import Data.Either (Either(..))
@@ -23,8 +27,10 @@ import Data.String.CodeUnits (singleton)
 import Data.Maybe (Maybe(..))
 
 import Foreign (Foreign)
+import Foreign as Foreign
+import Foreign.Index ((!))
 
-import Text.Parsing.Parser (Parser, fail)
+import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.String (string, anyChar)
 import Text.Parsing.Parser.Combinators (optional,choice)
 
@@ -160,3 +166,44 @@ json = do
   case y of
     (Left _)  -> fail "Invalid JSON."
     (Right z) -> pure z 
+
+readString :: String -> Foreign -> Parser String String
+readString = \x y -> do
+  input <- except (y ! x >>= Foreign.readString)
+  pure input
+  where 
+    except = \x -> do
+      result <- pure $ runExcept x
+      case result of
+        (Left _)    -> fail "Control.Monad.runExcept (Left)"
+        (Right raw) -> pure raw 
+
+readInt :: String -> Foreign -> Parser String String
+readInt = \x y -> do
+  input <- except (y ! x >>= Foreign.readInt)
+  pure $ show input
+  where 
+    except = \x -> do
+      result <- pure $ runExcept x
+      case result of
+        (Left _)    -> fail "Control.Monad.runExcept (Left)"
+        (Right raw) -> pure raw 
+
+property :: forall a. String -> Foreign -> Parser String a -> Parser String a
+property = \x y z -> do
+  input   <- choice [readString x y, readInt x y]
+  result' <- validation input z
+  pure result'
+  where 
+    validation = \x y -> do
+      result <- pure $ runParser x y
+      case result of
+        (Left _)    -> fail "Invalid foreign property." 
+        (Right val) -> pure val
+
+showable :: forall a. Show a => Array a -> Parser String a
+showable = \x -> choice (show' <$> x)
+  where
+    show' = \x -> do
+      _ <- string (show x)
+      pure x

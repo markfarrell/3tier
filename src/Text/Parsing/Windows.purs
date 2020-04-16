@@ -34,14 +34,14 @@ event = do
 
 read :: Foreign -> Either Exception.Error Windows.Event
 read = \x -> do
-  eventCategory' <- read' "eventCategory" eventCategory $ x
-  eventID'       <- read' "eventID" eventID $ x
-  eventType'     <- read' "eventType" eventType $ x
-  startTime'     <- read' "startTime" date $ x
-  duration'      <- read' "duration"  positiveInteger $ x
-  endTime'       <- read' "endTime" date $ x
-  sIP'           <- read' "sIP" ipv4 $ x
-  sPort'         <- read' "sPort" port $ x
+  eventCategory' <- validate "eventCategory" eventCategory $ x
+  eventID'       <- validate "eventID" eventID $ x
+  eventType'     <- validate "eventType" eventType $ x
+  startTime'     <- validate "startTime" date $ x
+  duration'      <- validate "duration"  positiveInteger $ x
+  endTime'       <- validate "endTime" date $ x
+  sIP'           <- validate "sIP" ipv4 $ x
+  sPort'         <- validate "sPort" port $ x
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
       case eventCategory' == eventCategory'' of
@@ -57,8 +57,8 @@ read = \x -> do
           }
         false -> Left (Exception.error "Invalid input.")
 
-read' :: forall a. String -> Parser String a -> Foreign -> Either Exception.Error a
-read' = \x y z -> do
+validate :: forall a. String -> Parser String a -> Foreign -> Either Exception.Error a
+validate = \x y z -> do
   result  <- runExcept' (z ! x >>= Foreign.readString)
   result' <- run result y
   pure result'
