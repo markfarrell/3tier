@@ -30,16 +30,16 @@ import FFI.JSON as JSON
 
 import Control.Tier3 as Tier3
 
+import Control.Forward as Forward
+import Control.Report as Report
+
+import Control.Route (Route)
+import Control.Route as Route
+
 import Data.IPv4 (IPv4(..))
 
 import Data.Audit as Audit
 import Data.Schema as Schema
-
-import Data.Tier3.Forward as Forward
-import Data.Tier3.Report as Report
-
-import Data.Tier3.Route (Route)
-import Data.Tier3.Route as Route
 
 import Text.Parsing.Common (ipv4)
 

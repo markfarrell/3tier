@@ -35,9 +35,9 @@ import Data.Audit (EventCategory(..), EventType(..), EventID(..), ReportType(..)
 import Data.Report (Event(..)) as Report
 import Data.Schema as Schema
 
-import Data.Tier3.Forward as Forward
-import Data.Tier3.Report (URI(..), uris) as Report
-import Data.Tier3.Route as Route
+import Control.Forward as Forward
+import Control.Report (URI(..), uris) as Report
+import Control.Route as Route
 
 import Control.Tier3 as Tier3
 
@@ -149,7 +149,7 @@ success settings reportType eventID = \request -> do
     [(Tier3.Report (Report.Event y)), (Tier3.Report (Report.Event z))]  -> do
       result <- pure $ case reportType of
         Audit.Source   -> foldl (&&) true [z.min >= 0, z.max >= y.max, z.sum >= y.sum,  z.total >= y.total, z.average >= 0, z.variance >= 0]
-        Audit.Duration -> foldl (&&) true [z.min <= y.min, z.max >= y.max, z.sum >= y.sum, z.total >= y.total, y.average >= 0, y.variance >= 0]
+        Audit.Duration -> foldl (&&) true [z.min >= 0, z.max >= y.max, z.sum >= y.sum, z.total >= y.total, y.average >= 0, y.variance >= 0]
       case result of
         true  -> pure unit
         false -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")

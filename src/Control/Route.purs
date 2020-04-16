@@ -1,4 +1,4 @@
-  module Data.Tier3.Route
+  module Control.Route
   ( Route(..)
   , execute
   ) where
@@ -16,8 +16,8 @@ import Text.Parsing.Parser.Combinators (choice)
 
 import Text.Parsing.Flow (event) as Flow
 
-import Data.Tier3.Forward as Forward
-import Data.Tier3.Report as Report
+import Control.Forward as Forward
+import Control.Report as Report
 
 import FFI.HTTP as HTTP
 import FFI.String as String
