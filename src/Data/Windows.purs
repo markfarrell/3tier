@@ -3,29 +3,12 @@ module Data.Windows
   , EventID
   , EventType(..)
   , Event(..)
-  , event
   , eventCategories
   , eventIDs
+  , eventTypes
   ) where
 
 import Prelude
-
-import Control.Monad.Except (runExcept)
-
-import Data.Array as Array
-import Data.Maybe(Maybe(..))
-import Data.Either(Either(..))
-import Data.Tuple(Tuple(..))
-
-import Effect.Exception as Exception
-
-import Foreign (Foreign)
-import Foreign as Foreign
-import Foreign.Index ((!))
-
-import Text.Parsing.Parser (Parser, fail, runParser)
-import Text.Parsing.Parser.Combinators (choice)
-import Text.Parsing.Parser.String (string)
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -33,7 +16,6 @@ import FFI.Date (Date)
 import FFI.JSON as JSON
 
 import Data.IPv4 (IPv4)
-import Text.Parsing.Common (date, json, ipv4, port, positiveInteger)
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -96,78 +78,6 @@ instance eqEventCategoryWindows :: Eq EventCategory where
   eq Uncategorized     Uncategorized     = true 
   eq _                 _                 = false
 
-event :: Parser String Event
-event = do
-  x <- json
-  y <- pure $ read x
-  case y of
-    (Left _)  -> fail "Invalid input."
-    (Right z) -> pure z
-
-read :: Foreign -> Either Exception.Error Event
-read = \x -> do
-  eventCategory' <- read' "eventCategory" eventCategory $ x
-  eventID'       <- read' "eventID" eventID $ x
-  eventType'     <- read' "eventType" eventType $ x
-  startTime'     <- read' "startTime" date $ x
-  duration'      <- read' "duration"  positiveInteger $ x
-  endTime'       <- read' "endTime" date $ x
-  sIP'           <- read' "sIP" ipv4 $ x
-  sPort'         <- read' "sPort" port $ x
-  case eventID' of
-    (Tuple eventCategory'' eventID'') -> do
-      case eventCategory' == eventCategory'' of
-        true  -> pure $ Event
-          { eventCategory : eventCategory''
-          , eventID       : eventID''
-          , eventType     : eventType'
-          , startTime     : startTime'
-          , duration      : duration'
-          , endTime       : endTime'
-          , sIP           : sIP'
-          , sPort         : sPort'
-          }
-        false -> Left (Exception.error "Invalid input.")
-
-read' :: forall a. String -> Parser String a -> Foreign -> Either Exception.Error a
-read' = \x y z -> do
-  result  <- runExcept' (z ! x >>= Foreign.readString)
-  result' <- run result y
-  pure result'
-  where 
-    runExcept' = \x -> do
-      result <- pure $ runExcept x
-      case result of
-        (Left _)    -> Left (Exception.error "Invalid raw input.")
-        (Right raw) -> pure raw 
-    run = \x y -> do
-      result <- pure $ runParser x y
-      case result of
-        (Left _)    -> Left (Exception.error "Invalid input.")
-        (Right val) -> pure val
-
-eventID :: Parser String (Tuple EventCategory EventID)
-eventID = choice (eventID' <$> eventCategories)
-  where
-    eventID' = \eventCategory' -> do
-      result <- positiveInteger
-      case Array.elemIndex result (eventIDs eventCategory') of
-        (Just _)  -> pure (Tuple eventCategory' result)
-        (Nothing) -> fail "Invalid input."
-
-eventCategory :: Parser String EventCategory
-eventCategory = do
-  result <- choice (string <$> writeEventCategory <$> eventCategories)
-  case readEventCategory result of
-    (Left _)               -> fail "Invalid input."
-    (Right eventCategory') -> pure eventCategory'
-
-eventType :: Parser String EventType
-eventType = choice (eventType' <$> [Success, Failure])
-  where
-    eventType' = \x -> do
-       _ <- string (writeEventType x) 
-       pure x
 
 eventIDs :: EventCategory -> Array Int
 eventIDs AccountLogon      = accountLogon
@@ -197,6 +107,9 @@ eventCategories =
   , Uncategorized
   ]
 
+eventTypes :: Array EventType
+eventTypes = [ Success, Failure ] 
+
 writeEventCategory :: EventCategory -> String
 writeEventCategory AccountLogon      = "account-logon"
 writeEventCategory AccountManagement = "account-management"
@@ -210,19 +123,6 @@ writeEventCategory ProcessTracking   = "process-tracking"
 writeEventCategory System            = "system"
 writeEventCategory Uncategorized     = "uncategorized"
 
-readEventCategory :: String -> Either Exception.Error EventCategory
-readEventCategory "account-logon"      = Right AccountLogon
-readEventCategory "account-management" = Right AccountManagement
-readEventCategory "directory-service"  = Right DirectoryService
-readEventCategory "logon-and-logoff"   = Right LogonAndLogoff
-readEventCategory "object-access"      = Right ObjectAccess
-readEventCategory "non-audit"          = Right NonAudit
-readEventCategory "policy-change"      = Right PolicyChange
-readEventCategory "privilege-use"      = Right PrivilegeUse
-readEventCategory "process-tracking"   = Right ProcessTracking
-readEventCategory "system"             = Right System
-readEventCategory "uncategorized"      = Right Uncategorized
-readEventCategory _                    = Left (Exception.error "Invalid input.")
 
 writeEventType :: EventType -> String
 writeEventType Success = "success"

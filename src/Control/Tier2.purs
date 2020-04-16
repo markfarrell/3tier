@@ -1,6 +1,5 @@
 module Control.Tier2 
   ( Settings(..)
-  , execute
   , process
   ) where 
   
@@ -16,7 +15,6 @@ import Data.Either (Either(..))
 
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
-import Effect.Exception (Error)
 
 import Text.Parsing.Parser (runParser)
 
@@ -29,6 +27,8 @@ import FFI.Socket as Socket
 import FFI.JSON as JSON
 
 import Control.Tier3 as Tier3
+
+import Control.DSL as DSL
 
 import Control.Forward as Forward
 import Control.Report as Report
@@ -50,6 +50,12 @@ data ContentType a = TextJSON a
 data AuthenticationType = Bearer
 
 data Resource = Ok (ContentType Tier3.Resource) | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
+
+type Query a = DSL.Query Settings String Forward.URI Report.URI a
+
+type Request a = DSL.Request Settings String Forward.URI Report.URI a
+
+type Result a = DSL.Result a
 
 audit :: Tier3.Settings -> Audit.Event -> Tier3.Request Unit
 audit settings event = do
@@ -148,18 +154,24 @@ url :: Settings -> String -> String
 url (Settings settings) uri = location <> uri
   where location = "http://" <> settings.host <> ":" <> show settings.port
 
-executeForward :: Settings -> Forward.URI -> Aff (Either Error HTTP.IncomingResponse)
+executeForward :: Settings -> Forward.URI -> Aff String
 executeForward settings query = do
   req <- HTTP.createRequest HTTP.Post $ url settings (Forward.uri query)
-  res <- try $ HTTP.endRequest req
-  pure res
+  res <- HTTP.endRequest req
+  case res of
+    (HTTP.IncomingResponse body _) -> pure body
 
-executeReport :: Settings -> Report.URI -> Aff (Either Error HTTP.IncomingResponse)
+executeReport :: Settings -> Report.URI -> Aff String
 executeReport settings query = do
   req <- HTTP.createRequest HTTP.Get $ url settings (Report.uri query)
-  res <- try $ HTTP.endRequest req
-  pure res
+  res <- HTTP.endRequest req
+  case res of
+    (HTTP.IncomingResponse body _) -> pure body
 
-execute :: Settings -> Route -> Aff (Either Error HTTP.IncomingResponse)
-execute settings (Route.Forward query) = executeForward settings query
-execute settings (Route.Report query)  = executeReport settings query
+interpret :: forall a. Query (Request a) -> Aff (Request a)
+interpret (DSL.Forward settings query next) = do
+  result <- executeForward settings query
+  next <$> pure result
+interpret (DSL.Report settings query next) = do
+  result <- executeReport settings query
+  next <$> (pure result)

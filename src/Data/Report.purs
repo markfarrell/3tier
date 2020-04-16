@@ -5,6 +5,7 @@ module Data.Report
   , Event(..)
   , eventCategories
   , eventIDs
+  , eventTypes
   ) where
 
 import Prelude
@@ -95,6 +96,9 @@ eventCategories = [ Source, Duration, Unique ]
 eventIDs :: Array EventID
 eventIDs = [ Alert, Audit, Anomalous, Flow, Report, Linux, Windows ]
 
+eventTypes :: Array EventType
+eventTypes = [ Success, Failure ]
+
 uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
   { eventCategory : show event'.eventCategory
@@ -105,9 +109,5 @@ uri (Event event') = JSON.stringify $ unsafeCoerce $
   , sum           : show event'.sum
   , total         : show event'.total
   , average       : show event'.average
-  , variance       : show event'.variance
+  , variance      : show event'.variance
   }
-
-
-
-
