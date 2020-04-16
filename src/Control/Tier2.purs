@@ -1,5 +1,10 @@
 module Control.Tier2 
   ( Settings(..)
+  , Authentication(..)
+  , Authorization(..)
+  , Server(..)
+  , Role(..)
+  , URI(..)
   , Query
   , Request
   , Resource
@@ -52,7 +57,20 @@ import Data.Schema as Schema
 import Text.Parsing.Common (ipv4)
 import Text.Parsing.Report (event) as Report
 
-data Settings = Settings { host :: String, port :: Int }
+data Role = Production | Testing
+
+data URI = Primary Role | Secondary Role | Offsite Role
+
+data Server = Single URI
+
+data Authorization = Authorization Unit
+
+data Authentication = Origin
+  { sIP   :: IPv4
+  , sPort :: Int
+  }
+
+data Settings = Settings Authorization Authentication Server
 
 data AuthenticationType = Bearer
 
@@ -160,13 +178,17 @@ consumer settings = forever $ do
 process :: Tier3.Settings -> HTTP.Server -> Process Aff Unit
 process settings server = pullFrom (consumer settings) (producer server)
 
-url :: Settings -> String -> String
-url (Settings settings) uri = location <> uri
-  where location = "http://" <> settings.host <> ":" <> show settings.port
+location :: URI -> String
+location (Primary Production)   = "http://localhost:3000"
+location (Secondary Production) = "http://localhost:3001"
+location (Offsite Production)   = "http://localhost:3002"
+location (Primary Testing)      = "http://localhost:3003"
+location (Secondary Testing)    = "http://localhost:3004"
+location (Offsite Testing)      = "http://localhost:3005"
 
 executeForward :: Settings -> Forward.URI -> Aff Resource
-executeForward settings query = do
-  req <- HTTP.createRequest HTTP.Post $ url settings (Forward.uri query)
+executeForward (Settings _ _ (Single uri)) query = do
+  req <- HTTP.createRequest HTTP.Post $ (location uri) <> show (Forward.uri query)
   res <- HTTP.endRequest req
   case res of
     (HTTP.IncomingResponse _ req') -> 
@@ -175,8 +197,8 @@ executeForward settings query = do
         _   -> liftEffect $ Exception.throw "Invalid status code (forward reply)."
 
 executeReport :: Settings -> Report.URI -> Aff Resource
-executeReport settings query = do
-  req <- HTTP.createRequest HTTP.Get $ url settings (Report.uri query)
+executeReport (Settings _ _ (Single uri)) query = do
+  req <- HTTP.createRequest HTTP.Get $ (location uri) <> show (Report.uri query)
   res <- HTTP.endRequest req
   case res of
     (HTTP.IncomingResponse body req') ->

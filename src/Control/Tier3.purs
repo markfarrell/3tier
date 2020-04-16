@@ -69,7 +69,7 @@ data URI = Primary Role | Secondary Role | Offsite Role
 
 type Connection = SQLite3.Database
 
-data DBMS = Local URI | Replication URI | Failover URI
+data DBMS = Single URI | Replication URI | Failover URI
 
 data Authorization = Authorization Unit
 
@@ -337,7 +337,7 @@ executeSchemas file = do
 
 executeForward :: DBMS -> Forward.URI -> Aff Resource
 executeForward (Failover uri) query = do
-  result  <- try $ executeForward (Local uri) query
+  result  <- try $ executeForward (Single uri) query
   result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward query <$> failoverSites uri))
   case result of
     (Left _) -> case result' of
@@ -347,7 +347,7 @@ executeForward (Failover uri) query = do
 executeForward (Replication uri) query  = do
   _ <- Aff.sequential (sequence (Aff.parallel <$> flip executeForward query <$> replicationSites uri)) 
   pure (Forward unit)
-executeForward (Local uri) query = do
+executeForward (Single uri) query = do
   _        <- executeTouch (path uri)
   _        <- executeSchemas (path uri)
   database <- SQLite3.connect (path uri) SQLite3.OpenReadWrite
@@ -365,20 +365,20 @@ path (Secondary Testing)    = "testing.secondary.db"
 path (Offsite Testing)      = "testing.offsite.db"
 
 failoverSites :: URI -> Array DBMS
-failoverSites (Primary Production)   = [Local (Secondary Production), Local (Offsite Production)]
-failoverSites (Secondary Production) = [Local (Primary Production), Local (Offsite Production)]
+failoverSites (Primary Production)   = [Single (Secondary Production), Single (Offsite Production)]
+failoverSites (Secondary Production) = [Single (Primary Production), Single (Offsite Production)]
 failoverSites (Offsite Production)   = []
-failoverSites (Primary Testing)      = [Local (Secondary Testing), Local (Offsite Testing)]
-failoverSites (Secondary Testing)    = [Local (Primary Testing), Local (Offsite Testing)]
+failoverSites (Primary Testing)      = [Single (Secondary Testing), Single (Offsite Testing)]
+failoverSites (Secondary Testing)    = [Single (Primary Testing), Single (Offsite Testing)]
 failoverSites (Offsite Testing)      = []
 
 replicationSites :: URI -> Array DBMS
-replicationSites (Primary Production)   = [Local (Primary Production), Local (Secondary Production)]
-replicationSites (Secondary Production) = [Local (Primary Production), Local (Secondary Production)]
-replicationSites (Offsite Production)   = [Local (Offsite Production)]
-replicationSites (Primary Testing)      = [Local (Primary Testing), Local (Secondary Testing)]
-replicationSites (Secondary Testing)    = [Local (Primary Testing), Local (Secondary Testing)]
-replicationSites (Offsite Testing)      = [Local (Offsite Testing)]
+replicationSites (Primary Production)   = [Single (Primary Production), Single (Secondary Production)]
+replicationSites (Secondary Production) = [Single (Primary Production), Single (Secondary Production)]
+replicationSites (Offsite Production)   = [Single (Offsite Production)]
+replicationSites (Primary Testing)      = [Single (Primary Testing), Single (Secondary Testing)]
+replicationSites (Secondary Testing)    = [Single (Primary Testing), Single (Secondary Testing)]
+replicationSites (Offsite Testing)      = [Single (Offsite Testing)]
 
 {-- | Combines replicated resources if they are equivalent. --}
 replication :: Array Resource -> Maybe Resource
@@ -391,7 +391,7 @@ replication w = foldl f (Array.head w) (sequence $ Array.tail w)
 
 executeReport :: DBMS -> Report.URI -> Aff Resource
 executeReport (Failover uri) report = do
-  result  <- try $ executeReport (Local uri) report
+  result  <- try $ executeReport (Single uri) report
   case result of
     (Left _) -> do
       result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> failoverSites uri))
@@ -405,7 +405,7 @@ executeReport (Replication uri) report = do
   case result of
     (Just event) -> pure event
     (Nothing)    -> liftEffect $ Exception.throw "Replication failure."
-executeReport (Local uri) report = do
+executeReport (Single uri) report = do
   _          <- executeTouch (path uri)
   _          <- executeSchemas (path uri)
   database   <- SQLite3.connect (path uri) SQLite3.OpenReadOnly
