@@ -10,6 +10,7 @@ module Text.Parsing.Common
   , octet
   , port
   , ipv4
+  , flags
   , json
   , property
   , showable
@@ -39,6 +40,7 @@ import FFI.Date as Date
 import FFI.JSON as JSON
 
 import Data.IPv4(IPv4(..))
+import Data.TCP.Flag (Flag(..))
 
 foreign import parseInt :: String -> Int
 
@@ -158,6 +160,36 @@ ipv4 = do
   z <- octet
   pure $ IPv4 w x y z
   where dot = "."
+
+flag :: Parser String Flag
+flag = choice [urg, rst, fin, syn, psh, ack]
+  where
+    urg = do
+      _ <- string "U"
+      pure U
+    rst = do
+      _ <- string "R"
+      pure R
+    fin = do
+      _ <- string "F"
+      pure F
+    syn = do
+      _ <- string "S"
+      pure S
+    psh = do
+      _ <- string "P"
+      pure F
+    ack = do
+      _ <- string "A"
+      pure A
+
+flags :: Parser String (Array Flag)
+flags = do
+  elems <- List.many (pure <$> flag)
+  count <- pure $ List.length elems
+  case (count >= 0) && (count <= 6) of
+    true  -> pure $ foldMap identity elems
+    false -> fail "Invalid number of TCP flags."
 
 json :: Parser String Foreign
 json = do

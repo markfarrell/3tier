@@ -4,76 +4,26 @@ module Text.Parsing.Flow
 
 import Prelude
 
-import Data.List as List
+import Text.Parsing.Parser (Parser)
 
-import Data.Traversable (foldMap) as Traversable
-
-import Text.Parsing.Parser (Parser, fail)
-import Text.Parsing.Parser.String (char, eof, string)
-import Text.Parsing.Parser.Combinators (choice)
-
-import Text.Parsing.Common (date, port, ipv4, octet, positiveInteger)
+import Text.Parsing.Common (date, flags, json, port, ipv4, octet, positiveInteger, property)
 
 import Data.Flow as Flow
 
-delimiter :: Char
-delimiter = ','
-
-flag :: Parser String Flow.Flag
-flag = choice [urg, rst, fin, syn, psh, ack]
-  where
-    urg = do
-      _ <- string "U"
-      pure Flow.U
-    rst = do
-      _ <- string "R"
-      pure Flow.R
-    fin = do
-      _ <- string "F"
-      pure Flow.F
-    syn = do
-      _ <- string "S"
-      pure Flow.S
-    psh = do
-      _ <- string "P"
-      pure Flow.F
-    ack = do
-      _ <- string "A"
-      pure Flow.A
-
-flags :: Parser String (Array Flow.Flag)
-flags = do
-  elems <- List.many (pure <$> flag)
-  count <- pure $ List.length elems
-  case (count >= 0) && (count <= 6) of
-    true  -> pure $ Traversable.foldMap identity elems
-    false -> fail "Invalid number of TCP flags."
-
-{-- Parses a valid SiLk event event based on the parsers defined for its fields, or fails otherwise. --}
 event :: Parser String Flow.Event
 event = do
-  sIP       <- ipv4
-  _         <- comma
-  dIP       <- ipv4
-  _         <- comma
-  sPort     <- port
-  _         <- comma
-  dPort     <- port
-  _         <- comma
-  protocol  <- octet
-  _         <- comma
-  packets   <- positiveInteger
-  _         <- comma
-  bytes     <- positiveInteger
-  _         <- comma
-  flags'    <- flags
-  _         <- comma
-  startTime <- date
-  _         <- comma
-  duration' <- positiveInteger
-  _         <- comma
-  endTime   <- date
-  _         <- eof
+  x         <- json
+  sIP       <- property "sIP"       x  $ ipv4
+  dIP       <- property "dIP"       x  $ ipv4
+  sPort     <- property "sPort"     x  $ port
+  dPort     <- property "dPort"     x  $ port
+  protocol  <- property "protocol"  x  $ octet
+  packets   <- property "packets"   x  $ positiveInteger
+  bytes     <- property "bytes"     x  $ positiveInteger
+  flags'    <- property "flags"     x  $ flags
+  startTime <- property "startTime" x  $ date
+  duration' <- property "duration"  x  $ positiveInteger
+  endTime   <- property "endTIme"   x  $ date
   pure $ Flow.Event
     { sIP       : sIP
     , dIP       : dIP
@@ -87,5 +37,3 @@ event = do
     , duration  : duration'
     , endTime   : endTime
     }
-  where comma = char delimiter
-

@@ -14,6 +14,7 @@ import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
 
 import Data.IPv4 (IPv4(..))
+import Data.TCP.Flag (Flag(..))
 
 import Data.Flow as Flow 
 
@@ -48,7 +49,7 @@ random = do
   packets   <- range 0 999999999
   bytes     <- range 0 999999999
   protocol  <- octet
-  flags     <- pure [Flow.U, Flow.R, Flow.F, Flow.S, Flow.P, Flow.A]
+  flags     <- pure [U, R, F, S, P, A]
   startTime <- pure $ Date.epoch
   endTime   <- Date.random
   duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))

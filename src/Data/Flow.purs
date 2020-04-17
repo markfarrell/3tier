@@ -1,6 +1,5 @@
 module Data.Flow
   ( Event (..)
-  , Flag (..)
   ) where
 
 import Prelude
@@ -13,8 +12,7 @@ import FFI.Date (Date)
 import FFI.JSON as JSON
 
 import Data.IPv4 (IPv4)
-
-data Flag = U | R | F | S | P | A
+import Data.TCP.Flag (Flag)
 
 data Event = Event
   { sIP       :: IPv4
@@ -32,14 +30,6 @@ data Event = Event
 
 instance showEventFlow :: Show Event where
   show = uri
-
-instance showFlag :: Show Flag where
-  show U = "U"
-  show R = "R"
-  show F = "F"
-  show S = "S"
-  show P = "P"
-  show A = "A"
 
 uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
