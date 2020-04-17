@@ -1,7 +1,6 @@
 module Control.Report
   ( URI(..)
   , uris
-  , uri 
   ) where
 
 import Prelude
@@ -10,6 +9,9 @@ import Data.Audit as Audit
 import Data.Schema as Schema
 
 data URI = Audit Audit.EventCategory Audit.EventType Audit.EventID Audit.ReportType
+
+instance showURIReport :: Show URI where
+  show = uri
 
 uris :: Array URI
 uris = anomalies <> forwards <> reports

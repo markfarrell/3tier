@@ -1,6 +1,5 @@
 module Control.Forward
   ( URI(..)
-  , uri
   ) where
 
 import Prelude
@@ -13,6 +12,9 @@ import Data.Report as Report
 import Data.Windows as Windows
 
 data URI = Audit Audit.Event | Alert Alert.Event | Flow Flow.Event | Report Report.Event | Linux Linux.Event | Windows Windows.Event 
+
+instance showURIForward :: Show URI where
+  show = uri
 
 uri :: URI -> String
 uri (Audit event)   = "/forward/audit?"   <> show event

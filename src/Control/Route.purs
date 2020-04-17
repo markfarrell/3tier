@@ -24,13 +24,12 @@ import FFI.String as String
 
 data Route = Forward Forward.URI | Report Report.URI
 
-instance showRouteTier3 :: Show Route where
-  show = uri
+instance showRoute :: Show Route where
+  show (Forward uri)  = show uri
+  show (Report  uri)  = show uri
 
 report :: Report.URI -> Parser String Route
-report report' = do
-  _ <- string $ Report.uri report'
-  pure $ (Report report')
+report report' = (string $ show report') *> pure (Report report')
 
 reports :: Parser String Route
 reports = choice (report <$> Report.uris)
@@ -53,7 +52,3 @@ execute req = do
   case result of
     (Left _)        -> pure (Left $ error "Invalid routing request.")
     (Right result') -> pure (Right $ result')
-
-uri :: Route -> String
-uri (Forward event)  = Forward.uri event
-uri (Report  event)  = Report.uri event

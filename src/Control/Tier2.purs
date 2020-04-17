@@ -44,7 +44,7 @@ import Control.Tier3 as Tier3
 import Control.DSL as DSL
 
 import Control.Forward as Forward
-import Control.Report (URI(..), uri) as Report
+import Control.Report (URI(..)) as Report
 
 import Control.Route (Route)
 import Control.Route as Route
@@ -77,7 +77,7 @@ data AuthenticationType = Bearer
 
 data Resource = Forward Unit | Report Report.Event
 
-data Response = Ok Resource | InternalTargetError String | BadRequest String | Forbidden AuthenticationType String
+data Response = Ok Resource | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
 
 type Query a = DSL.Query Settings Resource Forward.URI Report.URI a
 
@@ -110,7 +110,7 @@ sendResponse (Forbidden Bearer realm) = \res -> liftEffect $ do
   _ <- HTTP.writeHead 401 $ res
   _ <- HTTP.end $ res
   pure unit  
-sendResponse (InternalTargetError _) = \res -> liftEffect $ do
+sendResponse (InternalServerError _) = \res -> liftEffect $ do
   _ <- HTTP.writeHead 500 $ res
   _ <- HTTP.end $ res
   pure unit
@@ -119,7 +119,7 @@ databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff Respon
 databaseRequest settings route req = do
   result    <- Tier3.execute $ Tier3.request settings route
   case result of 
-    (Left _)               -> pure  $ InternalTargetError ""
+    (Left _)               -> pure  $ InternalServerError ""
     (Right (Tier3.Forward unit)) -> pure $ Ok (Forward unit)
     (Right (Tier3.Report event)) -> pure $ Ok (Report event) 
 
@@ -189,7 +189,7 @@ path (Offsite Testing)      = "http://localhost:3005"
  
 executeForward :: Settings -> Forward.URI -> Aff Resource
 executeForward (Settings _ _ (Single uri)) query = do
-  req <- HTTP.createRequest HTTP.Post $ (path uri) <> show (Forward.uri query)
+  req <- HTTP.createRequest HTTP.Post $ (path uri) <> show query
   res <- HTTP.endRequest req
   case res of
     (HTTP.IncomingResponse _ req') -> 
@@ -199,7 +199,7 @@ executeForward (Settings _ _ (Single uri)) query = do
 
 executeReport :: Settings -> Report.URI -> Aff Resource
 executeReport (Settings _ _ (Single uri)) query = do
-  req <- HTTP.createRequest HTTP.Get $ (path uri) <> show (Report.uri query)
+  req <- HTTP.createRequest HTTP.Get $ (path uri) <> show query
   res <- HTTP.endRequest req
   case res of
     (HTTP.IncomingResponse body req') ->
