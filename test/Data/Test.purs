@@ -16,7 +16,7 @@ import Data.IPv4 (IPv4)
 
 data EventCategory = Tier1 | Tier2 | Tier3
 
-data EventType = Single | Replication | Failover
+data EventType = Local | Remote | Replication | Failover
 
 data EventID = Forward | Report 
 
@@ -54,7 +54,8 @@ instance showEventCategoryTest :: Show EventCategory where
   show Tier3 = "TIER-03"
 
 instance showEventTypeTest :: Show EventType where
-  show Single      = "SINGLE"
+  show Local       = "LOCAL"
+  show Remote      = "REMOTE"
   show Replication = "REPLICATION"
   show Failover    = "FAILOVER"
 

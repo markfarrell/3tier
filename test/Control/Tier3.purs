@@ -179,8 +179,8 @@ unlink _                               = pure unit
 fresh :: Tier3.Request Unit
 fresh = unlink (Tier3.Primary Tier3.Testing) *> unlink (Tier3.Secondary Tier3.Testing) *> unlink (Tier3.Offsite Tier3.Testing)
 
-testSingleForward :: Tier3.Request Unit
-testSingleForward = do
+testLocalForward :: Tier3.Request Unit
+testLocalForward = do
   _         <- fresh
   startTime <- lift $ liftEffect $ Date.current
   _         <- forwards settings n
@@ -189,7 +189,7 @@ testSingleForward = do
   duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   event     <- pure $ Test.Event $
     { eventCategory : Test.Tier3
-    , eventType     : Test.Single
+    , eventType     : Test.Local
     , eventID       : Test.Forward
     , eventURI      : unit
     , startTime     : startTime
@@ -203,7 +203,7 @@ testSingleForward = do
   where 
     settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
     origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
-    dbms     = Tier3.Single $ Tier3.Primary Tier3.Testing
+    dbms     = Tier3.Local $ Tier3.Primary Tier3.Testing
     n        = 10
 
 testReplicationForward :: Tier3.Request Unit
@@ -233,8 +233,8 @@ testReplicationForward = do
     dbms     = Tier3.Replication $ Tier3.Primary Tier3.Testing
     n        = 100
 
-testSingleReports :: Tier3.Request Unit
-testSingleReports = do
+testLocalReports :: Tier3.Request Unit
+testLocalReports = do
   _         <- fresh
   startTime <- lift $ liftEffect $ Date.current
   _         <- reports settings
@@ -243,7 +243,7 @@ testSingleReports = do
   duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   event     <- pure $ Test.Event $
     { eventCategory : Test.Tier3
-    , eventType     : Test.Single
+    , eventType     : Test.Local
     , eventID       : Test.Report
     , eventURI      : unit
     , startTime     : startTime
@@ -257,7 +257,7 @@ testSingleReports = do
   where 
     settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
     origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
-    dbms     = Tier3.Single $ Tier3.Primary Tier3.Testing
+    dbms     = Tier3.Local $ Tier3.Primary Tier3.Testing
 
 testReplicationReports :: Tier3.Request Unit
 testReplicationReports = do
@@ -340,9 +340,9 @@ testFailoverReports = do
 
 tests :: Tier3.Request Unit
 tests = void $ sequence $
-  [ testSingleForward
+  [ testLocalForward
   , testReplicationForward
-  , testSingleReports
+  , testLocalReports
   , testReplicationReports
   , testFailoverForwards
   , testFailoverReports

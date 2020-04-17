@@ -2,7 +2,7 @@ module Control.Tier3
  ( Query
  , Request
  , Result
- , DBMS(..)
+ , Target(..)
  , Authorization(..)
  , Authentication(..)
  , Settings(..)
@@ -69,7 +69,7 @@ data URI = Primary Role | Secondary Role | Offsite Role
 
 type Connection = SQLite3.Database
 
-data DBMS = Single URI | Replication URI | Failover URI
+data Target = Local URI | Replication URI | Failover URI
 
 data Authorization = Authorization Unit
 
@@ -78,7 +78,7 @@ data Authentication = Origin
   , sPort :: Int
   }
 
-data Settings = Settings Authorization Authentication DBMS
+data Settings = Settings Authorization Authentication Target
 
 type Table = String
 
@@ -335,9 +335,9 @@ executeSchemas file = do
   _        <- SQLite3.close database
   pure unit
 
-executeForward :: DBMS -> Forward.URI -> Aff Resource
+executeForward :: Target -> Forward.URI -> Aff Resource
 executeForward (Failover uri) query = do
-  result  <- try $ executeForward (Single uri) query
+  result  <- try $ executeForward (Local uri) query
   result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward query <$> failoverSites uri))
   case result of
     (Left _) -> case result' of
@@ -347,7 +347,7 @@ executeForward (Failover uri) query = do
 executeForward (Replication uri) query  = do
   _ <- Aff.sequential (sequence (Aff.parallel <$> flip executeForward query <$> replicationSites uri)) 
   pure (Forward unit)
-executeForward (Single uri) query = do
+executeForward (Local uri) query = do
   _        <- executeTouch (path uri)
   _        <- executeSchemas (path uri)
   database <- SQLite3.connect (path uri) SQLite3.OpenReadWrite
@@ -364,21 +364,21 @@ path (Primary Testing)      = "testing.primary.db"
 path (Secondary Testing)    = "testing.secondary.db" 
 path (Offsite Testing)      = "testing.offsite.db"
 
-failoverSites :: URI -> Array DBMS
-failoverSites (Primary Production)   = [Single (Secondary Production), Single (Offsite Production)]
-failoverSites (Secondary Production) = [Single (Primary Production), Single (Offsite Production)]
+failoverSites :: URI -> Array Target
+failoverSites (Primary Production)   = [Local (Secondary Production), Local (Offsite Production)]
+failoverSites (Secondary Production) = [Local (Primary Production), Local (Offsite Production)]
 failoverSites (Offsite Production)   = []
-failoverSites (Primary Testing)      = [Single (Secondary Testing), Single (Offsite Testing)]
-failoverSites (Secondary Testing)    = [Single (Primary Testing), Single (Offsite Testing)]
+failoverSites (Primary Testing)      = [Local (Secondary Testing), Local (Offsite Testing)]
+failoverSites (Secondary Testing)    = [Local (Primary Testing), Local (Offsite Testing)]
 failoverSites (Offsite Testing)      = []
 
-replicationSites :: URI -> Array DBMS
-replicationSites (Primary Production)   = [Single (Primary Production), Single (Secondary Production)]
-replicationSites (Secondary Production) = [Single (Primary Production), Single (Secondary Production)]
-replicationSites (Offsite Production)   = [Single (Offsite Production)]
-replicationSites (Primary Testing)      = [Single (Primary Testing), Single (Secondary Testing)]
-replicationSites (Secondary Testing)    = [Single (Primary Testing), Single (Secondary Testing)]
-replicationSites (Offsite Testing)      = [Single (Offsite Testing)]
+replicationSites :: URI -> Array Target
+replicationSites (Primary Production)   = [Local (Primary Production), Local (Secondary Production)]
+replicationSites (Secondary Production) = [Local (Primary Production), Local (Secondary Production)]
+replicationSites (Offsite Production)   = [Local (Offsite Production)]
+replicationSites (Primary Testing)      = [Local (Primary Testing), Local (Secondary Testing)]
+replicationSites (Secondary Testing)    = [Local (Primary Testing), Local (Secondary Testing)]
+replicationSites (Offsite Testing)      = [Local (Offsite Testing)]
 
 {-- | Combines replicated resources if they are equivalent. --}
 replication :: Array Resource -> Maybe Resource
@@ -389,9 +389,9 @@ replication w = foldl f (Array.head w) (sequence $ Array.tail w)
     f (Just (Report x)) (Just (Report y))   = if (x == y) then (Just (Report x))  else (Nothing)
     f  _                _                   = Nothing
 
-executeReport :: DBMS -> Report.URI -> Aff Resource
+executeReport :: Target -> Report.URI -> Aff Resource
 executeReport (Failover uri) report = do
-  result  <- try $ executeReport (Single uri) report
+  result  <- try $ executeReport (Local uri) report
   case result of
     (Left _) -> do
       result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> failoverSites uri))
@@ -405,7 +405,7 @@ executeReport (Replication uri) report = do
   case result of
     (Just event) -> pure event
     (Nothing)    -> liftEffect $ Exception.throw "Replication failure."
-executeReport (Single uri) report = do
+executeReport (Local uri) report = do
   _          <- executeTouch (path uri)
   _          <- executeSchemas (path uri)
   database   <- SQLite3.connect (path uri) SQLite3.OpenReadOnly

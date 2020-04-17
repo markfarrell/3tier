@@ -2,12 +2,12 @@ module Control.Tier2
   ( Settings(..)
   , Authentication(..)
   , Authorization(..)
-  , Server(..)
+  , Target(..)
   , Role(..)
   , URI(..)
   , Query
   , Request
-  , Resource
+  , Resource(..)
   , Result
   , request
   , execute
@@ -52,6 +52,7 @@ import Control.Route as Route
 import Data.IPv4 (IPv4(..))
 
 import Data.Audit as Audit
+import Data.Report (Event) as Report
 import Data.Schema as Schema
 
 import Text.Parsing.Common (ipv4)
@@ -61,7 +62,7 @@ data Role = Production | Testing
 
 data URI = Primary Role | Secondary Role | Offsite Role
 
-data Server = Single URI
+data Target = Remote URI
 
 data Authorization = Authorization Unit
 
@@ -70,14 +71,13 @@ data Authentication = Origin
   , sPort :: Int
   }
 
-data Settings = Settings Authorization Authentication Server
+data Settings = Settings Authorization Authentication Target
 
 data AuthenticationType = Bearer
 
-type Resource = Tier3.Resource
+data Resource = Forward Unit | Report Report.Event
 
-data Response = Ok Resource | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
-
+data Response = Ok Resource | InternalTargetError String | BadRequest String | Forbidden AuthenticationType String
 
 type Query a = DSL.Query Settings Resource Forward.URI Report.URI a
 
@@ -91,8 +91,8 @@ audit settings event = do
   pure unit
 
 textJSON :: Resource -> String
-textJSON (Tier3.Forward _) = ""
-textJSON (Tier3.Report x)  = JSON.stringify $ unsafeCoerce x
+textJSON (Forward _) = ""
+textJSON (Report x)  = JSON.stringify $ unsafeCoerce x
 
 sendResponse :: Response -> HTTP.ServerResponse -> Aff Unit
 sendResponse (Ok body) = \res -> liftEffect $ do
@@ -110,17 +110,18 @@ sendResponse (Forbidden Bearer realm) = \res -> liftEffect $ do
   _ <- HTTP.writeHead 401 $ res
   _ <- HTTP.end $ res
   pure unit  
-sendResponse (InternalServerError _) = \res -> liftEffect $ do
+sendResponse (InternalTargetError _) = \res -> liftEffect $ do
   _ <- HTTP.writeHead 500 $ res
   _ <- HTTP.end $ res
   pure unit
 
-databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff (Response) 
+databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff Response 
 databaseRequest settings route req = do
   result    <- Tier3.execute $ Tier3.request settings route
   case result of 
-    (Left _)          -> pure  $ InternalServerError ""
-    (Right resultSet) -> pure  $ Ok resultSet
+    (Left _)               -> pure  $ InternalTargetError ""
+    (Right (Tier3.Forward unit)) -> pure $ Ok (Forward unit)
+    (Right (Tier3.Report event)) -> pure $ Ok (Report event) 
 
 resourceRequest :: Tier3.Settings -> HTTP.IncomingRequest -> Aff Unit
 resourceRequest settings (HTTP.IncomingRequest req res) = do
@@ -178,27 +179,27 @@ consumer settings = forever $ do
 process :: Tier3.Settings -> HTTP.Server -> Process Aff Unit
 process settings server = pullFrom (consumer settings) (producer server)
 
-location :: URI -> String
-location (Primary Production)   = "http://localhost:3000"
-location (Secondary Production) = "http://localhost:3001"
-location (Offsite Production)   = "http://localhost:3002"
-location (Primary Testing)      = "http://localhost:3003"
-location (Secondary Testing)    = "http://localhost:3004"
-location (Offsite Testing)      = "http://localhost:3005"
-
+path :: URI -> String
+path (Primary Production)   = "http://localhost:3000"
+path (Secondary Production) = "http://localhost:3001"
+path (Offsite Production)   = "http://localhost:3002"
+path (Primary Testing)      = "http://localhost:3003"
+path (Secondary Testing)    = "http://localhost:3004"
+path (Offsite Testing)      = "http://localhost:3005"
+ 
 executeForward :: Settings -> Forward.URI -> Aff Resource
-executeForward (Settings _ _ (Single uri)) query = do
-  req <- HTTP.createRequest HTTP.Post $ (location uri) <> show (Forward.uri query)
+executeForward (Settings _ _ (Remote uri)) query = do
+  req <- HTTP.createRequest HTTP.Post $ (path uri) <> show (Forward.uri query)
   res <- HTTP.endRequest req
   case res of
     (HTTP.IncomingResponse _ req') -> 
       case HTTP.statusCode req' of
-        200 -> pure $ Tier3.Forward unit
+        200 -> pure $ Forward unit
         _   -> liftEffect $ Exception.throw "Invalid status code (forward reply)."
 
 executeReport :: Settings -> Report.URI -> Aff Resource
-executeReport (Settings _ _ (Single uri)) query = do
-  req <- HTTP.createRequest HTTP.Get $ (location uri) <> show (Report.uri query)
+executeReport (Settings _ _ (Remote uri)) query = do
+  req <- HTTP.createRequest HTTP.Get $ (path uri) <> show (Report.uri query)
   res <- HTTP.endRequest req
   case res of
     (HTTP.IncomingResponse body req') ->
@@ -206,7 +207,7 @@ executeReport (Settings _ _ (Single uri)) query = do
          200 ->
            case runParser body Report.event of
              (Left _)      -> liftEffect $ Exception.throw "Invalid body (report reply)."
-             (Right event) -> pure $ Tier3.Report event
+             (Right event) -> pure $ Report event
          _   -> liftEffect $ Exception.throw "Invalid status code (report reply)."
 
 interpret :: forall a. Query (Request a) -> Aff (Request a)
