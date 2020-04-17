@@ -23,7 +23,7 @@ event = do
   flags'    <- property "flags"     x  $ flags
   startTime <- property "startTime" x  $ date
   duration' <- property "duration"  x  $ positiveInteger
-  endTime   <- property "endTIme"   x  $ date
+  endTime   <- property "endTime"   x  $ date
   pure $ Flow.Event
     { sIP       : sIP
     , dIP       : dIP

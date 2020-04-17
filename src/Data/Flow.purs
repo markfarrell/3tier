@@ -31,17 +31,20 @@ data Event = Event
 instance showEventFlow :: Show Event where
   show = uri
 
+instance eqEventFloww :: Eq Event where
+  eq (Event x) (Event y) = (x == y)
+
 uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
   { sIP       : show event'.sIP
   , dIP       : show event'.dIP
-  , sPort     : event'.sPort
-  , dPort     : event'.dPort
-  , protocol  : event'.protocol
-  , packets   : event'.packets
-  , bytes     : event'.bytes
-  , flags     : intercalate "" (show <$> event'.flags)
+  , sPort     : show event'.sPort
+  , dPort     : show event'.dPort
+  , protocol  : show event'.protocol
+  , packets   : show event'.packets
+  , bytes     : show event'.bytes
+  , flags     : intercalate "" (show <$> event'.flags) 
   , startTime : show event'.startTime
-  , duration  : event'.duration
-  , end       : event'.endTime
+  , duration  : show event'.duration
+  , endTime   : show event'.endTime
   }

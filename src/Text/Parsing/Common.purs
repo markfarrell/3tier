@@ -32,8 +32,8 @@ import Foreign as Foreign
 import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, fail, runParser)
-import Text.Parsing.Parser.String (string, anyChar)
-import Text.Parsing.Parser.Combinators (optional,choice)
+import Text.Parsing.Parser.String (string, anyChar, char)
+import Text.Parsing.Parser.Combinators (optional,choice,try)
 
 import FFI.Date (Date)
 import FFI.Date as Date
@@ -161,35 +161,22 @@ ipv4 = do
   pure $ IPv4 w x y z
   where dot = "."
 
-flag :: Parser String Flag
-flag = choice [urg, rst, fin, syn, psh, ack]
-  where
-    urg = do
-      _ <- string "U"
-      pure U
-    rst = do
-      _ <- string "R"
-      pure R
-    fin = do
-      _ <- string "F"
-      pure F
-    syn = do
-      _ <- string "S"
-      pure S
-    psh = do
-      _ <- string "P"
-      pure F
-    ack = do
-      _ <- string "A"
-      pure A
-
 flags :: Parser String (Array Flag)
 flags = do
-  elems <- List.many (pure <$> flag)
-  count <- pure $ List.length elems
-  case (count >= 0) && (count <= 6) of
-    true  -> pure $ foldMap identity elems
-    false -> fail "Invalid number of TCP flags."
+  u <- urg
+  r <- rst
+  f <- fin
+  s <- syn
+  p <- psh
+  a <- ack
+  pure [u,r,f,s,p,a]
+  where
+    urg = choice [try (char 'U') *> pure (U true), pure (U false)]
+    rst = choice [try (char 'R') *> pure (R true), pure (R false)]
+    fin = choice [try (char 'F') *> pure (F true), pure (F false)]
+    syn = choice [try (char 'S') *> pure (S true), pure (S false)]
+    psh = choice [try (char 'P') *> pure (P true), pure (P false)]
+    ack = choice [try (char 'A') *> pure (A true), pure (A false)]
 
 json :: Parser String Foreign
 json = do
@@ -200,25 +187,25 @@ json = do
     (Right z) -> pure z 
 
 readString :: String -> Foreign -> Parser String String
-readString = \x y -> do
-  input <- except (y ! x >>= Foreign.readString)
+readString name obj = do
+  input <- except (obj ! name >>= Foreign.readString)
   pure input
   where 
     except = \x -> do
       result <- pure $ runExcept x
       case result of
-        (Left _)    -> fail "Control.Monad.runExcept (Left)"
+        (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readString)"
         (Right raw) -> pure raw 
 
 readInt :: String -> Foreign -> Parser String String
-readInt = \x y -> do
-  input <- except (y ! x >>= Foreign.readInt)
+readInt name obj = do
+  input <- except (obj ! name >>= Foreign.readInt)
   pure $ show input
   where 
     except = \x -> do
       result <- pure $ runExcept x
       case result of
-        (Left _)    -> fail "Control.Monad.runExcept (Left)"
+        (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readInt)"
         (Right raw) -> pure raw 
 
 property :: forall a. String -> Foreign -> Parser String a -> Parser String a

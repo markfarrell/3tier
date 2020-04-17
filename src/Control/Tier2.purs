@@ -62,7 +62,7 @@ data Role = Production | Testing
 
 data URI = Primary Role | Secondary Role | Offsite Role
 
-data Target = Remote URI
+data Target = Single URI
 
 data Authorization = Authorization Unit
 
@@ -188,7 +188,7 @@ path (Secondary Testing)    = "http://localhost:3004"
 path (Offsite Testing)      = "http://localhost:3005"
  
 executeForward :: Settings -> Forward.URI -> Aff Resource
-executeForward (Settings _ _ (Remote uri)) query = do
+executeForward (Settings _ _ (Single uri)) query = do
   req <- HTTP.createRequest HTTP.Post $ (path uri) <> show (Forward.uri query)
   res <- HTTP.endRequest req
   case res of
@@ -198,7 +198,7 @@ executeForward (Settings _ _ (Remote uri)) query = do
         _   -> liftEffect $ Exception.throw "Invalid status code (forward reply)."
 
 executeReport :: Settings -> Report.URI -> Aff Resource
-executeReport (Settings _ _ (Remote uri)) query = do
+executeReport (Settings _ _ (Single uri)) query = do
   req <- HTTP.createRequest HTTP.Get $ (path uri) <> show (Report.uri query)
   res <- HTTP.endRequest req
   case res of

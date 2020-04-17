@@ -49,7 +49,7 @@ random = do
   packets   <- range 0 999999999
   bytes     <- range 0 999999999
   protocol  <- octet
-  flags     <- pure [U, R, F, S, P, A]
+  flags     <- pure $ [U true,R true ,F true,S true,P true,A true]
   startTime <- pure $ Date.epoch
   endTime   <- Date.random
   duration  <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))

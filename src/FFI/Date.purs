@@ -39,6 +39,9 @@ foreign import epoch :: Date
 instance showDate :: Show Date where
   show = toISOString
 
+instance eqDate :: Eq Date where
+  eq x y = eq (toISOString x) (toISOString y) 
+
 currentTime :: Effect Number
 currentTime = getTime <$> current
 
