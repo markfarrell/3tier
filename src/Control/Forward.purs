@@ -18,7 +18,7 @@ instance showURIForward :: Show URI where
 
 uri :: URI -> String
 uri (Audit event)   = "/forward/audit?"   <> show event
-uri (Alert event)   = "/forward/audit?"   <> show event
+uri (Alert event)   = "/forward/alert?"   <> show event
 uri (Flow event)    = "/forward/flow?"    <> show event
 uri (Linux event)   = "/forward/linux?"   <> show event
 uri (Report event)  = "/forward/report?"  <> show event

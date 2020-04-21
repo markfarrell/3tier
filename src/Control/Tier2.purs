@@ -176,8 +176,12 @@ consumer settings = forever $ do
   _       <- lift $ resourceRequest settings request'
   pure unit
 
-process :: Tier3.Settings -> HTTP.Server -> Process Aff Unit
-process settings server = pullFrom (consumer settings) (producer server)
+process :: HTTP.Server -> Process Aff Unit
+process server = pullFrom (consumer settings) (producer server)
+  where
+    settings          = Tier3.Settings authorization authentication (Tier3.Failover (Tier3.Primary Tier3.Production))
+    authorization     = Tier3.Authorization unit
+    authentication    = Tier3.Origin { sIP : IPv4 0 0 0 0, sPort : 3000 }
 
 path :: URI -> String
 path (Primary Production)   = "http://localhost:3000"
@@ -186,7 +190,7 @@ path (Offsite Production)   = "http://localhost:3002"
 path (Primary Testing)      = "http://localhost:3003"
 path (Secondary Testing)    = "http://localhost:3004"
 path (Offsite Testing)      = "http://localhost:3005"
- 
+
 executeForward :: Settings -> Forward.URI -> Aff Resource
 executeForward (Settings _ _ (Single uri)) query = do
   req <- HTTP.createRequest HTTP.Post $ (path uri) <> show query
