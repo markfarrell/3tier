@@ -3,8 +3,6 @@ module Control.Tier3
  , Request
  , Result
  , Target(..)
- , Authorization(..)
- , Authentication(..)
  , Settings(..)
  , Resource(..)
  , Role(..)
@@ -44,7 +42,7 @@ import FFI.SQLite3 as SQLite3
 
 import Control.DSL as DSL
 
-import Data.IPv4 (IPv4)
+import Data.IPv4 (IPv4(..))
 
 import Data.Audit as Audit
 import Data.Alert as Alert
@@ -54,6 +52,9 @@ import Data.Windows as Windows
 
 import Data.Schema (Schema)
 import Data.Schema as Schema
+
+import Control.Authorization (Authorization)
+import Control.Authentication (Authentication)
 
 import Control.Route (Route)
 import Control.Route as Route
@@ -70,13 +71,6 @@ data URI = Primary Role | Secondary Role | Offsite Role
 type Connection = SQLite3.Database
 
 data Target = Single URI | Replication URI | Failover URI
-
-data Authorization = Authorization Unit
-
-data Authentication = Origin
-  { sIP   :: IPv4
-  , sPort :: Int
-  }
 
 data Settings = Settings Authorization Authentication Target
 
@@ -469,8 +463,6 @@ audit = \settings route -> do
   eventType <- pure $ case result of
                  (Left _)  -> Audit.Failure
                  (Right _) -> Audit.Success
-  origin    <- pure $ case settings of
-                 (Settings _ (Origin origin) _) -> origin 
   event     <- pure $ Audit.Event $
                  { eventCategory : Audit.Tier3
                  , eventType     : eventType
@@ -478,8 +470,8 @@ audit = \settings route -> do
                  , startTime     : startTime
                  , duration      : duration
                  , endTime       : endTime 
-                 , sIP           : origin.sIP
-                 , sPort         : origin.sPort
+                 , sIP           : IPv4 (-1) (-1) (-1) (-1)
+                 , sPort         : (-1)
                  }
   _         <- lift $ execute (resource settings $ Route.Forward (Forward.Audit event))
   case result of

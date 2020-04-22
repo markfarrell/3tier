@@ -43,6 +43,9 @@ import Control.Tier3 as Tier3
 
 import Control.DSL as DSL
 
+import Control.Authorization as Authorization
+import Control.Authentication as Authentication
+
 import Control.Forward as Forward
 import Control.Report (URI(..)) as Report
 
@@ -179,9 +182,7 @@ consumer settings = forever $ do
 process :: HTTP.Server -> Process Aff Unit
 process server = pullFrom (consumer settings) (producer server)
   where
-    settings          = Tier3.Settings authorization authentication (Tier3.Failover (Tier3.Primary Tier3.Production))
-    authorization     = Tier3.Authorization unit
-    authentication    = Tier3.Origin { sIP : IPv4 0 0 0 0, sPort : 3000 }
+    settings          = Tier3.Settings Authorization.Default Authentication.Default (Tier3.Failover (Tier3.Primary Tier3.Production))
 
 path :: URI -> String
 path (Primary Production)   = "http://localhost:3000"

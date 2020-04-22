@@ -35,6 +35,9 @@ import Data.Audit (EventCategory(..), EventType(..), EventID(..), ReportType(..)
 import Data.Report (Event(..)) as Report
 import Data.Schema as Schema
 
+import Control.Authorization as Authorization
+import Control.Authentication as Authentication
+
 import Control.Forward as Forward
 import Control.Report (URI(..), uris) as Report
 import Control.Route as Route
@@ -195,14 +198,13 @@ testSingleForward = do
     , startTime     : startTime
     , duration      : duration
     , endTime       : endTime
-    , sIP           : origin.sIP
-    , sPort         : origin.sPort
+    , sIP           : IPv4 (-1) (-1) (-1) (-1)
+    , sPort         : (-1)
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
   where 
-    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
-    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    settings = Tier3.Settings Authorization.Default Authentication.Default dbms
     dbms     = Tier3.Single $ Tier3.Primary Tier3.Testing
     n        = 10
 
@@ -222,14 +224,13 @@ testReplicationForward = do
     , startTime     : startTime
     , duration      : duration
     , endTime       : endTime
-    , sIP           : origin.sIP
-    , sPort         : origin.sPort
+    , sIP           : IPv4 (-1) (-1) (-1) (-1)
+    , sPort         : (-1)
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
   where 
-    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
-    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    settings = Tier3.Settings Authorization.Default Authentication.Default dbms
     dbms     = Tier3.Replication $ Tier3.Primary Tier3.Testing
     n        = 100
 
@@ -249,14 +250,13 @@ testSingleReports = do
     , startTime     : startTime
     , duration      : duration
     , endTime       : endTime
-    , sIP           : origin.sIP
-    , sPort         : origin.sPort
+    , sIP           : IPv4 (-1) (-1) (-1) (-1)
+    , sPort         : (-1)
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
   where 
-    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
-    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    settings = Tier3.Settings Authorization.Default Authentication.Default dbms
     dbms     = Tier3.Single $ Tier3.Primary Tier3.Testing
 
 testReplicationReports :: Tier3.Request Unit
@@ -275,14 +275,13 @@ testReplicationReports = do
     , startTime     : startTime
     , duration      : duration
     , endTime       : endTime
-    , sIP           : origin.sIP
-    , sPort         : origin.sPort
+    , sIP           : IPv4 (-1) (-1) (-1) (-1)
+    , sPort         : (-1)
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
   where 
-    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
-    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    settings = Tier3.Settings Authorization.Default Authentication.Default dbms
     dbms     = Tier3.Replication $ Tier3.Primary Tier3.Testing
 
 testFailoverForwards :: Tier3.Request Unit
@@ -301,14 +300,13 @@ testFailoverForwards = do
     , startTime     : startTime
     , duration      : duration
     , endTime       : endTime
-    , sIP           : origin.sIP
-    , sPort         : origin.sPort
+    , sIP           : IPv4 (-1) (-1) (-1) (-1)
+    , sPort         : (-1)
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
   where 
-    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
-    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    settings = Tier3.Settings Authorization.Default Authentication.Default dbms
     dbms     = Tier3.Failover $ Tier3.Primary Tier3.Testing
     n        = 100
 
@@ -328,14 +326,13 @@ testFailoverReports = do
     , startTime     : startTime
     , duration      : duration
     , endTime       : endTime
-    , sIP           : origin.sIP
-    , sPort         : origin.sPort
+    , sIP           : IPv4 (-1) (-1) (-1) (-1)
+    , sPort         : (-1)
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
   where 
-    settings = Tier3.Settings (Tier3.Authorization unit) (Tier3.Origin origin) dbms
-    origin   = { sIP : IPv4 0 0 0 0, sPort : 0 }
+    settings = Tier3.Settings Authorization.Default Authentication.Default dbms
     dbms     = Tier3.Failover $ Tier3.Primary Tier3.Testing
 
 tests :: Tier3.Request Unit
