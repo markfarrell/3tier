@@ -27,11 +27,28 @@ event = do
   sPort'         <- property "sPort"         x $ port
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
+      eventURI'      <- pure $ Windows.Security
+                          { eventID            : eventID''
+                          , machineName        : unit
+                          , entryData          : unit
+                          , category           : unit
+                          , categoryNumber     : unit
+                          , entryType          : eventType'
+                          , message            : unit
+                          , source             : unit 
+                          , replacementStrings : unit 
+                          , instanceID         : unit 
+                          , timeGenerated      : startTime' 
+                          , timeWritten        : endTime'
+                          , site               : unit 
+                          , container          : unit 
+                          }
       case eventCategory' == eventCategory'' of
         true  -> pure $ Windows.Event
           { eventCategory : eventCategory''
           , eventID       : eventID''
           , eventType     : eventType'
+          , eventURI      : eventURI'
           , startTime     : startTime'
           , duration      : duration'
           , endTime       : endTime'

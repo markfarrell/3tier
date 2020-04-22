@@ -3,6 +3,17 @@ module Data.Windows
   , EventID
   , EventType(..)
   , Event(..)
+  , EventURI(..)
+  , MachineName
+  , CategoryName
+  , CategoryNumber
+  , EventMessage
+  , EventSource
+  , EntryData
+  , ReplacementStrings
+  , InstanceID
+  , Site
+  , Container
   , eventCategories
   , eventIDs
   , eventTypes
@@ -33,10 +44,39 @@ type EventID = Int
 
 data EventType = Success | Failure
 
+type MachineName        = Unit
+type CategoryName       = Unit
+type CategoryNumber     = Unit
+type EventMessage       = Unit
+type EventSource        = Unit
+type EntryData          = Unit
+type ReplacementStrings = Unit
+type InstanceID         = Unit
+type Site               = Unit
+type Container          = Unit
+
+data EventURI = Security
+  { eventID            :: EventID
+  , machineName        :: MachineName
+  , entryData          :: EntryData
+  , category           :: CategoryName
+  , categoryNumber     :: CategoryNumber
+  , entryType          :: EventType
+  , message            :: EventMessage
+  , source             :: EventSource
+  , replacementStrings :: ReplacementStrings
+  , instanceID         :: InstanceID
+  , timeGenerated      :: Date
+  , timeWritten        :: Date
+  , site               :: Site
+  , container          :: Container 
+  }
+
 data Event = Event
   { eventCategory :: EventCategory
   , eventID       :: EventID
   , eventType     :: EventType
+  , eventURI      :: EventURI
   , startTime     :: Date
   , duration      :: Int
   , endTime       :: Date
@@ -63,6 +103,25 @@ instance showEventCategoryWindows :: Show EventCategory where
 instance showEventTypeWindows :: Show EventType where
   show Success = "SUCCESS"
   show Failure = "FAILURE"
+
+instance showEventURIWindows :: Show EventURI where
+  show (Security x) = show uri'
+    where
+      uri' =
+        { eventID            : show x.eventID
+        , machineName        : "???"
+        , entryData          : "???"
+        , categoryNumber     : "???"
+        , entryType          : show x.entryType
+        , message            : "???"
+        , source             : "???" 
+        , replacementStrings : "???" 
+        , instanceID         : "???" 
+        , timeGenerated      : show x.timeGenerated 
+        , timeWritten        : show x.timeWritten
+        , site               : "???" 
+        , container          : "???" 
+        }
 
 instance eqEventCategoryWindows :: Eq EventCategory where
   eq AccountLogon      AccountLogon      = true 
@@ -598,10 +657,11 @@ uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
  { eventCategory : show event'.eventCategory
  , eventType     : show event'.eventType
- , eventID       : event'.eventID
+ , eventID       : show event'.eventID
+ , eventURI      : show event'.eventURI
  , startTime     : show event'.startTime
- , duration      : event'.duration
+ , duration      : show event'.duration
  , endTime       : show event'.endTime
  , sIP           : show event'.sIP
- , sPort         : event'.sPort
+ , sPort         : show event'.sPort
  }

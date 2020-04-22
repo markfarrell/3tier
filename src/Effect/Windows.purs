@@ -60,6 +60,22 @@ random = do
   eventType'     <- eventType
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
+  eventURI'      <- pure $ Windows.Security
+                      { eventID            : eventID'
+                      , machineName        : unit
+                      , entryData          : unit
+                      , category           : unit
+                      , categoryNumber     : unit
+                      , entryType          : eventType'
+                      , message            : unit
+                      , source             : unit 
+                      , replacementStrings : unit 
+                      , instanceID         : unit 
+                      , timeGenerated      : startTime 
+                      , timeWritten        : endTime
+                      , site               : unit 
+                      , container          : unit 
+                      }
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   sIP            <- pure $ IPv4 0 0 0 0
   sPort          <- pure $ 0
@@ -67,6 +83,7 @@ random = do
     { eventCategory : eventCategory'
     , eventID       : eventID'
     , eventType     : eventType'
+    , eventURI      : eventURI'
     , startTime     : startTime
     , duration      : duration
     , endTime       : endTime

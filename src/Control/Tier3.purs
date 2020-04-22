@@ -138,6 +138,7 @@ schemaURI Schema.Windows = schemaURI' "Windows" [] $
   , Tuple "EndTime" Text
   , Tuple "EventType" Text
   , Tuple "EventCategory" Text
+  , Tuple "EventURI" Text
   , Tuple "EventID" Text
   , Tuple "SIP" Text
   , Tuple "SPort" Text
@@ -223,6 +224,7 @@ insertWindowsURI (Windows.Event event) = do
       , Tuple "EventType" (show event.eventType)
       , Tuple "EventCategory" (show event.eventCategory)
       , Tuple "EventID" (show event.eventID)
+      , Tuple "EventURI" (show event.eventURI)
       , Tuple "SIP" (show event.sIP)
       , Tuple "SPort" (show event.sPort)
       ]
@@ -359,11 +361,11 @@ path (Secondary Testing)    = "testing.secondary.db"
 path (Offsite Testing)      = "testing.offsite.db"
 
 failoverSites :: URI -> Array Target
-failoverSites (Primary Production)   = [Single (Secondary Production), Single (Offsite Production)]
-failoverSites (Secondary Production) = [Single (Primary Production), Single (Offsite Production)]
+failoverSites (Primary Production)   = [Single (Offsite Production)]
+failoverSites (Secondary Production) = [Single (Offsite Production)]
 failoverSites (Offsite Production)   = []
-failoverSites (Primary Testing)      = [Single (Secondary Testing), Single (Offsite Testing)]
-failoverSites (Secondary Testing)    = [Single (Primary Testing), Single (Offsite Testing)]
+failoverSites (Primary Testing)      = [Single (Offsite Testing)]
+failoverSites (Secondary Testing)    = [Single (Offsite Testing)]
 failoverSites (Offsite Testing)      = []
 
 replicationSites :: URI -> Array Target
@@ -385,7 +387,7 @@ replication w = foldl f (Array.head w) (sequence $ Array.tail w)
 
 executeReport :: Target -> Report.URI -> Aff Resource
 executeReport (Failover uri) report = do
-  result  <- try $ executeReport (Single uri) report
+  result  <- try $ executeReport (Replication uri) report
   case result of
     (Left _) -> do
       result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> failoverSites uri))
