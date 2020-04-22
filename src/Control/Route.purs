@@ -14,9 +14,9 @@ import Text.Parsing.Parser (Parser, runParser)
 import Text.Parsing.Parser.String (string)
 import Text.Parsing.Parser.Combinators (choice)
 
-import Text.Parsing.Flow (event) as Flow
+import Text.Parsing.Forward (event) as Forward
 
-import Control.Forward as Forward
+import Control.Forward (URI) as Forward
 import Control.Report as Report
 
 import FFI.HTTP as HTTP
@@ -34,17 +34,8 @@ report report' = (string $ show report') *> pure (Report report')
 reports :: Parser String Route
 reports = choice (report <$> Report.uris)
 
-forwardFlow :: Parser String Route
-forwardFlow = do
-  _     <- string "/forward/flow?"
-  event <- Flow.event
-  pure (Forward (Forward.Flow event))
-
-forward :: Parser String Route
-forward = choice [forwardFlow] 
-
 route :: Parser String Route
-route = choice [forward, reports]
+route = choice [Forward <$> Forward.event, reports]
 
 execute :: HTTP.IncomingMessage -> Aff (Either Error Route)
 execute req = do 

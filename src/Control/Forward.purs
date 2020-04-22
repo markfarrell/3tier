@@ -16,6 +16,10 @@ data URI = Audit Audit.Event | Alert Alert.Event | Flow Flow.Event | Report Repo
 instance showURIForward :: Show URI where
   show = uri
 
+instance eqURIForward :: Eq URI where
+  eq (Flow x) (Flow y) = (x == y)
+  eq _        _        = false
+
 uri :: URI -> String
 uri (Audit event)   = "/forward/audit?"   <> show event
 uri (Alert event)   = "/forward/alert?"   <> show event

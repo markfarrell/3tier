@@ -15,13 +15,16 @@ import Effect.Exception (throw) as Exception
 
 import Text.Parsing.Parser (runParser)
 
-import Effect.Flow (random) as Flow
-import Text.Parsing.Flow (event) as Flow
+import Control.Forward (URI(..)) as Forward
 
-flowEvent :: Effect Unit
-flowEvent = do
-  input  <- Flow.random
-  result <- pure (flip runParser Flow.event $ show input)
+import Effect.Flow (random) as Flow
+
+import Text.Parsing.Forward (event) as Forward
+
+forwardFlow :: Effect Unit
+forwardFlow = do
+  input  <- Forward.Flow <$> Flow.random
+  result <- pure (flip runParser Forward.event $ show input)
   case result of
     (Left  _)      -> Exception.throw (show result) 
     (Right output) ->
@@ -29,10 +32,10 @@ flowEvent = do
         false -> Exception.throw (show [input,output]) 
         true  -> log $ intercalate " " ["[TEST]", show input, "==", show output]
 
-flowEvents :: Effect Unit
-flowEvents = void $ sequence (const flowEvent <$> Array.range 1 10)
+forwardFlows :: Effect Unit
+forwardFlows = void $ sequence (const forwardFlow <$> Array.range 1 10)
 
 main :: Effect Unit
 main = do
-  _ <- flowEvents
+  _ <- forwardFlows
   pure unit

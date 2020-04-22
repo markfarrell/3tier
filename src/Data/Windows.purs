@@ -137,6 +137,16 @@ instance eqEventCategoryWindows :: Eq EventCategory where
   eq Uncategorized     Uncategorized     = true 
   eq _                 _                 = false
 
+instance eqEventTypeWindows :: Eq EventType where
+  eq Success Success = true
+  eq Failure Failure = true
+  eq _       _       = false
+
+instance eqEventURIWindows :: Eq EventURI where
+  eq (Security x) (Security y) = (x.eventID == y.eventID) && (x.entryType == y.entryType) && (x.timeGenerated == y.timeGenerated) && (x.timeWritten == y.timeWritten) 
+
+instance eqEventWindows :: Eq Event where
+  eq (Event x) (Event y) = (x == y)
 
 eventIDs :: EventCategory -> Array Int
 eventIDs AccountLogon      = accountLogon
