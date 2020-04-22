@@ -31,7 +31,7 @@ data Event = Event
 instance showEventFlow :: Show Event where
   show = uri
 
-instance eqEventFloww :: Eq Event where
+instance eqEventFlow :: Eq Event where
   eq (Event x) (Event y) = (x == y)
 
 uri :: Event -> String

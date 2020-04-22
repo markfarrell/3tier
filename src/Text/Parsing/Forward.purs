@@ -11,9 +11,10 @@ import Text.Parsing.Parser.Combinators (choice)
 import Control.Forward as Forward
 
 import Text.Parsing.Flow as Flow
-
-forwardFlow :: Parser String Forward.URI
-forwardFlow = (string "/forward/flow?") *> (Forward.Flow <$> Flow.event)
+import Text.Parsing.Windows as Windows
 
 event :: Parser String Forward.URI
-event = choice [forwardFlow] 
+event = choice $
+  [ (string "/forward/flow?")    *> (Forward.Flow <$> Flow.event)
+  , (string "/forward/windows?") *> (Forward.Windows <$> Windows.event)
+  ]

@@ -17,8 +17,9 @@ instance showURIForward :: Show URI where
   show = uri
 
 instance eqURIForward :: Eq URI where
-  eq (Flow x) (Flow y) = (x == y)
-  eq _        _        = false
+  eq (Flow x) (Flow y)        = (x == y)
+  eq (Windows x) (Windows y)  = (x == y)
+  eq _        _               = false
 
 uri :: URI -> String
 uri (Audit event)   = "/forward/audit?"   <> show event

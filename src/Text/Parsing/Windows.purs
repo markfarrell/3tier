@@ -9,7 +9,6 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 
 import Text.Parsing.Parser (Parser, fail)
-import Text.Parsing.Parser.Combinators (choice)
 
 import Data.Windows as Windows
 import Text.Parsing.Common (date, json, ipv4, port, positiveInteger, property, showable)
@@ -18,7 +17,7 @@ event :: Parser String Windows.Event
 event = do
   x              <- json
   eventCategory' <- property "eventCategory" x $ showable Windows.eventCategories
-  eventID'       <- property "eventID"       x $ eventID       
+  eventID'       <- property "eventID"       x $ eventID eventCategory' 
   eventType'     <- property "eventType"     x $ showable Windows.eventTypes
   startTime'     <- property "startTime"     x $ date
   duration'      <- property "duration"      x $ positiveInteger
@@ -57,11 +56,9 @@ event = do
           }
         false -> fail "Invalid (eventCategory, eventID)."
 
-eventID :: Parser String (Tuple Windows.EventCategory Windows.EventID)
-eventID = choice (eventID' <$> Windows.eventCategories)
-  where
-    eventID' = \eventCategory' -> do
-      result <- positiveInteger
-      case Array.elemIndex result (Windows.eventIDs eventCategory') of
-        (Just _)  -> pure (Tuple eventCategory' result)
-        (Nothing) -> fail "Invalid (eventCategory, eventID)."
+eventID :: Windows.EventCategory -> Parser String (Tuple Windows.EventCategory Windows.EventID)
+eventID = \eventCategory' -> do
+  result <- positiveInteger
+  case Array.elemIndex result (Windows.eventIDs eventCategory') of
+    (Just _)  -> pure (Tuple eventCategory' result)
+    (Nothing) -> fail $ "Invalid eventCategory/eventID (" <> show eventCategory' <> "," <> show result <> ")"

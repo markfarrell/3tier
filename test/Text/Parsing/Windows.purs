@@ -1,4 +1,4 @@
-module Test.Text.Parsing
+module Test.Text.Parsing.Windows
   ( main
   ) where
 
@@ -17,25 +17,26 @@ import Text.Parsing.Parser (runParser)
 
 import Control.Forward (URI(..)) as Forward
 
-import Effect.Flow (random) as Flow
+import Effect.Windows (random) as Windows
 
 import Text.Parsing.Forward (event) as Forward
 
-forwardFlow :: Effect Unit
-forwardFlow = do
-  input  <- Forward.Flow <$> Flow.random
+forward :: Effect Unit
+forward = do
+  input  <- Forward.Windows <$> Windows.random
+  _      <- log (show input)
   result <- pure (flip runParser Forward.event $ show input)
   case result of
     (Left  _)      -> Exception.throw (show result) 
     (Right output) ->
       case input == output of
-        false -> Exception.throw (show [input,output]) 
-        true  -> log $ intercalate " " ["[TEST]", show input, "==", show output]
+        false -> Exception.throw (intercalate " " ["[FAILURE]", "CHECK/EXPECT", show input, show output]) 
+        true  -> log $ intercalate " " ["[TEST]", show output]
 
-forwardFlows :: Effect Unit
-forwardFlows = void $ sequence (const forwardFlow <$> Array.range 1 10)
+forwards :: Effect Unit
+forwards = void $ sequence (const forward <$> Array.range 1 10)
 
 main :: Effect Unit
 main = do
-  _ <- forwardFlows
+  _ <- forwards
   pure unit

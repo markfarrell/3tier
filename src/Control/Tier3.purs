@@ -36,6 +36,8 @@ import Effect.Exception as Exception
 import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
 
+import Text.Parsing.Parser (runParser)
+
 import FFI.Date as Date
 import FFI.Math as Math
 import FFI.SQLite3 as SQLite3
@@ -46,7 +48,7 @@ import Data.IPv4 (IPv4(..))
 
 import Data.Audit as Audit
 import Data.Alert as Alert
-import Data.Flow as Flow
+import Data.Flow (Event(..)) as Flow
 import Data.Linux as Linux
 import Data.Windows as Windows
 
@@ -63,6 +65,8 @@ import Control.Forward as Forward
 import Control.Report as Report
 
 import Data.Report as Data.Report
+
+import Text.Parsing.Flow (event) as Flow
 
 data Role = Production | Testing
 
@@ -195,8 +199,13 @@ insertAlertURI (Alert.Event event) = do
       , Tuple "EventID" (show event.eventID)
       ]
 
+assert :: forall a b. String -> Either a b -> Aff Unit
+assert x (Left _)  = liftEffect $ Exception.throw x
+assert _ (Right _)   = pure unit 
+
 insertFlowURI :: Flow.Event -> Aff String
 insertFlowURI (Flow.Event event) = do
+  _ <- assert "Parsing/validation failure (Flow)." $ runParser (show $ Flow.Event event) Flow.event
   pure $ insertURI' "Flow" params
   where
     params = 

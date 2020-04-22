@@ -149,8 +149,7 @@ port = do
 
 ipv4 :: Parser String IPv4
 ipv4 = do
-  _ <- optional $ string "::"
-  _ <- optional $ string "ffff:"
+  _ <- optional $ choice [string "::ffff:", string "::"]
   w <- octet
   _ <- string dot
   x <- octet
@@ -210,14 +209,14 @@ readInt name obj = do
 
 property :: forall a. String -> Foreign -> Parser String a -> Parser String a
 property = \x y z -> do
-  input   <- choice [readString x y, readInt x y]
-  result' <- validation input z
+  input   <- choice [readString x y]
+  result' <- validation x input z
   pure result'
   where 
-    validation = \x y -> do
-      result <- pure $ runParser x y
+    validation = \x y z -> do
+      result <- pure $ runParser y z
       case result of
-        (Left _)    -> fail "Invalid foreign property." 
+        (Left e)    -> fail $ "Invalid foreign property (" <> x <> ")."
         (Right val) -> pure val
 
 showable :: forall a. Show a => Array a -> Parser String a

@@ -143,7 +143,7 @@ instance eqEventTypeWindows :: Eq EventType where
   eq _       _       = false
 
 instance eqEventURIWindows :: Eq EventURI where
-  eq (Security x) (Security y) = (x.eventID == y.eventID) && (x.entryType == y.entryType) && (x.timeGenerated == y.timeGenerated) && (x.timeWritten == y.timeWritten) 
+  eq (Security x) (Security y) = (x == y) 
 
 instance eqEventWindows :: Eq Event where
   eq (Event x) (Event y) = (x == y)
