@@ -9,6 +9,7 @@ module Data.Windows
   , CategoryNumber
   , EventMessage
   , EventSource
+  , EntryNumber
   , EntryData
   , ReplacementStrings
   , InstanceID
@@ -16,10 +17,13 @@ module Data.Windows
   , Container
   , eventCategories
   , eventIDs
+  , eventIDs'
   , eventTypes
   ) where
 
 import Prelude
+
+import Data.Foldable (foldl)
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -27,7 +31,6 @@ import FFI.Date (Date)
 import FFI.JSON as JSON
 
 import Data.IPv4 (IPv4)
-import Data.Risk (Risk)
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -45,20 +48,22 @@ type EventID = Int
 
 data EventType = Success | Failure
 
-type MachineName        = Risk
-type CategoryName       = Risk
-type CategoryNumber     = Risk
-type EventMessage       = Risk
-type EventSource        = Risk
-type EntryData          = Risk
-type ReplacementStrings = Risk
-type InstanceID         = Risk
-type Site               = Risk
-type Container          = Risk
+type MachineName        = String
+type CategoryName       = String
+type CategoryNumber     = Int
+type EventMessage       = String
+type EventSource        = String
+type EntryNumber        = Int
+type EntryData          = String
+type ReplacementStrings = String
+type InstanceID         = String
+type Site               = String
+type Container          = String
 
 data EventURI = Security
   { eventID            :: EventID
   , machineName        :: MachineName
+  , entryNumber        :: EntryNumber 
   , entryData          :: EntryData
   , category           :: CategoryName
   , categoryNumber     :: CategoryNumber
@@ -106,7 +111,23 @@ instance showEventTypeWindows :: Show EventType where
   show Failure = "FAILURE"
 
 instance showEventURIWindows :: Show EventURI where
-  show (Security x) = show x
+  show (Security x) = JSON.stringify $ unsafeCoerce $
+    { eventID            : show x.eventID
+    , machineName        : x.machineName
+    , entryNumber        : show x.entryNumber
+    , entryData          : x.entryData
+    , category           : x.category
+    , categoryNumber     : show x.categoryNumber
+    , entryType          : show x.entryType
+    , message            : x.message
+    , source             : x.source 
+    , replacementStrings : x.replacementStrings
+    , instanceID         : x.instanceID
+    , timeGenerated      : show x.timeGenerated
+    , timeWritten        : show x.timeWritten
+    , site               : x.site
+    , container          : x.container
+    }
 
 instance eqEventCategoryWindows :: Eq EventCategory where
   eq AccountLogon      AccountLogon      = true 
@@ -132,6 +153,9 @@ instance eqEventURIWindows :: Eq EventURI where
 
 instance eqEventWindows :: Eq Event where
   eq (Event x) (Event y) = (x == y)
+
+eventIDs' :: Array Int
+eventIDs' = foldl (<>) [] (eventIDs <$> eventCategories)
 
 eventIDs :: EventCategory -> Array Int
 eventIDs AccountLogon      = accountLogon

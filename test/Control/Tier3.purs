@@ -29,8 +29,6 @@ import FFI.Date as Date
 import FFI.FS as FS
 import FFI.Math as Math
 
-import Data.IPv4 (IPv4(..))
-
 import Data.Audit (EventCategory(..), EventType(..), EventID(..), ReportType(..)) as Audit
 import Data.Report (Event(..)) as Report
 import Data.Schema as Schema

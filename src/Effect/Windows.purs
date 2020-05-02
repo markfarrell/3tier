@@ -16,7 +16,6 @@ import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
 
 import Data.IPv4 (IPv4(..))
-import Data.Risk as Risk
 import Data.Windows as Windows 
 
 range :: Int -> Int -> Effect Int
@@ -63,19 +62,20 @@ random = do
   endTime        <- Date.random
   eventURI'      <- pure $ Windows.Security
                       { eventID            : eventID'
-                      , machineName        : Risk.Injection
-                      , entryData          : Risk.Injection
-                      , category           : Risk.Injection
-                      , categoryNumber     : Risk.Injection
+                      , machineName        : "???"
+                      , entryNumber        : 0
+                      , entryData          : "???"
+                      , category           : "???"
+                      , categoryNumber     : 0
                       , entryType          : eventType'
-                      , message            : Risk.Injection
-                      , source             : Risk.Injection 
-                      , replacementStrings : Risk.Injection 
-                      , instanceID         : Risk.Injection 
+                      , message            : "???"
+                      , source             : "???" 
+                      , replacementStrings : "???" 
+                      , instanceID         : "???" 
                       , timeGenerated      : startTime 
                       , timeWritten        : endTime
-                      , site               : Risk.Injection 
-                      , container          : Risk.Injection 
+                      , site               : "???" 
+                      , container          : "???" 
                       }
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   sIP            <- pure $ IPv4 0 0 0 0

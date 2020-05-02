@@ -219,9 +219,9 @@ readPacket packet = do
 
 template :: Parser String Template
 template = do
-  templateID <- Parser.positiveInteger
+  templateID <- Parser.nonnegativeInteger
   _          <- separator
-  fieldCount <- Parser.positiveInteger
+  fieldCount <- Parser.nonnegativeInteger
   _          <- separator
   fields''   <- fields fieldCount
   pure $ Template $
@@ -236,12 +236,12 @@ template = do
       false -> do
         fieldType'  <- fieldType
         _           <- separator
-        fieldLength <- Parser.positiveInteger
+        fieldLength <- Parser.nonnegativeInteger
         _           <- separator' m n
         result <- fields' (acc <> [Tuple fieldType' fieldLength]) (m + 1) n
         pure result
     fieldType = do
-      result <- Parser.positiveInteger
+      result <- Parser.nonnegativeInteger
       case (result >= 0) && (result <= 127) of
         true  -> pure result
         false -> fail "Invalid field type." 

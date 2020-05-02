@@ -1,8 +1,8 @@
 module Text.Parsing.Common
   ( digit
   , digits
-  , positiveInteger
-  , positiveFloat
+  , nonnegativeInteger
+  , nonnegativeFloat
   , anyString
   , date
   , lowercase
@@ -13,6 +13,7 @@ module Text.Parsing.Common
   , flags
   , json
   , property
+  , propertyNot
   , showable
   , substring
   ) where
@@ -60,15 +61,15 @@ digits = do
   result <- List.many digit
   pure $ foldMap identity result
 
-positiveInteger :: Parser String Int
-positiveInteger = do
+nonnegativeInteger :: Parser String Int
+nonnegativeInteger = do
   result <- parseInt <$> digits
   case result >= 0 of
     true  -> pure result
-    false -> fail "Invalid positive integer."
+    false -> fail "Invalid nonnegative integer."
 
-positiveFloat :: Parser String Number
-positiveFloat = do
+nonnegativeFloat :: Parser String Number
+nonnegativeFloat = do
   x      <- digits
   _      <- string "."
   y      <- digits
@@ -76,7 +77,7 @@ positiveFloat = do
   result <- pure $ parseFloat z
   case result >= 0.0 of
     true  -> pure result
-    false -> fail "Invalid positive float."
+    false -> fail "Invalid nonnegative float."
 
 anyString :: Parser String String
 anyString = foldMap singleton <$> List.many anyChar
@@ -138,7 +139,7 @@ uppercase = choice (string <$> letters)
 
 octet :: Parser String Int
 octet = do
-  w <- positiveInteger
+  w <- nonnegativeInteger
   case Array.elemIndex w octets of
     (Just _)  -> pure w
     (Nothing) -> fail "Invalid octet."
@@ -146,7 +147,7 @@ octet = do
 
 port :: Parser String Int
 port = do
-  w <- positiveInteger
+  w <- nonnegativeInteger
   case Array.elemIndex w ports of
     (Just _)  -> pure w
     (Nothing) -> fail "Invalid port."
@@ -223,6 +224,18 @@ property = \x y z -> do
       case result of
         (Left e)    -> fail $ "Invalid foreign property (" <> x <> ")."
         (Right val) -> pure val
+
+propertyNot :: forall a. String -> Foreign -> Parser String a -> Parser String String
+propertyNot = \x y z -> do
+  input   <- choice [readString x y]
+  result' <- validation x input z
+  pure result'
+  where 
+    validation = \x y z -> do
+      result <- pure $ runParser y z
+      case result of
+        (Right _)   -> fail $ "Invalid foreign property (" <> x <> ")."
+        (Left _)    -> pure y
 
 showable :: forall a. Show a => Array a -> Parser String a
 showable = \x -> choice (show' <$> x)

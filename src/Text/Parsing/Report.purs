@@ -7,7 +7,7 @@ import Prelude
 import Text.Parsing.Parser (Parser)
 
 import Data.Report as Report
-import Text.Parsing.Common (json, property, positiveInteger, showable)
+import Text.Parsing.Common (json, property, nonnegativeInteger, showable)
 
 event :: Parser String Report.Event
 event = do
@@ -15,12 +15,12 @@ event = do
   eventCategory' <- property "eventCategory" x $ showable Report.eventCategories
   eventType'     <- property "eventType"     x $ showable Report.eventTypes
   eventID'       <- property "eventID"       x $ showable Report.eventIDs
-  min            <- property "min"           x $ positiveInteger
-  max            <- property "max"           x $ positiveInteger
-  sum            <- property "sum"           x $ positiveInteger
-  total          <- property "total"         x $ positiveInteger
-  average        <- property "average"       x $ positiveInteger
-  variance       <- property "variance"      x $ positiveInteger
+  min            <- property "min"           x $ nonnegativeInteger
+  max            <- property "max"           x $ nonnegativeInteger
+  sum            <- property "sum"           x $ nonnegativeInteger
+  total          <- property "total"         x $ nonnegativeInteger
+  average        <- property "average"       x $ nonnegativeInteger
+  variance       <- property "variance"      x $ nonnegativeInteger
   pure $ Report.Event $
     { eventCategory : eventCategory'
     , eventType     : eventType'

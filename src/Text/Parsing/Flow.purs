@@ -6,7 +6,7 @@ import Prelude
 
 import Text.Parsing.Parser (Parser)
 
-import Text.Parsing.Common (date, flags, json, port, ipv4, octet, positiveInteger, property)
+import Text.Parsing.Common (date, flags, json, port, ipv4, octet, nonnegativeInteger, property)
 
 import Data.Flow as Flow
 
@@ -18,11 +18,11 @@ event = do
   sPort     <- property "sPort"     x  $ port
   dPort     <- property "dPort"     x  $ port
   protocol  <- property "protocol"  x  $ octet
-  packets   <- property "packets"   x  $ positiveInteger
-  bytes     <- property "bytes"     x  $ positiveInteger
+  packets   <- property "packets"   x  $ nonnegativeInteger
+  bytes     <- property "bytes"     x  $ nonnegativeInteger
   flags'    <- property "flags"     x  $ flags
   startTime <- property "startTime" x  $ date
-  duration' <- property "duration"  x  $ positiveInteger
+  duration' <- property "duration"  x  $ nonnegativeInteger
   endTime   <- property "endTime"   x  $ date
   pure $ Flow.Event
     { sIP       : sIP
