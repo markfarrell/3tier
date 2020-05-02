@@ -48,6 +48,7 @@ import Data.IPv4 (IPv4(..))
 
 import Data.Audit as Audit
 import Data.Alert as Alert
+import Data.Event as Event
 import Data.Flow (Event(..)) as Flow
 import Data.Linux as Linux
 import Data.Windows as Windows
@@ -137,15 +138,15 @@ schemaURI Schema.Flow = schemaURI' "Flow" [] $
   , Tuple "EndTime" Text
   ]
 schemaURI Schema.Windows = schemaURI' "Windows" [] $
-  [ Tuple "StartTime" Text
+  [ Tuple "EventCategory" Text
+  , Tuple "EventType" Text
+  , Tuple "EventID" Text
+  , Tuple "EventURI" Text
+  , Tuple "StartTime" Text
   , Tuple "Duration" Integer
   , Tuple "EndTime" Text
-  , Tuple "EventType" Text
-  , Tuple "EventCategory" Text
-  , Tuple "EventURI" Text
-  , Tuple "EventID" Text
-  , Tuple "SIP" Text
-  , Tuple "SPort" Text
+  , Tuple "IP" Text
+  , Tuple "Port" Integer
   ]
 schemaURI Schema.Linux = schemaURI' "Linux" [] $
   [ Tuple "StartTime" Text
@@ -227,15 +228,15 @@ insertWindowsURI (Windows.Event event) = do
   pure $ insertURI' "Windows" params
   where 
     params  =
-      [ Tuple "StartTime" (show event.startTime)
-      , Tuple "Duration" (show event.duration)
-      , Tuple "EndTime" (show event.endTime)
+      [ Tuple "EventCategory" (show event.eventCategory)
       , Tuple "EventType" (show event.eventType)
-      , Tuple "EventCategory" (show event.eventCategory)
       , Tuple "EventID" (show event.eventID)
       , Tuple "EventURI" (show event.eventURI)
-      , Tuple "SIP" (show event.sIP)
-      , Tuple "SPort" (show event.sPort)
+      , Tuple "StartTime" $ case event.eventTime of (Event.Time x) -> show x.startTime
+      , Tuple "Duration"  $ case event.eventTime of (Event.Time x) -> show x.duration
+      , Tuple "EndTime"   $ case event.eventTime of (Event.Time x) -> show x.endTime
+      , Tuple "IP"        $ case event.eventSource of (Event.Host x) -> show x.ip
+      , Tuple "Port"      $ case event.eventSource of (Event.Host x) -> show x.port
       ]
 
 insertLinuxURI :: Linux.Event -> Aff String

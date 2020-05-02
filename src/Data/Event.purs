@@ -39,3 +39,15 @@ instance showTimeData :: Show Time where
     , duration  : show x.duration
     , endTime   : show x.endTime
     }
+
+instance showEntityData :: Show Entity where
+  show (Host x) = JSON.stringify $ unsafeCoerce $
+    { ip   : show x.ip
+    , port : show x.port
+    }
+
+instance eqEntityData :: Eq Entity where
+  eq (Host x) (Host y) = (x == y)
+
+instance eqTimeData :: Eq Time where
+  eq (Time x) (Time y) = (x == y)

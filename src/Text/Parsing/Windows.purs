@@ -12,7 +12,9 @@ import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser, fail)
 
 import Data.Windows as Windows
-import Text.Parsing.Common (date, json, ipv4, port, nonnegativeInteger, property, propertyNot, showable)
+
+import Text.Parsing.Common (date, json, nonnegativeInteger, property, propertyNot, showable)
+import Text.Parsing.Event (eventSource, eventTime) as Event
 import Text.Parsing.Risk (injection) as Risk
 
 eventURI :: Parser String Windows.EventURI
@@ -58,11 +60,8 @@ event = do
   eventID'       <- property "eventID"       x $ eventID eventCategory'
   eventType'     <- property "eventType"     x $ showable Windows.eventTypes
   eventURI'      <- property "eventURI"      x $ eventURI
-  startTime'     <- property "startTime"     x $ date
-  duration'      <- property "duration"      x $ nonnegativeInteger
-  endTime'       <- property "endTime"       x $ date
-  sIP'           <- property "sIP"           x $ ipv4
-  sPort'         <- property "sPort"         x $ port
+  eventTime'     <- property "eventTime"     x $ Event.eventTime
+  eventSource'   <- property "eventSource"   x $ Event.eventSource
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
       case eventCategory' == eventCategory'' of
@@ -71,11 +70,8 @@ event = do
           , eventID       : eventID''
           , eventType     : eventType'
           , eventURI      : eventURI'
-          , startTime     : startTime'
-          , duration      : duration'
-          , endTime       : endTime'
-          , sIP           : sIP'
-          , sPort         : sPort'
+          , eventTime     : eventTime'
+          , eventSource   : eventSource'
           }
         false -> fail "Invalid (eventCategory, eventID)."
 

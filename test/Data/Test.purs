@@ -10,10 +10,6 @@ import Prelude
 
 import Data.Foldable (intercalate)
 
-import FFI.Date (Date)
-
-import Data.IPv4 (IPv4)
-
 import Data.Event (Time) as Event
 
 data EventCategory = Tier1 | Tier2 | Tier3

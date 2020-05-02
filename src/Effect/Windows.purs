@@ -16,6 +16,7 @@ import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
 
 import Data.IPv4 (IPv4(..))
+import Data.Event as Event
 import Data.Windows as Windows 
 
 range :: Int -> Int -> Effect Int
@@ -78,16 +79,13 @@ random = do
                       , container          : "???" 
                       }
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
-  sIP            <- pure $ IPv4 0 0 0 0
-  sPort          <- pure $ 0
+  eventTime'     <- pure $ Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
+  eventSource'   <- pure $ Event.Host $ { ip : IPv4 0 0 0 0, port : 0 }
   pure $ Windows.Event $
     { eventCategory : eventCategory'
     , eventID       : eventID'
     , eventType     : eventType'
     , eventURI      : eventURI'
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : sIP
-    , sPort         : sPort
+    , eventTime     : eventTime'
+    , eventSource   : eventSource'
     }

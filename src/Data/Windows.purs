@@ -30,7 +30,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import FFI.Date (Date)
 import FFI.JSON as JSON
 
-import Data.IPv4 (IPv4)
+import Data.Event as Event
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -83,11 +83,8 @@ data Event = Event
   , eventID       :: EventID
   , eventType     :: EventType
   , eventURI      :: EventURI
-  , startTime     :: Date
-  , duration      :: Int
-  , endTime       :: Date
-  , sIP           :: IPv4
-  , sPort         :: Int
+  , eventTime     :: Event.Time
+  , eventSource   :: Event.Entity
   }
 
 instance showEventWindows :: Show Event where
@@ -678,9 +675,6 @@ uri (Event event') = JSON.stringify $ unsafeCoerce $
  , eventType     : show event'.eventType
  , eventID       : show event'.eventID
  , eventURI      : show event'.eventURI
- , startTime     : show event'.startTime
- , duration      : show event'.duration
- , endTime       : show event'.endTime
- , sIP           : show event'.sIP
- , sPort         : show event'.sPort
+ , eventTime     : show event'.eventTime
+ , eventSource   : show event'.eventSource
  }
