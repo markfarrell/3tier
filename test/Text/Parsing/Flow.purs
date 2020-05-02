@@ -1,16 +1,16 @@
 module Test.Text.Parsing.Flow
-  ( main
+  ( suite
   ) where
 
 import Prelude
 
 import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Foldable (intercalate)
 import Data.Traversable (sequence)
 
 import Effect (Effect)
-import Effect.Console (log)
+import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
 import Effect.Exception (throw) as Exception
 
 import Text.Parsing.Parser (runParser)
@@ -30,12 +30,10 @@ forward = do
     (Right output) ->
       case input == output of
         false -> Exception.throw (show [input,output]) 
-        true  -> log $ intercalate " " ["[TEST]", show output]
+        true  -> pure unit
 
 forwards :: Effect Unit
 forwards = void $ sequence (const forward <$> Array.range 1 10)
 
-main :: Effect Unit
-main = do
-  _ <- forwards
-  pure unit
+suite :: Aff Unit
+suite = liftEffect $ forwards

@@ -1,53 +1,41 @@
 module Data.Event
-  ( Event
-  , Duration
-  , Port
+  ( Event(..)
+  , Entity(..)
+  , Time(..)
   ) where
 
+import Prelude
+
+import Unsafe.Coerce (unsafeCoerce)
+
 import FFI.Date (Date)
+import FFI.JSON (stringify) as JSON
 
 import Data.IPv4 (IPv4)
 
-type Duration = Int
+data Time = Time
+  { startTime :: Date
+  , duration  :: Int
+  , endTime   :: Date 
+  }
 
-type Port = Int
+data Entity = Host
+  { ip   :: IPv4
+  , port :: Int
+  }
 
-{--
-  | # [PROJECT-01/RELEASE-01/ISSUE-01](https://github.com/markfarrell/3tier/issues/1)
-  | ## Data.Alert.Event
-  | 
-  |   data Event = Data.Event Alert.EventCategory Alert.EventType Alert.EventID Alert.EventURI
-  |
-  | ## Data.Audit.Event
-  |
-  |   data Event = Data.Event Audit.EventCategory Audit.EventType Audit.EventID Audit.EventURI
-  |
-  | ## Data.Traffic.Event
-  |
-  |   data Event = Data.Event Traffic.EventCategory Traffic.EventType Traffic.EventID Traffic.EventURI
-  |
-  | ## Data.Report.Event
-  |
-  |   data Event = Data.Event Report.EventCategory Report.EventType Report.EventID Report.EventURI
-  |
-  | ## Data.Linux.Event
-  |
-  |   data Event = Data.Event Linux.EventCategory Linux.EventType Linux.EventID Linux.EventURI
-  |
-  | ## Data.Windows.Event
-  |
-  |   data Event = Data.Event Windows.EventCategory Windows.EventType Windows.EventID Windows.EventURI
-  |
-  | ...
---}
 data Event a b c d = Event
   { eventCategory :: a
   , eventType     :: b
   , eventID       :: c
   , eventURI      :: d
-  , startTime     :: Date
-  , duration      :: Duration
-  , endTime       :: Date
-  , ip            :: IPv4
-  , port          :: Port
+  , eventTime     :: Time
+  , eventSource   :: Entity
   } 
+
+instance showTimeData :: Show Time where
+  show (Time x) = JSON.stringify $ unsafeCoerce $
+    { startTime : show x.startTime
+    , duration  : show x.duration
+    , endTime   : show x.endTime
+    }

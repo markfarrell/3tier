@@ -27,6 +27,7 @@ import FFI.Date (Date)
 import FFI.JSON as JSON
 
 import Data.IPv4 (IPv4)
+import Data.Risk (Risk)
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -44,16 +45,16 @@ type EventID = Int
 
 data EventType = Success | Failure
 
-type MachineName        = Unit
-type CategoryName       = Unit
-type CategoryNumber     = Unit
-type EventMessage       = Unit
-type EventSource        = Unit
-type EntryData          = Unit
-type ReplacementStrings = Unit
-type InstanceID         = Unit
-type Site               = Unit
-type Container          = Unit
+type MachineName        = Risk
+type CategoryName       = Risk
+type CategoryNumber     = Risk
+type EventMessage       = Risk
+type EventSource        = Risk
+type EntryData          = Risk
+type ReplacementStrings = Risk
+type InstanceID         = Risk
+type Site               = Risk
+type Container          = Risk
 
 data EventURI = Security
   { eventID            :: EventID
@@ -105,23 +106,7 @@ instance showEventTypeWindows :: Show EventType where
   show Failure = "FAILURE"
 
 instance showEventURIWindows :: Show EventURI where
-  show (Security x) = show uri'
-    where
-      uri' =
-        { eventID            : show x.eventID
-        , machineName        : "???"
-        , entryData          : "???"
-        , categoryNumber     : "???"
-        , entryType          : show x.entryType
-        , message            : "???"
-        , source             : "???" 
-        , replacementStrings : "???" 
-        , instanceID         : "???" 
-        , timeGenerated      : show x.timeGenerated 
-        , timeWritten        : show x.timeWritten
-        , site               : "???" 
-        , container          : "???" 
-        }
+  show (Security x) = show x
 
 instance eqEventCategoryWindows :: Eq EventCategory where
   eq AccountLogon      AccountLogon      = true 

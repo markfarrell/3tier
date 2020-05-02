@@ -13,6 +13,10 @@ import Text.Parsing.Parser (Parser, fail)
 import Data.Windows as Windows
 import Text.Parsing.Common (date, json, ipv4, port, positiveInteger, property, showable)
 
+import Data.Risk as Risk
+
+-- uri :: Parser String Windows.EventURI
+
 event :: Parser String Windows.Event
 event = do
   x              <- json
@@ -28,19 +32,19 @@ event = do
     (Tuple eventCategory'' eventID'') -> do
       eventURI'      <- pure $ Windows.Security
                           { eventID            : eventID''
-                          , machineName        : unit
-                          , entryData          : unit
-                          , category           : unit
-                          , categoryNumber     : unit
+                          , machineName        : Risk.Injection
+                          , entryData          : Risk.Injection
+                          , category           : Risk.Injection
+                          , categoryNumber     : Risk.Injection
                           , entryType          : eventType'
-                          , message            : unit
-                          , source             : unit 
-                          , replacementStrings : unit 
-                          , instanceID         : unit 
+                          , message            : Risk.Injection
+                          , source             : Risk.Injection 
+                          , replacementStrings : Risk.Injection 
+                          , instanceID         : Risk.Injection 
                           , timeGenerated      : startTime' 
                           , timeWritten        : endTime'
-                          , site               : unit 
-                          , container          : unit 
+                          , site               : Risk.Injection 
+                          , container          : Risk.Injection 
                           }
       case eventCategory' == eventCategory'' of
         true  -> pure $ Windows.Event

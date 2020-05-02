@@ -35,6 +35,8 @@ import Data.Audit (EventCategory(..), EventType(..), EventID(..), ReportType(..)
 import Data.Report (Event(..)) as Report
 import Data.Schema as Schema
 
+import Data.Event (Time(..)) as Event
+
 import Control.Authorization as Authorization
 import Control.Authentication as Authentication
 
@@ -195,11 +197,7 @@ testSingleForward = do
     , eventType     : Test.Single
     , eventID       : Test.Forward
     , eventURI      : unit
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : IPv4 (-1) (-1) (-1) (-1)
-    , sPort         : (-1)
+    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -221,11 +219,7 @@ testReplicationForward = do
     , eventType     : Test.Replication
     , eventID       : Test.Forward
     , eventURI      : unit
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : IPv4 (-1) (-1) (-1) (-1)
-    , sPort         : (-1)
+    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -247,11 +241,7 @@ testSingleReports = do
     , eventType     : Test.Single
     , eventID       : Test.Report
     , eventURI      : unit
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : IPv4 (-1) (-1) (-1) (-1)
-    , sPort         : (-1)
+    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -272,11 +262,7 @@ testReplicationReports = do
     , eventType     : Test.Replication
     , eventID       : Test.Report
     , eventURI      : unit
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : IPv4 (-1) (-1) (-1) (-1)
-    , sPort         : (-1)
+    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -297,11 +283,7 @@ testFailoverForwards = do
     , eventType     : Test.Failover
     , eventID       : Test.Forward
     , eventURI      : unit
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : IPv4 (-1) (-1) (-1) (-1)
-    , sPort         : (-1)
+    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -323,11 +305,7 @@ testFailoverReports = do
     , eventType     : Test.Failover
     , eventID       : Test.Report
     , eventURI      : unit
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : IPv4 (-1) (-1) (-1) (-1)
-    , sPort         : (-1)
+    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit

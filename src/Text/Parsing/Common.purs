@@ -14,6 +14,7 @@ module Text.Parsing.Common
   , json
   , property
   , showable
+  , substring
   ) where
 
 import Prelude
@@ -33,7 +34,7 @@ import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.String (string, anyChar, char)
-import Text.Parsing.Parser.Combinators (optional,choice,try)
+import Text.Parsing.Parser.Combinators (optional,choice,try,lookAhead)
 
 import FFI.Date (Date)
 import FFI.Date as Date
@@ -42,9 +43,13 @@ import FFI.JSON as JSON
 import Data.IPv4(IPv4(..))
 import Data.TCP.Flag (Flag(..))
 
-foreign import parseInt :: String -> Int
+foreign import parseInt      :: String -> Int
 
-foreign import parseFloat :: String -> Number
+foreign import parseFloat    :: String -> Number
+
+foreign import indexOf       :: String -> String -> Int
+
+foreign import substringImpl :: String -> Int -> Int -> String
 
 {-- Parses a valid digit, 0-9, or fails otherwise. --}
 digit :: Parser String String
@@ -225,3 +230,11 @@ showable = \x -> choice (show' <$> x)
     show' = \x -> do
       _ <- string (show x)
       pure x
+
+substring :: String -> Parser String String
+substring = \x -> do
+  y <- lookAhead $ anyString
+  z <- pure $ indexOf y x 
+  case z == -1 of
+    true  -> fail $ "Substring not found (" <> x <> "," <> y <> ")"
+    false -> string (substringImpl y 0 z) *> string x

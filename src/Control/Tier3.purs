@@ -342,11 +342,11 @@ executeSchemas file = do
 
 executeForward :: Target -> Forward.URI -> Aff Resource
 executeForward (Failover uri) query = do
-  result  <- try $ executeForward (Single uri) query
+  result  <- try $ executeForward (Replication uri) query
   result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward query <$> failoverSites uri))
   case result of
     (Left _) -> case result' of
-      (Left _)          -> liftEffect $ Exception.throw "Failover failure."
+      (Left _)          -> liftEffect $ Exception.throw $ "Failover failure (" <> show query <> ")" 
       (Right resource') -> pure resource'
     (Right resource') -> pure $ resource'
 executeForward (Replication uri) query  = do
@@ -395,36 +395,36 @@ replication w = foldl f (Array.head w) (sequence $ Array.tail w)
     f  _                _                   = Nothing
 
 executeReport :: Target -> Report.URI -> Aff Resource
-executeReport (Failover uri) report = do
-  result  <- try $ executeReport (Replication uri) report
+executeReport (Failover uri) query = do
+  result  <- try $ executeReport (Replication uri) query
   case result of
     (Left _) -> do
-      result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport report <$> failoverSites uri))
+      result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeReport query <$> failoverSites uri))
       case result' of
         (Left _)          -> liftEffect $ Exception.throw "Failover failure."
         (Right resource') -> pure resource'
     (Right resource') -> pure $ resource'
-executeReport (Replication uri) report = do
-  events <- Aff.sequential (sequence (Aff.parallel <$> flip executeReport report <$> replicationSites uri))
+executeReport (Replication uri) query = do
+  events <- Aff.sequential (sequence (Aff.parallel <$> flip executeReport query <$> replicationSites uri))
   result <- pure $ replication events
   case result of
     (Just event) -> pure event
     (Nothing)    -> liftEffect $ Exception.throw "Replication failure."
-executeReport (Single uri) report = do
+executeReport (Single uri) query = do
   _          <- executeTouch (path uri)
   _          <- executeSchemas (path uri)
   database   <- SQLite3.connect (path uri) SQLite3.OpenReadOnly
-  min        <- executeReport'' database (minURI report)
-  max        <- executeReport'' database (maxURI report)
-  sum        <- executeReport'' database (sumURI report)
-  total      <- executeReport'' database (totalURI report)
-  average    <- executeReport'' database (averageURI report)
-  variance   <- executeReport'' database (varianceURI report average)
+  min        <- executeReport'' database (minURI query)
+  max        <- executeReport'' database (maxURI query)
+  sum        <- executeReport'' database (sumURI query)
+  total      <- executeReport'' database (totalURI query)
+  average    <- executeReport'' database (averageURI query)
+  variance   <- executeReport'' database (varianceURI query average)
   _          <- SQLite3.close database
   pure $ Report $ Data.Report.Event $
-    { eventCategory : eventCategory report
-    , eventType     : eventType report
-    , eventID       : eventID report
+    { eventCategory : eventCategory query
+    , eventType     : eventType query
+    , eventID       : eventID query
     , min           : Math.floor min
     , max           : Math.floor max
     , sum           : Math.floor sum
