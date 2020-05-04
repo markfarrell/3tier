@@ -10,7 +10,7 @@ import Prelude
 
 import Data.Foldable (intercalate)
 
-import Data.Event (Time) as Event
+import Data.Event (Time(..)) as Event
 
 data EventCategory = Tier1 | Tier2 | Tier3
 
@@ -33,21 +33,19 @@ instance showEventTest :: Show Event where
   show (Event test) = intercalate " " columns
     where
       columns = 
-        [ h1 $ "TEST"
-        , h2 $ show test.eventCategory
-        , h3 $ show test.eventType
-        , h4 $ show test.eventID
-        , p  $ show test.eventTime
+        [ dim $ fgGreen "    >"
+        , dim $ fgMagenta (show test.eventCategory)
+        , dim $ fgCyan    (show test.eventType)
+        , dim $ fgYellow  (show test.eventID)
+        , dim $ fgWhite $ round (case test.eventTime of (Event.Time x) -> (show $ x.duration / 1000) <> "s")
         ]
-      h1         = bold <<< fgGreen
-      h2         = bold <<< fgMagenta
-      h3         = bold <<< fgCyan
-      h4         = bold <<< fgYellow
+      h1         = dim <<< fgGreen
+      h2         = dim <<< fgMagenta
+      h3         = dim <<< fgCyan
+      h4         = dim <<< fgYellow
       p          = dim  <<< fgWhite
-      square     = \x ->  (fgGreen "[") <> x <>  (fgGreen "]")
-      round      = \x ->  (fgGreen "(") <> x <>  (fgGreen ")") 
+      round      = \x ->  "(" <> x <> ")" 
       dim        = \x -> "\x1b[2m" <> x <> "\x1b[0m" 
-      bold       = \x -> "\x1b[1m" <> x <> "\x1b[0m" 
       fgCyan     = \x -> "\x1b[36m" <> x <> "\x1b[0m" 
       fgGreen    = \x -> "\x1b[32m" <> x <> "\x1b[0m" 
       fgYellow   = \x -> "\x1b[33m" <> x <> "\x1b[0m" 
@@ -62,10 +60,10 @@ instance showEventCategoryTest :: Show EventCategory where
   show Tier3 = "TIER-03"
 
 instance showEventTypeTest :: Show EventType where
-  show Single      = "SINGLE"
+  show Single      = "SINGLE     "
   show Replication = "REPLICATION"
-  show Failover    = "FAILOVER"
+  show Failover    = "FAILOVER   "
 
 instance showEventIDTest :: Show EventID where
   show Forward = "FORWARD"
-  show Report  = "REPORT"
+  show Report  = "REPORT "

@@ -19,7 +19,7 @@ import Text.Parsing.Forward (event) as Forward
 import Control.Forward (URI) as Forward
 import Control.Report as Report
 
-import FFI.HTTP as HTTP
+import FFI.HTTPS as HTTPS
 import FFI.String as String
 
 data Route = Forward Forward.URI | Report Report.URI
@@ -37,9 +37,9 @@ reports = choice (report <$> Report.uris)
 route :: Parser String Route
 route = choice [Forward <$> Forward.event, reports]
 
-execute :: HTTP.IncomingMessage -> Aff (Either Error Route)
+execute :: HTTPS.IncomingMessage -> Aff (Either Error Route)
 execute req = do 
-  result <- pure (flip runParser route $ String.decodeURIComponent (HTTP.messageURL req)) 
+  result <- pure (flip runParser route $ String.decodeURIComponent (HTTPS.messageURL req)) 
   case result of
     (Left _)        -> pure (Left $ error "Invalid routing request.")
     (Right result') -> pure (Right $ result')

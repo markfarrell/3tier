@@ -224,7 +224,7 @@ testReplicationForward = do
   where 
     settings = Tier3.Settings Authorization.Default Authentication.Default dbms
     dbms     = Tier3.Replication $ Tier3.Primary Tier3.Testing
-    n        = 100
+    n        = 1
 
 testSingleReports :: Tier3.Request Unit
 testSingleReports = do
@@ -288,7 +288,7 @@ testFailoverForwards = do
   where 
     settings = Tier3.Settings Authorization.Default Authentication.Default dbms
     dbms     = Tier3.Failover $ Tier3.Primary Tier3.Testing
-    n        = 100
+    n        = 1
 
 testFailoverReports :: Tier3.Request Unit
 testFailoverReports = do
@@ -314,8 +314,8 @@ testFailoverReports = do
 tests :: Tier3.Request Unit
 tests = void $ sequence $
   [ testSingleForward
-  , testReplicationForward
   , testSingleReports
+  , testReplicationForward
   , testReplicationReports
   , testFailoverForwards
   , testFailoverReports

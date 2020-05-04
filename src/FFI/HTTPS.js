@@ -1,16 +1,21 @@
 "use strict";
 
-var http = require("http");
+var https = require("https");
 var url = require("url");
 
-exports.createServer = function() {
-  return http.createServer();
+exports.createServerImpl = function(key) {
+  return function(cert) {
+    return function() {
+      var options = { key : key, cert : cert };
+      return https.createServer(options);
+    };
+  };
 };
 
 exports.listen = function(port) {
-  return function(httpServer) {
+  return function(httpsServer) {
     return function() {
-      httpServer.listen(port);
+      httpsServer.listen(port);
     };
   };
 };
@@ -66,9 +71,9 @@ exports.setHeader = function(name) {
 }
 
 exports.onRequest = function(requestListener) {
-  return function(httpServer) {
+  return function(httpsServer) {
     return function() {
-      httpServer.on("request", function(req, res) {
+      httpsServer.on("request", function(req, res) {
         requestListener(req)(res)();
       });
     };
@@ -86,7 +91,7 @@ exports.write = function(chunk) {
 exports.createRequestImpl = function(method) {
   return function(requestURL) {
     return function() {
-      return http.request(requestURL);
+      return https.request(requestURL);
     };
   };
 };

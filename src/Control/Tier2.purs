@@ -34,7 +34,7 @@ import Text.Parsing.Parser (runParser)
 import Unsafe.Coerce (unsafeCoerce)
 
 import FFI.Date as Date
-import FFI.HTTP as HTTP
+import FFI.HTTPS as HTTPS
 import FFI.Math as Math
 import FFI.Socket as Socket
 import FFI.JSON as JSON
@@ -97,28 +97,28 @@ textJSON :: Resource -> String
 textJSON (Forward _) = ""
 textJSON (Report x)  = JSON.stringify $ unsafeCoerce x
 
-sendResponse :: Response -> HTTP.ServerResponse -> Aff Unit
+sendResponse :: Response -> HTTPS.ServerResponse -> Aff Unit
 sendResponse (Ok body) = \res -> liftEffect $ do
-  _ <- HTTP.setHeader "Content-Type" "text/json" $ res
-  _ <- HTTP.writeHead 200 $ res
-  _ <- HTTP.write (textJSON body) $ res
-  _ <- HTTP.end $ res
+  _ <- HTTPS.setHeader "Content-Type" "text/json" $ res
+  _ <- HTTPS.writeHead 200 $ res
+  _ <- HTTPS.write (textJSON body) $ res
+  _ <- HTTPS.end $ res
   pure unit
 sendResponse (BadRequest _) = \res -> liftEffect $ do
-  _ <- HTTP.writeHead 400 $ res
-  _ <- HTTP.end $ res
+  _ <- HTTPS.writeHead 400 $ res
+  _ <- HTTPS.end $ res
   pure unit  
 sendResponse (Forbidden Bearer realm) = \res -> liftEffect $ do
-  _ <- HTTP.setHeader "WWW-Authenticate" ("Bearer realm=" <> realm) $ res
-  _ <- HTTP.writeHead 401 $ res
-  _ <- HTTP.end $ res
+  _ <- HTTPS.setHeader "WWW-Authenticate" ("Bearer realm=" <> realm) $ res
+  _ <- HTTPS.writeHead 401 $ res
+  _ <- HTTPS.end $ res
   pure unit  
 sendResponse (InternalServerError _) = \res -> liftEffect $ do
-  _ <- HTTP.writeHead 500 $ res
-  _ <- HTTP.end $ res
+  _ <- HTTPS.writeHead 500 $ res
+  _ <- HTTPS.end $ res
   pure unit
 
-databaseRequest :: Tier3.Settings -> Route -> HTTP.IncomingMessage -> Aff Response 
+databaseRequest :: Tier3.Settings -> Route -> HTTPS.IncomingMessage -> Aff Response 
 databaseRequest settings route req = do
   result    <- Tier3.execute $ Tier3.request settings route
   case result of 
@@ -126,12 +126,12 @@ databaseRequest settings route req = do
     (Right (Tier3.Forward unit)) -> pure $ Ok (Forward unit)
     (Right (Tier3.Report event)) -> pure $ Ok (Report event) 
 
-resourceRequest :: Tier3.Settings -> HTTP.IncomingRequest -> Aff Unit
-resourceRequest settings (HTTP.IncomingRequest req res) = do
+resourceRequest :: Tier3.Settings -> HTTPS.IncomingRequest -> Aff Unit
+resourceRequest settings (HTTPS.IncomingRequest req res) = do
   startTime     <- liftEffect $ Date.current
   routingResult <- Route.execute req
   resource      <- case routingResult of
-                     (Left _)      -> pure $ BadRequest (HTTP.messageURL req)
+                     (Left _)      -> pure $ BadRequest (HTTPS.messageURL req)
                      (Right route) -> databaseRequest settings route req 
   response      <- try $ sendResponse resource res 
   endTime       <- liftEffect $ Date.current
@@ -152,10 +152,10 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
                        _      -> case response of
                          (Left _)  -> Audit.Failure
                          (Right _) -> Audit.Success
-  sIP           <- pure $ case (runParser (Socket.remoteAddress $ HTTP.socket req) ipv4) of
+  sIP           <- pure $ case (runParser (Socket.remoteAddress $ HTTPS.socket req) ipv4) of
                      (Left _)  -> (IPv4 (-1) (-1) (-1) (-1))
                      (Right x) -> x
-  sPort         <- pure $ Socket.remotePort $ HTTP.socket req
+  sPort         <- pure $ Socket.remotePort $ HTTPS.socket req
   event         <- pure $ Audit.Event $
                      { eventCategory : Audit.Tier2
                      , eventType     : eventType
@@ -169,17 +169,17 @@ resourceRequest settings (HTTP.IncomingRequest req res) = do
   _             <- Tier3.execute $ audit settings event
   pure unit
 
-producer :: HTTP.Server -> Producer HTTP.IncomingRequest Aff Unit
+producer :: HTTPS.Server -> Producer HTTPS.IncomingRequest Aff Unit
 producer server = produce \emitter -> do
-  HTTP.onRequest (\req res -> emit emitter $ HTTP.IncomingRequest req res) $ server
+  HTTPS.onRequest (\req res -> emit emitter $ HTTPS.IncomingRequest req res) $ server
 
-consumer :: Tier3.Settings -> Consumer HTTP.IncomingRequest Aff Unit
+consumer :: Tier3.Settings -> Consumer HTTPS.IncomingRequest Aff Unit
 consumer settings = forever $ do
   request' <- await
   _       <- lift $ resourceRequest settings request'
   pure unit
 
-process :: HTTP.Server -> Process Aff Unit
+process :: HTTPS.Server -> Process Aff Unit
 process server = pullFrom (consumer settings) (producer server)
   where
     settings          = Tier3.Settings Authorization.Default Authentication.Default (Tier3.Failover (Tier3.Primary Tier3.Production))
@@ -194,21 +194,21 @@ path (Offsite Testing)      = "http://localhost:3005"
 
 executeForward :: Settings -> Forward.URI -> Aff Resource
 executeForward (Settings _ _ (Single uri)) query = do
-  req <- HTTP.createRequest HTTP.Post $ (path uri) <> show query
-  res <- HTTP.endRequest req
+  req <- HTTPS.createRequest HTTPS.Post $ (path uri) <> show query
+  res <- HTTPS.endRequest req
   case res of
-    (HTTP.IncomingResponse _ req') -> 
-      case HTTP.statusCode req' of
+    (HTTPS.IncomingResponse _ req') -> 
+      case HTTPS.statusCode req' of
         200 -> pure $ Forward unit
         _   -> liftEffect $ Exception.throw "Invalid status code (forward reply)."
 
 executeReport :: Settings -> Report.URI -> Aff Resource
 executeReport (Settings _ _ (Single uri)) query = do
-  req <- HTTP.createRequest HTTP.Get $ (path uri) <> show query
-  res <- HTTP.endRequest req
+  req <- HTTPS.createRequest HTTPS.Get $ (path uri) <> show query
+  res <- HTTPS.endRequest req
   case res of
-    (HTTP.IncomingResponse body req') ->
-       case HTTP.statusCode req' of
+    (HTTPS.IncomingResponse body req') ->
+       case HTTPS.statusCode req' of
          200 ->
            case runParser body Report.event of
              (Left _)      -> liftEffect $ Exception.throw "Invalid body (report reply)."

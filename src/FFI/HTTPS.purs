@@ -1,10 +1,11 @@
-module FFI.HTTP
+module FFI.HTTPS
   ( IncomingRequest(..)
   , Server
   , IncomingMessage
   , ServerResponse
   , MessageHeaders
   , ClientRequest
+  , Options(..)
   , createServer
   , listen
   , close
@@ -43,7 +44,12 @@ foreign import data ClientRequest :: Type
 
 type MessageHeaders = Foreign
 
-foreign import createServer :: Effect Server
+data Options = Options
+  { key  :: String
+  , cert :: String
+  }
+
+foreign import createServerImpl :: String -> String -> Effect Server
 
 foreign import listen :: Int -> Server -> Effect Unit
 
@@ -81,6 +87,9 @@ data IncomingRequest = IncomingRequest IncomingMessage ServerResponse
 
 data IncomingResponse = IncomingResponse String IncomingMessage
 
+createServer :: Options -> Effect Server
+createServer (Options options) = createServerImpl options.key options.cert
+
 incomingResponse :: String -> IncomingMessage -> IncomingResponse
 incomingResponse body res = IncomingResponse body res
 
@@ -93,3 +102,5 @@ setRequestHeader headerName headerValue req = liftEffect $ setRequestHeaderImpl 
 
 endRequest :: ClientRequest -> Aff IncomingResponse
 endRequest client = fromEffectFnAff $ endRequestImpl incomingResponse client
+
+
