@@ -68,13 +68,13 @@ random = do
                       , entryData          : "???"
                       , category           : "???"
                       , categoryNumber     : 0
-                      , entryType          : eventType'
-                      , message            : "???"
+                      , entryType          : "???"
+                      , description        : []
                       , source             : "???" 
                       , replacementStrings : "???" 
                       , instanceID         : "???" 
-                      , timeGenerated      : startTime 
-                      , timeWritten        : endTime
+                      , timeGenerated      : Date.epoch 
+                      , timeWritten        : Date.epoch
                       , site               : "???" 
                       , container          : "???" 
                       }

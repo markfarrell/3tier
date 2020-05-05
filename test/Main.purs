@@ -24,7 +24,7 @@ main = void $ launchAff $ do
   _ <- render (assigned  suite deliverable' "FFI.HTTPS")
   _ <- render (assigned  suite deliverable' "FFI.RSA")
   _ <- render (assigned  suite deliverable' "FFI.SQLite3")
-  _ <- render (h2 $ fgWhite "Design/Philosophy")
+  _ <- render (h2 "Design/Philosophy")
   _ <- render (assigned  suite deliverable' "Data.Event")               *> wip
   _ <- render (h2 "Parsing/Validation")
   _ <- render (assigned  suite deliverable' "Text.Parsing.Common")      *> Common.suite

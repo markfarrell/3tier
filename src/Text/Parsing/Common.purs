@@ -16,6 +16,7 @@ module Text.Parsing.Common
   , propertyNot
   , showable
   , substring
+  , readArray
   ) where
 
 import Prelude
@@ -213,9 +214,20 @@ readInt name obj = do
         (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readInt)"
         (Right raw) -> pure raw 
 
+readArray :: String -> Foreign -> Parser String (Array Foreign)
+readArray name obj = do
+  input <- except (obj ! name >>= Foreign.readArray)
+  pure $ input
+  where 
+    except = \x -> do
+      result <- pure $ runExcept x
+      case result of
+        (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readArray)"
+        (Right raw) -> pure raw 
+
 property :: forall a. String -> Foreign -> Parser String a -> Parser String a
 property = \x y z -> do
-  input   <- choice [readString x y]
+  input   <- choice [readString x y, readInt x y]
   result' <- validation x input z
   pure result'
   where 

@@ -7,15 +7,50 @@ import Prelude
 
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
+import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..))
 
 import Text.Parsing.Parser (Parser, fail)
+import Text.Parsing.Parser.Combinators (choice)
+
+import Foreign (Foreign)
 
 import Data.Windows as Windows
 
-import Text.Parsing.Common (date, json, nonnegativeInteger, property, propertyNot, showable)
+import Text.Parsing.Common (date, json, nonnegativeInteger, property, propertyNot, showable, readArray)
 import Text.Parsing.Event (eventSource, eventTime) as Event
 import Text.Parsing.Risk (injection) as Risk
+
+eventURIComponent :: Foreign -> Parser String Windows.EventURIComponent
+eventURIComponent = \x -> choice [subject x]
+
+subject :: Foreign -> Parser String Windows.EventURIComponent
+subject = \x -> do
+  securityID    <- propertyNot "securityID"    x $ Risk.injection
+  accountName   <- propertyNot "accountName"   x $ Risk.injection
+  accountDomain <- propertyNot "accountDomain" x $ Risk.injection
+  logonID       <- propertyNot "logonID"       x $ Risk.injection
+  pure $ Windows.Subject $
+    { securityID    : securityID
+    , accountName   : accountName
+    , accountDomain : accountDomain
+    , logonID       : logonID
+    }
+
+-- todo: account                   :: Parser String Windows.EventURIComponent
+-- todo: logonType                 :: Parser String Windows.EventURIComponent
+-- todo: failureInformation        :: Parser String Windows.EventURIComponent
+-- todo: processInformation        :: Parser String Windows.EventURIComponent
+-- todo: networkInformation        :: Parser String Windows.EventURIComponent
+-- todo: authenticationInformation :: Parser String Windows.EventURIComponent
+-- ...
+-- see: https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/event.aspx?eventid=...
+
+description :: Foreign -> Parser String (Array Windows.EventURIComponent)
+description = \x -> do
+  y <- readArray "description" x
+  z <- sequence (eventURIComponent <$> y)
+  pure z
 
 eventURI :: Parser String Windows.EventURI
 eventURI = do
@@ -26,9 +61,10 @@ eventURI = do
   entryData          <- propertyNot "entryData"          x $ Risk.injection
   category           <- propertyNot "category"           x $ Risk.injection
   categoryNumber     <- property    "categoryNumber"     x $ nonnegativeInteger
-  entryType          <- property    "entryType"          x $ showable Windows.eventTypes
-  message            <- propertyNot "message"            x $ Risk.injection
+  entryType          <- propertyNot "entryType"          x $ Risk.injection
+  description'       <- description x
   source             <- propertyNot "source"             x $ Risk.injection
+
   replacementStrings <- propertyNot "replacementStrings" x $ Risk.injection
   instanceID         <- propertyNot "instanceID"         x $ Risk.injection
   timeGenerated      <- property    "timeGenerated"      x $ date
@@ -43,7 +79,7 @@ eventURI = do
     , category           : category
     , categoryNumber     : categoryNumber
     , entryType          : entryType
-    , message            : message
+    , description        : description'
     , source             : source
     , replacementStrings : replacementStrings
     , instanceID         : instanceID

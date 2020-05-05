@@ -15,7 +15,7 @@ import Effect.Exception (throw) as Exception
 
 import FFI.Date as Date
 
-import Data.Windows (EventType(..), EventURI(..)) as Windows
+import Data.Windows (EventURI(..), EventURIComponent(..)) as Windows
 
 import Text.Parsing.Parser (runParser)
 
@@ -37,17 +37,23 @@ eventURI = do
         true  -> pure unit
   where
     input = Windows.Security $
-      { eventID            : 5050
+      { eventID            : 4625
       , machineName        : "ABCD1234-XYZ.ca"
       , entryNumber        : 54669
       , entryData          : "System.Byte[]"
       , category           : "(13312)"
       , categoryNumber     : 13312
-      , entryType          : Windows.Success
-      , message            : ""
+      , entryType          : "SuccessAudit"
+      , description        : [ Windows.Subject $
+                               { securityID    : "???"
+                               , accountName   : "???"
+                               , accountDomain : "???"
+                               , logonID       : "???"
+                               }
+                             ]
       , source             : "???" 
       , replacementStrings : "System.String[]"
-      , instanceID         : "5050"
+      , instanceID         : "4625"
       , timeGenerated      : Date.epoch
       , timeWritten        : Date.epoch
       , site               : ""

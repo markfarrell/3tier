@@ -7,14 +7,20 @@ module Data.Windows
   , MachineName
   , CategoryName
   , CategoryNumber
-  , EventMessage
-  , EventSource
+  , EventURIComponent(..)
+  , Description
+  , Source
   , EntryNumber
   , EntryData
+  , EntryType
   , ReplacementStrings
   , InstanceID
   , Site
   , Container
+  , SecurityID
+  , AccountName
+  , AccountDomain
+  , LogonID
   , eventCategories
   , eventIDs
   , eventIDs'
@@ -26,6 +32,8 @@ import Prelude
 import Data.Foldable (foldl)
 
 import Unsafe.Coerce (unsafeCoerce)
+
+import Foreign (Foreign)
 
 import FFI.Date (Date)
 import FFI.JSON as JSON
@@ -51,14 +59,27 @@ data EventType = Success | Failure
 type MachineName        = String
 type CategoryName       = String
 type CategoryNumber     = Int
-type EventMessage       = String
-type EventSource        = String
+type Description        = Array EventURIComponent
+type Source             = String
 type EntryNumber        = Int
+type EntryType          = String
 type EntryData          = String
 type ReplacementStrings = String
 type InstanceID         = String
 type Site               = String
 type Container          = String
+
+type SecurityID    = String
+type AccountName   = String
+type AccountDomain = String
+type LogonID       = String
+
+data EventURIComponent = Subject
+  { securityID    :: SecurityID
+  , accountName   :: AccountName
+  , accountDomain :: AccountDomain
+  , logonID       :: LogonID
+  }
 
 data EventURI = Security
   { eventID            :: EventID
@@ -67,9 +88,9 @@ data EventURI = Security
   , entryData          :: EntryData
   , category           :: CategoryName
   , categoryNumber     :: CategoryNumber
-  , entryType          :: EventType
-  , message            :: EventMessage
-  , source             :: EventSource
+  , entryType          :: EntryType
+  , description        :: Description
+  , source             :: Source
   , replacementStrings :: ReplacementStrings
   , instanceID         :: InstanceID
   , timeGenerated      :: Date
@@ -115,8 +136,8 @@ instance showEventURIWindows :: Show EventURI where
     , entryData          : x.entryData
     , category           : x.category
     , categoryNumber     : show x.categoryNumber
-    , entryType          : show x.entryType
-    , message            : x.message
+    , entryType          : x.entryType
+    , description        : eventURIComponent <$> x.description
     , source             : x.source 
     , replacementStrings : x.replacementStrings
     , instanceID         : x.instanceID
@@ -125,6 +146,14 @@ instance showEventURIWindows :: Show EventURI where
     , site               : x.site
     , container          : x.container
     }
+    where
+      eventURIComponent :: EventURIComponent -> Foreign
+      eventURIComponent (Subject y) = unsafeCoerce $
+        { securityID    : y.securityID
+        , accountName   : y.accountName
+        , accountDomain : y.accountDomain
+        , logonID       : y.logonID
+        }
 
 instance eqEventCategoryWindows :: Eq EventCategory where
   eq AccountLogon      AccountLogon      = true 
@@ -147,6 +176,9 @@ instance eqEventTypeWindows :: Eq EventType where
 
 instance eqEventURIWindows :: Eq EventURI where
   eq (Security x) (Security y) = (x == y) 
+
+instance eqEventURIComponentWindows :: Eq EventURIComponent where
+  eq (Subject x) (Subject y) = (x == y)
 
 instance eqEventWindows :: Eq Event where
   eq (Event x) (Event y) = (x == y)
