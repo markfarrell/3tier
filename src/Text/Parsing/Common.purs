@@ -13,7 +13,7 @@ module Text.Parsing.Common
   , flags
   , json
   , property
-  , propertyNot
+  , validation
   , showable
   , substring
   , readArray
@@ -228,22 +228,22 @@ readArray name obj = do
 property :: forall a. String -> Foreign -> Parser String a -> Parser String a
 property = \x y z -> do
   input   <- choice [readString x y, readInt x y]
-  result' <- validation x input z
+  result' <- parse x input z
   pure result'
   where 
-    validation = \x y z -> do
+    parse = \x y z -> do
       result <- pure $ runParser y z
       case result of
         (Left e)    -> fail $ "Invalid foreign property (" <> x <> ")."
         (Right val) -> pure val
 
-propertyNot :: forall a. String -> Foreign -> Parser String a -> Parser String String
-propertyNot = \x y z -> do
+validation :: forall a. String -> Foreign -> Parser String a -> Parser String String
+validation = \x y z -> do
   input   <- choice [readString x y]
-  result' <- validation x input z
+  result' <- validation' x input z
   pure result'
   where 
-    validation = \x y z -> do
+    validation' = \x y z -> do
       result <- pure $ runParser y z
       case result of
         (Right _)   -> fail $ "Invalid foreign property (" <> x <> ")."

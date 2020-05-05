@@ -17,7 +17,7 @@ import Foreign (Foreign)
 
 import Data.Windows as Windows
 
-import Text.Parsing.Common (date, json, nonnegativeInteger, property, propertyNot, showable, readArray)
+import Text.Parsing.Common (date, json, nonnegativeInteger, property, validation , showable, readArray)
 import Text.Parsing.Event (eventSource, eventTime) as Event
 import Text.Parsing.Risk (injection) as Risk
 
@@ -26,10 +26,10 @@ eventURIComponent = \x -> choice [subject x]
 
 subject :: Foreign -> Parser String Windows.EventURIComponent
 subject = \x -> do
-  securityID    <- propertyNot "securityID"    x $ Risk.injection
-  accountName   <- propertyNot "accountName"   x $ Risk.injection
-  accountDomain <- propertyNot "accountDomain" x $ Risk.injection
-  logonID       <- propertyNot "logonID"       x $ Risk.injection
+  securityID    <- validation  "securityID"    x $ Risk.injection
+  accountName   <- validation  "accountName"   x $ Risk.injection
+  accountDomain <- validation  "accountDomain" x $ Risk.injection
+  logonID       <- validation  "logonID"       x $ Risk.injection
   pure $ Windows.Subject $
     { securityID    : securityID
     , accountName   : accountName
@@ -56,21 +56,21 @@ eventURI :: Parser String Windows.EventURI
 eventURI = do
   x                  <- json
   eventID'           <- property    "eventID"            x $ showable Windows.eventIDs' 
-  machineName        <- propertyNot "machineName"        x $ Risk.injection
+  machineName        <- validation  "machineName"        x $ Risk.injection
   entryNumber        <- property    "entryNumber"        x $ nonnegativeInteger
-  entryData          <- propertyNot "entryData"          x $ Risk.injection
-  category           <- propertyNot "category"           x $ Risk.injection
+  entryData          <- validation  "entryData"          x $ Risk.injection
+  category           <- validation  "category"           x $ Risk.injection
   categoryNumber     <- property    "categoryNumber"     x $ nonnegativeInteger
-  entryType          <- propertyNot "entryType"          x $ Risk.injection
+  entryType          <- validation  "entryType"          x $ Risk.injection
   description'       <- description x
-  source             <- propertyNot "source"             x $ Risk.injection
+  source             <- validation  "source"             x $ Risk.injection
 
-  replacementStrings <- propertyNot "replacementStrings" x $ Risk.injection
-  instanceID         <- propertyNot "instanceID"         x $ Risk.injection
+  replacementStrings <- validation  "replacementStrings" x $ Risk.injection
+  instanceID         <- validation  "instanceID"         x $ Risk.injection
   timeGenerated      <- property    "timeGenerated"      x $ date
   timeWritten        <- property    "timeWritten"        x $ date
-  site               <- propertyNot "site"               x $ Risk.injection
-  container          <- propertyNot "container"          x $ Risk.injection
+  site               <- validation  "site"               x $ Risk.injection
+  container          <- validation  "container"          x $ Risk.injection
   pure $ Windows.Security $
     { eventID            : eventID'
     , machineName        : machineName
