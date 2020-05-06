@@ -1,4 +1,4 @@
-module NetFlowv9
+module Data.NetFlowv9
   ( Packet
   , Header
   , TemplateFlowSet

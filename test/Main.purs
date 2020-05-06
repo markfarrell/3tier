@@ -14,6 +14,8 @@ import Effect.Console (log)
 import Test.FFI.UUID as UUID
 
 import Test.Control.Tier3           as Tier3
+import Test.Data.NetFlowv9          as NetFlowv9
+
 import Test.Text.Parsing.Common     as Common
 import Test.Text.Parsing.Audit      as Audit
 import Test.Text.Parsing.Flow       as Flow
@@ -37,6 +39,7 @@ main = void $ launchAff $ do
   _ <- render (assigned suite "Control.DSL")
   _ <- render (h2 "Design/Data")
   _ <- render (assigned suite "Data.Event")
+  _ <- render (pending suite "Data.NetFlowv9")             *> NetFlowv9.suite
   _ <- render (h2 "Parsing/Validation")
   _ <- render (assigned suite  "Text.Parsing.Common")      *> Common.suite
   _ <- render (assigned suite  "Text.Parsing.Alert")
@@ -44,6 +47,7 @@ main = void $ launchAff $ do
   _ <- render (complete  suite "Text.Parsing.Flow")        *> Flow.suite
   _ <- render (assigned suite  "Text.Parsing.Linux")
   _ <- render (complete suite  "Text.Parsing.Statistics")  *> Statistics.suite
+  _ <- render (assigned suite "Text.Parsing.Traffic")
   _ <- render (pending suite   "Text.Parsing.Risk")        *> Risk.suite
   _ <- render (pending suite   "Text.Parsing.Windows")     *> Windows.suite
   _ <- render (assigned suite  "Text.Parsing.Forward") 

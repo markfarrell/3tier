@@ -1,15 +1,18 @@
-module Test.NetFlowv9
-  ( main 
+module Test.Data.NetFlowv9
+  ( suite 
   ) where
 
 import Prelude
 
-import Effect (Effect)
-import Effect.Console (log)
+import Data.Either (Either(..))
+
+import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
+import Effect.Exception (throw) as Exception
 
 import FFI.Buffer as Buffer
 
-import NetFlowv9 as NetFlowv9
+import Data.NetFlowv9 as NetFlowv9
 
 {-- Source: https://github.com/hroi/netflowv9/blob/master/src/tests.rs --}
 example :: Array Int
@@ -34,10 +37,11 @@ example =  [0x00, 0x09, 0x00, 0x04, 0x70, 0x59, 0x38, 0x38, 0x57, 0x8b, 0xe0, 0x
   0x80, 0x0e, 0x06, 0x00, 0x00, 0x50, 0x0f, 0xca, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e,
   0x00, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00]
 
-main :: Effect Unit
-main = do
+suite :: Aff  Unit
+suite = liftEffect $ do
   packet   <- Buffer.toIntArray =<< Buffer.from example
   result   <- NetFlowv9.readPacket packet
-  _        <- log $ show packet
-  _        <- log $ show result
+  case result of
+    (Left  _) -> Exception.throw "Failed to read NetFlowv9 packet."
+    (Right _) -> pure unit
   pure unit
