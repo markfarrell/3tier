@@ -55,11 +55,11 @@ import Control.Route as Route
 import Data.IPv4 (IPv4(..))
 
 import Data.Audit as Audit
-import Data.Report (Event) as Report
+import Data.Statistics (Event) as Statistics
 import Data.Schema as Schema
 
 import Text.Parsing.Common (ipv4)
-import Text.Parsing.Report (event) as Report
+import Text.Parsing.Statistics (event) as Statistics
 
 data Role = Production | Testing
 
@@ -78,7 +78,7 @@ data Settings = Settings Authorization Authentication Target
 
 data AuthenticationType = Bearer
 
-data Resource = Forward Unit | Report Report.Event
+data Resource = Forward Unit | Statistics Statistics.Event
 
 data Response = Ok Resource | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
 
@@ -95,7 +95,7 @@ audit settings event = do
 
 textJSON :: Resource -> String
 textJSON (Forward _) = ""
-textJSON (Report x)  = JSON.stringify $ unsafeCoerce x
+textJSON (Statistics x)  = JSON.stringify $ unsafeCoerce x
 
 sendResponse :: Response -> HTTPS.ServerResponse -> Aff Unit
 sendResponse (Ok body) = \res -> liftEffect $ do
@@ -124,7 +124,7 @@ databaseRequest settings route req = do
   case result of 
     (Left _)               -> pure  $ InternalServerError ""
     (Right (Tier3.Forward unit)) -> pure $ Ok (Forward unit)
-    (Right (Tier3.Report event)) -> pure $ Ok (Report event) 
+    (Right (Tier3.Report event)) -> pure $ Ok (Statistics event) 
 
 resourceRequest :: Tier3.Settings -> HTTPS.IncomingRequest -> Aff Unit
 resourceRequest settings (HTTPS.IncomingRequest req res) = do
@@ -141,7 +141,7 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
                      (Right (Route.Forward (Forward.Audit _)))      -> Audit.Forward Schema.Audit
                      (Right (Route.Forward (Forward.Alert _)))      -> Audit.Forward Schema.Alert
                      (Right (Route.Forward (Forward.Flow _)))       -> Audit.Forward Schema.Flow
-                     (Right (Route.Forward (Forward.Report _)))     -> Audit.Forward Schema.Report
+                     (Right (Route.Forward (Forward.Statistics _))) -> Audit.Forward Schema.Statistics
                      (Right (Route.Forward (Forward.Linux  _)))     -> Audit.Forward Schema.Linux
                      (Right (Route.Forward (Forward.Windows _)))    -> Audit.Forward Schema.Windows
                      (Right (Route.Report  (Report.Audit _ _ _ _))) -> Audit.Report  Schema.Audit
@@ -202,17 +202,17 @@ executeForward (Settings _ _ (Single uri)) query = do
         200 -> pure $ Forward unit
         _   -> liftEffect $ Exception.throw "Invalid status code (forward reply)."
 
-executeReport :: Settings -> Report.URI -> Aff Resource
-executeReport (Settings _ _ (Single uri)) query = do
+executeStatistics :: Settings -> Report.URI -> Aff Resource
+executeStatistics (Settings _ _ (Single uri)) query = do
   req <- HTTPS.createRequest HTTPS.Get $ (path uri) <> show query
   res <- HTTPS.endRequest req
   case res of
     (HTTPS.IncomingResponse body req') ->
        case HTTPS.statusCode req' of
          200 ->
-           case runParser body Report.event of
+           case runParser body Statistics.event of
              (Left _)      -> liftEffect $ Exception.throw "Invalid body (report reply)."
-             (Right event) -> pure $ Report event
+             (Right event) -> pure $ Statistics event
          _   -> liftEffect $ Exception.throw "Invalid status code (report reply)."
 
 interpret :: forall a. Query (Request a) -> Aff (Request a)
@@ -220,7 +220,7 @@ interpret (DSL.Forward settings query next) = do
   result <- executeForward settings query
   next <$> pure result
 interpret (DSL.Report settings query next) = do
-  result <- executeReport settings query
+  result <- executeStatistics settings query
   next <$> (pure result)
 
 request :: Settings -> Route -> Request Resource

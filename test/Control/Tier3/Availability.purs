@@ -20,7 +20,7 @@ import Effect.Audit (random) as Audit
 import Effect.Alert (random) as Alert
 import Effect.Flow (random) as Flow
 import Effect.Linux (random) as Linux
-import Effect.Report (random) as Report
+import Effect.Statistics (random) as Statistics
 import Effect.Windows (random) as Windows
 
 import FFI.Date as Date
@@ -28,7 +28,7 @@ import FFI.FS as FS
 import FFI.Math as Math
 
 import Data.Audit (EventCategory(..), EventType(..), EventID(..), ReportType(..)) as Audit
-import Data.Report (Event(..)) as Report
+import Data.Statistics (Event(..)) as Statistics
 import Data.Schema as Schema
 
 import Data.Event (Time(..)) as Event
@@ -49,7 +49,7 @@ report settings uri = do
   x <- Tier3.request settings (Route.Report uri)
   case x of
     (Tier3.Forward _)               -> lift $ liftEffect $ Exception.throw "Unexpected behaviour." 
-    (Tier3.Report (Report.Event y)) -> do
+    (Tier3.Report (Statistics.Event y)) -> do
        _ <- pure $ foldl (&&) true (flip (>=) 0 <$> [y.min, y.max, y.sum, y.total, y.average, y.variance])
        pure unit
 
@@ -86,8 +86,8 @@ forwardLinux settings = do
 
 forwardReport :: Tier3.Settings -> Tier3.Request Unit
 forwardReport settings = do
-  event <- lift $ liftEffect Report.random
-  _     <- Tier3.request settings (Route.Forward (Forward.Report event)) 
+  event <- lift $ liftEffect Statistics.random
+  _     <- Tier3.request settings (Route.Forward (Forward.Statistics event)) 
   pure unit 
 
 forwardWindows :: Tier3.Settings -> Tier3.Request Unit
@@ -119,7 +119,7 @@ failure settings reportType eventID = do
   x <- Tier3.request settings (Route.Report (Report.Audit Audit.Tier3 Audit.Failure eventID reportType))
   case x of
     (Tier3.Forward _)                -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
-    (Tier3.Report (Report.Event y))  -> do
+    (Tier3.Report (Statistics.Event y))  -> do
       result <- pure $ foldl (&&) true (flip (==) 0 <$> [y.min, y.max, y.sum, y.total, y.average, y.variance])
       case result of
         true  -> pure unit 
@@ -130,13 +130,13 @@ failures settings = void $ sequence $
   [ failure settings Audit.Source $ Audit.Forward Schema.Audit
   , failure settings Audit.Source $ Audit.Forward Schema.Alert
   , failure settings Audit.Source $ Audit.Forward Schema.Flow
-  , failure settings Audit.Source $ Audit.Forward Schema.Report
+  , failure settings Audit.Source $ Audit.Forward Schema.Statistics
   , failure settings Audit.Source $ Audit.Forward Schema.Linux
   , failure settings Audit.Source $ Audit.Forward Schema.Windows
   , failure settings Audit.Duration $ Audit.Forward Schema.Audit
   , failure settings Audit.Duration $ Audit.Forward Schema.Alert
   , failure settings Audit.Duration $ Audit.Forward Schema.Flow
-  , failure settings Audit.Duration $ Audit.Forward Schema.Report
+  , failure settings Audit.Duration $ Audit.Forward Schema.Statistics
   , failure settings Audit.Duration $ Audit.Forward Schema.Linux
   , failure settings Audit.Duration $ Audit.Forward Schema.Windows
   ]
@@ -147,7 +147,7 @@ success settings reportType eventID = \request -> do
   _ <- request
   x <- Tier3.request settings (Route.Report (Report.Audit Audit.Tier3 Audit.Success eventID reportType))
   case [w,x] of
-    [(Tier3.Report (Report.Event y)), (Tier3.Report (Report.Event z))]  -> do
+    [(Tier3.Report (Statistics.Event y)), (Tier3.Report (Statistics.Event z))]  -> do
       result <- pure $ case reportType of
         Audit.Source   -> foldl (&&) true [z.min >= 0, z.max >= y.max, z.sum >= y.sum,  z.total >= y.total, z.average >= 0, z.variance >= 0]
         Audit.Duration -> foldl (&&) true [z.min >= 0, z.max >= y.max, z.sum >= y.sum, z.total >= y.total, y.average >= 0, y.variance >= 0]
@@ -160,12 +160,12 @@ successes :: forall a. Tier3.Settings -> Tier3.Request a -> Tier3.Request Unit
 successes settings request = void $ sequence $ apply request <$>
   [ success settings Audit.Source $ Audit.Forward Schema.Alert
   , success settings Audit.Source $ Audit.Forward Schema.Flow
-  , success settings Audit.Source $ Audit.Forward Schema.Report
+  , success settings Audit.Source $ Audit.Forward Schema.Statistics
   , success settings Audit.Source $ Audit.Forward Schema.Linux
   , success settings Audit.Source $ Audit.Forward Schema.Windows
   , success settings Audit.Duration $ Audit.Forward Schema.Alert
   , success settings Audit.Duration $ Audit.Forward Schema.Flow
-  , success settings Audit.Duration $ Audit.Forward Schema.Report
+  , success settings Audit.Duration $ Audit.Forward Schema.Statistics
   , success settings Audit.Duration $ Audit.Forward Schema.Linux 
   , success settings Audit.Duration $ Audit.Forward Schema.Windows
   ]

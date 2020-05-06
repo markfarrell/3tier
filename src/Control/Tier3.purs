@@ -51,6 +51,7 @@ import Data.Alert as Alert
 import Data.Event as Event
 import Data.Flow (Event(..)) as Flow
 import Data.Linux as Linux
+import Data.Statistics as Statistics
 import Data.Windows as Windows
 
 import Data.Schema (Schema)
@@ -64,8 +65,6 @@ import Control.Route as Route
 
 import Control.Forward as Forward
 import Control.Report as Report
-
-import Data.Report as Data.Report
 
 import Text.Parsing.Flow (event) as Flow
 
@@ -85,7 +84,7 @@ type Column = Tuple String ColumnType
  
 data ColumnType = Text | Integer
 
-data Resource = Forward Unit | Report Data.Report.Event
+data Resource = Forward Unit | Report Statistics.Event
 
 type Query a = DSL.Query Settings Resource Forward.URI Report.URI a
 
@@ -158,7 +157,7 @@ schemaURI Schema.Linux = schemaURI' "Linux" [] $
   , Tuple "SIP" Text
   , Tuple "SPort" Text
   ]
-schemaURI Schema.Report = schemaURI' "Report" [] $
+schemaURI Schema.Statistics = schemaURI' "Report" [] $
   [ Tuple "EventType" Text
   , Tuple "EventCategory" Text
   , Tuple "EventID" Text
@@ -254,8 +253,8 @@ insertLinuxURI (Linux.Event event) = do
       , Tuple "SPort" (show event.sPort)
       ]
 
-insertReportURI :: Data.Report.Event -> Aff String
-insertReportURI (Data.Report.Event event) = do
+insertReportURI :: Statistics.Event -> Aff String
+insertReportURI (Statistics.Event event) = do
   pure $ insertURI' "Report" params
   where 
     params  =
@@ -280,12 +279,12 @@ insertURI'  table' params = query
      values'  = snd <$> params
 
 insertURI :: Forward.URI ->  Aff String
-insertURI (Forward.Audit event)   = insertAuditURI event
-insertURI (Forward.Alert event)   = insertAlertURI event
-insertURI (Forward.Flow  event)   = insertFlowURI event
-insertURI (Forward.Linux event)   = insertLinuxURI event
-insertURI (Forward.Report event)  = insertReportURI event
-insertURI (Forward.Windows event) = insertWindowsURI event
+insertURI (Forward.Audit event)      = insertAuditURI event
+insertURI (Forward.Alert event)      = insertAlertURI event
+insertURI (Forward.Flow  event)      = insertFlowURI event
+insertURI (Forward.Linux event)      = insertLinuxURI event
+insertURI (Forward.Statistics event) = insertReportURI event
+insertURI (Forward.Windows event)    = insertWindowsURI event
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
 reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SIP, SPort" 
@@ -335,7 +334,7 @@ executeSchemas file = do
   _        <- SQLite3.all (schemaURI Schema.Audit) database
   _        <- SQLite3.all (schemaURI Schema.Alert) database
   _        <- SQLite3.all (schemaURI Schema.Flow) database
-  _        <- SQLite3.all (schemaURI Schema.Report) database
+  _        <- SQLite3.all (schemaURI Schema.Statistics) database
   _        <- SQLite3.all (schemaURI Schema.Linux) database
   _        <- SQLite3.all (schemaURI Schema.Windows) database
   _        <- SQLite3.close database
@@ -412,6 +411,7 @@ executeReport (Replication uri) query = do
     (Just event) -> pure event
     (Nothing)    -> liftEffect $ Exception.throw "Replication failure."
 executeReport (Single uri) query = do
+  startTime  <- liftEffect $ Date.current
   _          <- executeTouch (path uri)
   _          <- executeSchemas (path uri)
   database   <- SQLite3.connect (path uri) SQLite3.OpenReadOnly
@@ -422,10 +422,14 @@ executeReport (Single uri) query = do
   average    <- executeReport'' database (averageURI query)
   variance   <- executeReport'' database (varianceURI query average)
   _          <- SQLite3.close database
-  pure $ Report $ Data.Report.Event $
+  endTime    <- liftEffect $ Date.current
+  duration   <- pure $ Math.floor $ (Date.getTime endTime) - (Date.getTime startTime)
+  eventTime  <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
+  pure $ Report $ Statistics.Event $
     { eventCategory : eventCategory query
     , eventType     : eventType query
     , eventID       : eventID query
+    , eventTime     : eventTime
     , min           : Math.floor min
     , max           : Math.floor max
     , sum           : Math.floor sum
@@ -434,10 +438,10 @@ executeReport (Single uri) query = do
     , variance      : Math.floor variance
     }
   where
-    eventID       (Report.Audit _ _ _ _)                = Data.Report.Audit
-    eventType     _                                     = Data.Report.Success
-    eventCategory (Report.Audit _ _ _ (Audit.Source))   = Data.Report.Source
-    eventCategory (Report.Audit _ _ _ (Audit.Duration)) = Data.Report.Duration
+    eventID       (Report.Audit _ _ _ _)                = Statistics.Audit
+    eventType     _                                     = Statistics.Success
+    eventCategory (Report.Audit _ _ _ (Audit.Source))   = Statistics.Source
+    eventCategory (Report.Audit _ _ _ (Audit.Duration)) = Statistics.Duration
 
 executeReport'' :: Connection -> String -> Aff Number
 executeReport'' database uri = do
@@ -465,13 +469,13 @@ audit = \settings route -> do
   endTime   <- lift $ liftEffect $ Date.current
   duration  <- pure $ Math.floor $ (Date.getTime endTime) - (Date.getTime startTime)
   eventID   <- pure $ case route of
-                 (Route.Forward (Forward.Audit _))     -> Audit.Forward Schema.Audit
-                 (Route.Forward (Forward.Alert _))     -> Audit.Forward Schema.Alert
-                 (Route.Forward (Forward.Flow _))      -> Audit.Forward Schema.Flow
-                 (Route.Forward (Forward.Report _))    -> Audit.Forward Schema.Report
-                 (Route.Forward (Forward.Linux _))     -> Audit.Forward Schema.Linux
-                 (Route.Forward (Forward.Windows _))   -> Audit.Forward Schema.Windows
-                 (Route.Report (Report.Audit _ _ _ _)) -> Audit.Report Schema.Audit
+                 (Route.Forward (Forward.Audit _))      -> Audit.Forward Schema.Audit
+                 (Route.Forward (Forward.Alert _))      -> Audit.Forward Schema.Alert
+                 (Route.Forward (Forward.Flow _))       -> Audit.Forward Schema.Flow
+                 (Route.Forward (Forward.Statistics _)) -> Audit.Forward Schema.Statistics
+                 (Route.Forward (Forward.Linux _))      -> Audit.Forward Schema.Linux
+                 (Route.Forward (Forward.Windows _))    -> Audit.Forward Schema.Windows
+                 (Route.Report (Report.Audit _ _ _ _))  -> Audit.Report Schema.Audit
   eventType <- pure $ case result of
                  (Left _)  -> Audit.Failure
                  (Right _) -> Audit.Success

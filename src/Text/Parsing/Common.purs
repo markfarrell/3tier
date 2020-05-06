@@ -17,6 +17,8 @@ module Text.Parsing.Common
   , showable
   , substring
   , readArray
+  , readIndex
+  , readString
   ) where
 
 import Prelude
@@ -203,10 +205,10 @@ readString name obj = do
         (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readString)"
         (Right raw) -> pure raw 
 
-readInt :: String -> Foreign -> Parser String String
+readInt :: String -> Foreign -> Parser String Int
 readInt name obj = do
   input <- except (obj ! name >>= Foreign.readInt)
-  pure $ show input
+  pure input
   where 
     except = \x -> do
       result <- pure $ runExcept x
@@ -225,9 +227,20 @@ readArray name obj = do
         (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readArray)"
         (Right raw) -> pure raw 
 
+readIndex :: String -> Foreign -> Parser String Foreign
+readIndex name obj = do
+  input <- except (obj ! name)
+  pure $ input
+  where 
+    except = \x -> do
+      result <- pure $ runExcept x
+      case result of
+        (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readIndex)"
+        (Right raw) -> pure raw 
+
 property :: forall a. String -> Foreign -> Parser String a -> Parser String a
 property = \x y z -> do
-  input   <- choice [readString x y, readInt x y]
+  input   <- choice [readString x y]
   result' <- parse x input z
   pure result'
   where 

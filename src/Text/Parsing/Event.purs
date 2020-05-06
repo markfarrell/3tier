@@ -1,9 +1,11 @@
 module Text.Parsing.Event
-  ( eventSource
-  , eventTime
+  ( source
+  , time
   ) where
 
 import Prelude
+
+import Foreign (Foreign)
 
 import Text.Parsing.Parser (Parser)
 
@@ -11,8 +13,8 @@ import Text.Parsing.Common (ipv4, port, json, property, date, nonnegativeInteger
 
 import Data.Event as Event
 
-eventSource :: Parser String Event.Entity
-eventSource = do
+source :: Parser String Event.Entity
+source = do
   x    <- json
   ip   <- property "ip"   x  $ ipv4
   port <- property "port" x  $ port
@@ -21,9 +23,8 @@ eventSource = do
     , port : port
     }
 
-eventTime :: Parser String Event.Time
-eventTime = do
-  x         <- json
+time :: Foreign -> Parser String Event.Time
+time = \x -> do
   startTime <- property "startTime" x $ date
   duration  <- property "duration"  x $ nonnegativeInteger
   endTime   <- property "endTime"   x $ date

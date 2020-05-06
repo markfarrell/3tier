@@ -17,8 +17,8 @@ import Foreign (Foreign)
 
 import Data.Windows as Windows
 
-import Text.Parsing.Common (date, json, nonnegativeInteger, property, validation , showable, readArray)
-import Text.Parsing.Event (eventSource, eventTime) as Event
+import Text.Parsing.Common (date, json, nonnegativeInteger, property, validation , showable, readArray, readIndex)
+import Text.Parsing.Event (source, time) as Event
 import Text.Parsing.Risk (injection) as Risk
 
 eventURIComponent :: Foreign -> Parser String Windows.EventURIComponent
@@ -96,8 +96,8 @@ event = do
   eventID'       <- property "eventID"       x $ eventID eventCategory'
   eventType'     <- property "eventType"     x $ showable Windows.eventTypes
   eventURI'      <- property "eventURI"      x $ eventURI
-  eventTime'     <- property "eventTime"     x $ Event.eventTime
-  eventSource'   <- property "eventSource"   x $ Event.eventSource
+  eventTime'     <- readIndex "eventTime"    x >>= Event.time
+  eventSource'   <- property "eventSource"   x $ Event.source
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
       case eventCategory' == eventCategory'' of

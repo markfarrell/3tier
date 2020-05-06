@@ -71,17 +71,17 @@ forwards =
   , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Flow) Audit.Duration
   , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Flow) Audit.Duration
 
-  , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Report) Audit.Duration
+  , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Duration
 
   , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Linux) Audit.Source  
   , Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Linux) Audit.Duration
@@ -149,17 +149,17 @@ reports =
   , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Flow) Audit.Duration
   , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Flow) Audit.Duration
 
-  , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Report) Audit.Source  
-  , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Report) Audit.Duration
-  , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Report) Audit.Duration
+  , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Source  
+  , Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Statistics) Audit.Duration
+  , Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Duration
 
   , Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Linux) Audit.Source  
   , Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Linux) Audit.Duration
@@ -224,18 +224,18 @@ uri  (Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Flow) Audit.Source) 
 uri  (Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Flow) Audit.Source)   = "/report/audit/tier1/failure/forward-flow/source"
 uri  (Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Flow) Audit.Duration) = "/report/audit/tier1/success/forward-flow/duration"
 uri  (Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Flow) Audit.Duration) = "/report/audit/tier1/failure/forward-flow/duration"
-uri  (Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Report) Audit.Source)   = "/report/audit/tier3/success/forward-report/source"
-uri  (Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Report) Audit.Source)   = "/report/audit/tier3/failure/forward-report/source"
-uri  (Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Report) Audit.Duration) = "/report/audit/tier3/success/forward-report/duration"
-uri  (Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Report) Audit.Duration) = "/report/audit/tier3/failure/forward-report/duration"
-uri  (Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Report) Audit.Source)   = "/report/audit/tier2/success/forward-report/source"
-uri  (Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Report) Audit.Source)   = "/report/audit/tier2/failure/forward-report/source"
-uri  (Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Report) Audit.Duration) = "/report/audit/tier2/success/forward-report/duration"
-uri  (Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Report) Audit.Duration) = "/report/audit/tier2/failure/forward-report/duration"
-uri  (Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Report) Audit.Source)   = "/report/audit/tier1/success/forward-report/source"
-uri  (Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Report) Audit.Source)   = "/report/audit/tier1/failure/forward-report/source"
-uri  (Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Report) Audit.Duration) = "/report/audit/tier1/success/forward-report/duration"
-uri  (Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Report) Audit.Duration) = "/report/audit/tier1/failure/forward-report/duration"
+uri  (Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Statistics) Audit.Source)   = "/report/audit/tier3/success/forward-statistics/source"
+uri  (Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Source)   = "/report/audit/tier3/failure/forward-statistics/source"
+uri  (Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Statistics) Audit.Duration) = "/report/audit/tier3/success/forward-statistics/duration"
+uri  (Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Duration) = "/report/audit/tier3/failure/forward-statistics/duration"
+uri  (Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Statistics) Audit.Source)   = "/report/audit/tier2/success/forward-statistics/source"
+uri  (Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Source)   = "/report/audit/tier2/failure/forward-statistics/source"
+uri  (Audit Audit.Tier2 Audit.Success (Audit.Forward Schema.Statistics) Audit.Duration) = "/report/audit/tier2/success/forward-statistics/duration"
+uri  (Audit Audit.Tier2 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Duration) = "/report/audit/tier2/failure/forward-statistics/duration"
+uri  (Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Statistics) Audit.Source)   = "/report/audit/tier1/success/forward-statistics/source"
+uri  (Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Source)   = "/report/audit/tier1/failure/forward-statistics/source"
+uri  (Audit Audit.Tier1 Audit.Success (Audit.Forward Schema.Statistics) Audit.Duration) = "/report/audit/tier1/success/forward-statistics/duration"
+uri  (Audit Audit.Tier1 Audit.Failure (Audit.Forward Schema.Statistics) Audit.Duration) = "/report/audit/tier1/failure/forward-statistics/duration"
 uri  (Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Linux) Audit.Source)   = "/report/audit/tier3/success/forward-linux/source"
 uri  (Audit Audit.Tier3 Audit.Failure (Audit.Forward Schema.Linux) Audit.Source)   = "/report/audit/tier3/failure/forward-linux/source"
 uri  (Audit Audit.Tier3 Audit.Success (Audit.Forward Schema.Linux) Audit.Duration) = "/report/audit/tier3/success/forward-linux/duration"
@@ -296,18 +296,18 @@ uri  (Audit Audit.Tier1 Audit.Success (Audit.Report Schema.Flow) Audit.Source)  
 uri  (Audit Audit.Tier1 Audit.Failure (Audit.Report Schema.Flow) Audit.Source)   = "/report/audit/tier1/failure/report-flow/source"
 uri  (Audit Audit.Tier1 Audit.Success (Audit.Report Schema.Flow) Audit.Duration) = "/report/audit/tier1/success/report-flow/duration"
 uri  (Audit Audit.Tier1 Audit.Failure (Audit.Report Schema.Flow) Audit.Duration) = "/report/audit/tier1/failure/report-flow/duration"
-uri  (Audit Audit.Tier3 Audit.Success (Audit.Report Schema.Report) Audit.Source)   = "/report/audit/tier3/success/report-report/source"
-uri  (Audit Audit.Tier3 Audit.Failure (Audit.Report Schema.Report) Audit.Source)   = "/report/audit/tier3/failure/report-report/source"
-uri  (Audit Audit.Tier3 Audit.Success (Audit.Report Schema.Report) Audit.Duration) = "/report/audit/tier3/success/report-report/duration"
-uri  (Audit Audit.Tier3 Audit.Failure (Audit.Report Schema.Report) Audit.Duration) = "/report/audit/tier3/failure/report-report/duration"
-uri  (Audit Audit.Tier2 Audit.Success (Audit.Report Schema.Report) Audit.Source)   = "/report/audit/tier2/success/report-report/source"
-uri  (Audit Audit.Tier2 Audit.Failure (Audit.Report Schema.Report) Audit.Source)   = "/report/audit/tier2/failure/report-report/source"
-uri  (Audit Audit.Tier2 Audit.Success (Audit.Report Schema.Report) Audit.Duration) = "/report/audit/tier2/success/report-report/duration"
-uri  (Audit Audit.Tier2 Audit.Failure (Audit.Report Schema.Report) Audit.Duration) = "/report/audit/tier2/failure/report-report/duration"
-uri  (Audit Audit.Tier1 Audit.Success (Audit.Report Schema.Report) Audit.Source)   = "/report/audit/tier1/success/report-report/source"
-uri  (Audit Audit.Tier1 Audit.Failure (Audit.Report Schema.Report) Audit.Source)   = "/report/audit/tier1/failure/report-report/source"
-uri  (Audit Audit.Tier1 Audit.Success (Audit.Report Schema.Report) Audit.Duration) = "/report/audit/tier1/success/report-report/duration"
-uri  (Audit Audit.Tier1 Audit.Failure (Audit.Report Schema.Report) Audit.Duration) = "/report/audit/tier1/failure/report-report/duration"
+uri  (Audit Audit.Tier3 Audit.Success (Audit.Report Schema.Statistics) Audit.Source)   = "/report/audit/tier3/success/report-statistics/source"
+uri  (Audit Audit.Tier3 Audit.Failure (Audit.Report Schema.Statistics) Audit.Source)   = "/report/audit/tier3/failure/report-statistics/source"
+uri  (Audit Audit.Tier3 Audit.Success (Audit.Report Schema.Statistics) Audit.Duration) = "/report/audit/tier3/success/report-statistics/duration"
+uri  (Audit Audit.Tier3 Audit.Failure (Audit.Report Schema.Statistics) Audit.Duration) = "/report/audit/tier3/failure/report-statistics/duration"
+uri  (Audit Audit.Tier2 Audit.Success (Audit.Report Schema.Statistics) Audit.Source)   = "/report/audit/tier2/success/report-statistics/source"
+uri  (Audit Audit.Tier2 Audit.Failure (Audit.Report Schema.Statistics) Audit.Source)   = "/report/audit/tier2/failure/report-statistics/source"
+uri  (Audit Audit.Tier2 Audit.Success (Audit.Report Schema.Statistics) Audit.Duration) = "/report/audit/tier2/success/report-statistics/duration"
+uri  (Audit Audit.Tier2 Audit.Failure (Audit.Report Schema.Statistics) Audit.Duration) = "/report/audit/tier2/failure/report-statistics/duration"
+uri  (Audit Audit.Tier1 Audit.Success (Audit.Report Schema.Statistics) Audit.Source)   = "/report/audit/tier1/success/report-statistics/source"
+uri  (Audit Audit.Tier1 Audit.Failure (Audit.Report Schema.Statistics) Audit.Source)   = "/report/audit/tier1/failure/report-statistics/source"
+uri  (Audit Audit.Tier1 Audit.Success (Audit.Report Schema.Statistics) Audit.Duration) = "/report/audit/tier1/success/report-statistics/duration"
+uri  (Audit Audit.Tier1 Audit.Failure (Audit.Report Schema.Statistics) Audit.Duration) = "/report/audit/tier1/failure/report-statistics/duration"
 uri  (Audit Audit.Tier3 Audit.Success (Audit.Report Schema.Linux) Audit.Source)   = "/report/audit/tier3/success/report-linux/source"
 uri  (Audit Audit.Tier3 Audit.Failure (Audit.Report Schema.Linux) Audit.Source)   = "/report/audit/tier3/failure/report-linux/source"
 uri  (Audit Audit.Tier3 Audit.Success (Audit.Report Schema.Linux) Audit.Duration) = "/report/audit/tier3/success/report-linux/duration"

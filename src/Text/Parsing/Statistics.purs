@@ -1,4 +1,4 @@
-module Text.Parsing.Report
+module Text.Parsing.Statistics
   ( event
   ) where
 
@@ -6,25 +6,28 @@ import Prelude
 
 import Text.Parsing.Parser (Parser)
 
-import Data.Report as Report
-import Text.Parsing.Common (json, property, nonnegativeInteger, showable)
+import Data.Statistics as Statistics
+import Text.Parsing.Common (json, property, nonnegativeInteger, showable, readIndex)
+import Text.Parsing.Event (time) as Event
 
-event :: Parser String Report.Event
+event :: Parser String Statistics.Event
 event = do
   x              <- json
-  eventCategory' <- property "eventCategory" x $ showable Report.eventCategories
-  eventType'     <- property "eventType"     x $ showable Report.eventTypes
-  eventID'       <- property "eventID"       x $ showable Report.eventIDs
+  eventCategory' <- property "eventCategory" x $ showable Statistics.eventCategories
+  eventType'     <- property "eventType"     x $ showable Statistics.eventTypes
+  eventID'       <- property "eventID"       x $ showable Statistics.eventIDs
+  eventTime'     <- readIndex "time" x >>= Event.time 
   min            <- property "min"           x $ nonnegativeInteger
   max            <- property "max"           x $ nonnegativeInteger
   sum            <- property "sum"           x $ nonnegativeInteger
   total          <- property "total"         x $ nonnegativeInteger
   average        <- property "average"       x $ nonnegativeInteger
   variance       <- property "variance"      x $ nonnegativeInteger
-  pure $ Report.Event $
+  pure $ Statistics.Event $
     { eventCategory : eventCategory'
     , eventType     : eventType'
     , eventID       : eventID'
+    , eventTime     : eventTime'
     , min           : min
     , max           : max
     , sum           : sum

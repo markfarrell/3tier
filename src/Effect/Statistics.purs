@@ -1,4 +1,4 @@
-module Effect.Report
+module Effect.Statistics
   ( random
   ) where
 
@@ -11,9 +11,11 @@ import Data.Maybe (Maybe(..))
 
 import Effect (Effect)
 
+import FFI.Date as Date
 import FFI.Math as Math
 
-import Data.Report as Report 
+import Data.Event as Event
+import Data.Statistics as Statistics 
 
 range :: Int -> Int -> Effect Int
 range min max = do
@@ -39,26 +41,28 @@ array w x = do
     (Just z)  -> pure z
     (Nothing) -> pure w
 
-eventCategory :: Effect Report.EventCategory
-eventCategory = array default $ Report.eventCategories
-  where default = Report.Source
+eventCategory :: Effect Statistics.EventCategory
+eventCategory = array default $ Statistics.eventCategories
+  where default = Statistics.Source
 
-eventID :: Effect Report.EventID
-eventID = array default $ Report.eventIDs
-  where default = Report.Anomalous
+eventID :: Effect Statistics.EventID
+eventID = array default $ Statistics.eventIDs
+  where default = Statistics.Anomalous
 
-eventType :: Effect Report.EventType
-eventType = array Report.Success $ [Report.Success, Report.Failure]
+eventType :: Effect Statistics.EventType
+eventType = array Statistics.Success $ [Statistics.Success, Statistics.Failure]
 
-random :: Effect Report.Event
+random :: Effect Statistics.Event
 random = do
   eventCategory' <- eventCategory
   eventID'       <- eventID
   eventType'     <- eventType
-  pure $ Report.Event $
+  eventTime'     <- pure $ Event.Time { startTime : Date.epoch, duration : 0, endTime : Date.epoch }
+  pure $ Statistics.Event $
     { eventCategory : eventCategory'
     , eventID       : eventID'
     , eventType     : eventType'
+    , eventTime     : eventTime'
     , min           : 0
     , max           : 0
     , sum           : 0

@@ -39,8 +39,8 @@ import FFI.Socket (Socket)
 
 foreign import data Server :: Type
 foreign import data IncomingMessage :: Type
-foreign import data ServerResponse :: Type
-foreign import data ClientRequest :: Type
+foreign import data ServerResponse  :: Type
+foreign import data ClientRequest   :: Type
 
 type MessageHeaders = Foreign
 
@@ -102,5 +102,3 @@ setRequestHeader headerName headerValue req = liftEffect $ setRequestHeaderImpl 
 
 endRequest :: ClientRequest -> Aff IncomingResponse
 endRequest client = fromEffectFnAff $ endRequestImpl incomingResponse client
-
-

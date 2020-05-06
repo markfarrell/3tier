@@ -1,4 +1,4 @@
-module Data.Report
+module Data.Statistics
   ( EventCategory(..)
   , EventType(..)
   , EventID(..)
@@ -12,20 +12,23 @@ import Prelude
 
 import Data.Foldable (foldl)
 
+import Data.Event as Event
+
 import FFI.JSON as JSON
 
 import Unsafe.Coerce (unsafeCoerce)
 
-data EventCategory = Source | Duration | Unique
+data EventCategory = Source | Duration
 
 data EventType = Success | Failure
 
-data EventID = Alert | Audit | Anomalous | Flow | Report | Linux | Windows
+data EventID = Alert | Audit | Anomalous | Flow | Statistics | Linux | Windows
 
 data Event = Event
   { eventCategory :: EventCategory
   , eventType     :: EventType
   , eventID       :: EventID
+  , eventTime     :: Event.Time
   , min           :: Int
   , max           :: Int
   , sum           :: Int
@@ -34,55 +37,54 @@ data Event = Event
   , variance      :: Int 
   }
 
-instance showEventReport :: Show Event where
+instance showEventStatistics :: Show Event where
   show = uri
 
-instance showEventCategoryReport :: Show EventCategory where
+instance showEventCategoryStatistics :: Show EventCategory where
   show Source   = "SOURCE"
   show Duration = "DURATION"
-  show Unique   = "UNIQUE"
 
-instance showEventTypeReport :: Show EventType where
+instance showEventTypeStatistics :: Show EventType where
   show Success = "SUCCESS"
   show Failure = "FAILURE"
 
-instance showEventIDReport :: Show EventID where
-  show Alert     = "ALERT"
-  show Audit     = "AUDIT"
-  show Anomalous = "ANOMALOUS"
-  show Flow      = "FLOW"
-  show Report    = "REPORT"
-  show Linux     = "LINUX"
-  show Windows   = "WINDOWS"
+instance showEventIDStatistics :: Show EventID where
+  show Alert      = "ALERT"
+  show Audit      = "AUDIT"
+  show Anomalous  = "ANOMALOUS"
+  show Flow       = "FLOW"
+  show Statistics = "STATISTICS"
+  show Linux      = "LINUX"
+  show Windows    = "WINDOWS"
 
-instance eqEventCategoryReport :: Eq EventCategory where
+instance eqEventCategoryStatistics :: Eq EventCategory where
   eq Source Source     = true
   eq Duration Duration = true
-  eq Unique Unique     = true
   eq _      _          = false
 
-instance eqEventTypeReport :: Eq EventType where
+instance eqEventTypeStatistics :: Eq EventType where
   eq Success Success = true
   eq Failure Failure = true
   eq _       _       = false
 
-instance eqEventIDReport :: Eq EventID where
-  eq Alert     Alert     = true 
-  eq Audit     Audit     = true
-  eq Anomalous Anomalous = true
-  eq Flow      Flow      = true
-  eq Report    Report    = true
-  eq Linux     Linux     = true
-  eq Windows   Windows   = true
-  eq _         _         = false
+instance eqEventIDStatistics :: Eq EventID where
+  eq Alert      Alert       = true 
+  eq Audit      Audit       = true
+  eq Anomalous  Anomalous   = true
+  eq Flow       Flow        = true
+  eq Statistics Statistics  = true
+  eq Linux      Linux       = true
+  eq Windows    Windows     = true
+  eq _          _           = false
 
-instance eqEventReport :: Eq Event where
+instance eqEventStatistics :: Eq Event where
   eq (Event x) (Event y) = foldl (&&) true comparison
     where
       comparison = 
         [ eq x.eventCategory y.eventCategory
         , eq x.eventType  y.eventType
         , eq x.eventID  y.eventID
+        , eq x.eventTime y.eventTime
         , eq x.min  y.min
         , eq x.max  y.max
         , eq x.sum  y.sum
@@ -91,10 +93,10 @@ instance eqEventReport :: Eq Event where
         ]
 
 eventCategories :: Array EventCategory
-eventCategories = [ Source, Duration, Unique ]
+eventCategories = [ Source, Duration ]
 
 eventIDs :: Array EventID
-eventIDs = [ Alert, Audit, Anomalous, Flow, Report, Linux, Windows ]
+eventIDs = [ Alert, Audit, Anomalous, Flow, Statistics, Linux, Windows ]
 
 eventTypes :: Array EventType
 eventTypes = [ Success, Failure ]
@@ -104,6 +106,7 @@ uri (Event event') = JSON.stringify $ unsafeCoerce $
   { eventCategory : show event'.eventCategory
   , eventType     : show event'.eventType
   , eventID       : show event'.eventID
+  , eventTime     : show event'.eventTime
   , min           : show event'.min
   , max           : show event'.max
   , sum           : show event'.sum

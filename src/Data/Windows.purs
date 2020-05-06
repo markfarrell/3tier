@@ -137,7 +137,7 @@ instance showEventURIWindows :: Show EventURI where
     , category           : x.category
     , categoryNumber     : show x.categoryNumber
     , entryType          : x.entryType
-    , description        : eventURIComponent <$> x.description
+    , description        : toForeign <<< eventURIComponent <$> x.description
     , source             : x.source 
     , replacementStrings : x.replacementStrings
     , instanceID         : x.instanceID
@@ -147,7 +147,6 @@ instance showEventURIWindows :: Show EventURI where
     , container          : x.container
     }
     where
-      eventURIComponent :: EventURIComponent -> Foreign
       eventURIComponent (Subject y) = unsafeCoerce $
         { securityID    : y.securityID
         , accountName   : y.accountName
@@ -701,12 +700,21 @@ processTracking =
 privilegeUse :: Array Int
 privilegeUse = [ 4673, 4674 ]
 
+toForeign :: forall a. a -> Foreign
+toForeign = unsafeCoerce
+
 uri :: Event -> String
-uri (Event event') = JSON.stringify $ unsafeCoerce $
+uri (Event event') = JSON.stringify $ toForeign $
  { eventCategory : show event'.eventCategory
  , eventType     : show event'.eventType
  , eventID       : show event'.eventID
  , eventURI      : show event'.eventURI
- , eventTime     : show event'.eventTime
+ , eventTime     : toForeign $ eventTime' event'.eventTime
  , eventSource   : show event'.eventSource
  }
+ where
+   eventTime' (Event.Time t) =
+    { startTime : show t.startTime
+    , duration  : show t.duration
+    , endTime   : show t.endTime
+    } 
