@@ -13,11 +13,12 @@ import Effect.Console (log)
 
 import Test.FFI.UUID as UUID
 
-import Test.Control.Tier3        as Tier3
-import Test.Text.Parsing.Common  as Common
-import Test.Text.Parsing.Flow    as Flow
-import Test.Text.Parsing.Risk    as Risk
-import Test.Text.Parsing.Windows as Windows
+import Test.Control.Tier3           as Tier3
+import Test.Text.Parsing.Common     as Common
+import Test.Text.Parsing.Flow       as Flow
+import Test.Text.Parsing.Risk       as Risk
+import Test.Text.Parsing.Statistics as Statistics
+import Test.Text.Parsing.Windows    as Windows
 
 main :: Effect Unit
 main = void $ launchAff $ do
@@ -30,18 +31,18 @@ main = void $ launchAff $ do
   _ <- render (assigned suite "FFI.Readline")
   _ <- render (assigned suite "FFI.RSA")
   _ <- render (assigned suite "FFI.SQLite3")
-  _ <- render (complete suite "FFI.UUID")             *> UUID.suite
+  _ <- render (complete suite "FFI.UUID")                *> UUID.suite
   _ <- render (h2 "Design/Philosophy")
   _ <- render (assigned suite "Data.Event")
   _ <- render (h2 "Parsing/Validation")
-  _ <- render (assigned suite "Text.Parsing.Common")  *> Common.suite
+  _ <- render (assigned suite "Text.Parsing.Common")     *> Common.suite
   _ <- render (assigned suite "Text.Parsing.Alert")
   _ <- render (assigned suite "Text.Parsing.Audit")
-  _ <- render (pending  suite "Text.Parsing.Flow")    *> Flow.suite
+  _ <- render (pending  suite "Text.Parsing.Flow")       *> Flow.suite
   _ <- render (assigned suite "Text.Parsing.Linux")
-  _ <- render (assigned suite "Text.Parsing.Statistics")
-  _ <- render (assigned suite "Text.Parsing.Risk")    *> Risk.suite
-  _ <- render (assigned suite "Text.Parsing.Windows") *> Windows.suite
+  _ <- render (complete suite "Text.Parsing.Statistics") *> Statistics.suite
+  _ <- render (assigned suite "Text.Parsing.Risk")       *> Risk.suite
+  _ <- render (assigned suite "Text.Parsing.Windows")    *> Windows.suite
   _ <- render (assigned suite "Text.Parsing.Route")
   _ <- render (h1 "-------------------\n- Risk Management -\n-------------------")
   _ <- render (h2 "Risk/Audit")

@@ -157,7 +157,7 @@ schemaURI Schema.Linux = schemaURI' "Linux" [] $
   , Tuple "SIP" Text
   , Tuple "SPort" Text
   ]
-schemaURI Schema.Statistics = schemaURI' "Report" [] $
+schemaURI Schema.Statistics = schemaURI' "Statistics" [] $
   [ Tuple "EventType" Text
   , Tuple "EventCategory" Text
   , Tuple "EventID" Text
@@ -261,7 +261,7 @@ insertLinuxURI (Linux.Event event) = do
 
 insertStatisticsURI :: Statistics.Event -> Aff String
 insertStatisticsURI (Statistics.Event event) = do
-  pure $ insertURI' "Report" params
+  pure $ insertURI' "Statistics" params
   where 
     params  = 
       case event.eventURI of
