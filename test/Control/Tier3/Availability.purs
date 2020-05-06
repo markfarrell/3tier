@@ -28,7 +28,7 @@ import FFI.FS as FS
 import FFI.Math as Math
 
 import Data.Audit (EventCategory(..), EventType(..), EventID(..), ReportType(..)) as Audit
-import Data.Statistics (Event(..)) as Statistics
+import Data.Statistics (Event(..), EventURI(..)) as Statistics
 import Data.Schema as Schema
 
 import Data.Event (Time(..)) as Event
@@ -44,13 +44,43 @@ import Control.Tier3 as Tier3
 
 import Test.Data.Test as Test
 
+min' :: Statistics.Event -> Int
+min' (Statistics.Event x) =
+  case x.eventURI of
+    (Statistics.EventURI y) -> y.min
+
+max' :: Statistics.Event -> Int
+max' (Statistics.Event x) =
+  case x.eventURI of
+    (Statistics.EventURI y) -> y.max
+
+sum :: Statistics.Event -> Int
+sum (Statistics.Event x) =
+  case x.eventURI of
+    (Statistics.EventURI y) -> y.sum
+
+total :: Statistics.Event -> Int
+total (Statistics.Event x) =
+  case x.eventURI of
+    (Statistics.EventURI y) -> y.total
+
+average :: Statistics.Event -> Int
+average (Statistics.Event x) =
+  case x.eventURI of
+    (Statistics.EventURI y) -> y.average
+
+variance :: Statistics.Event -> Int
+variance (Statistics.Event x) =
+  case x.eventURI of
+    (Statistics.EventURI y) -> y.variance
+
 report :: Tier3.Settings -> Report.URI -> Tier3.Request Unit
 report settings uri = do
   x <- Tier3.request settings (Route.Report uri)
   case x of
-    (Tier3.Forward _)               -> lift $ liftEffect $ Exception.throw "Unexpected behaviour." 
-    (Tier3.Report (Statistics.Event y)) -> do
-       _ <- pure $ foldl (&&) true (flip (>=) 0 <$> [y.min, y.max, y.sum, y.total, y.average, y.variance])
+    (Tier3.Forward _) -> lift $ liftEffect $ Exception.throw "Unexpected behaviour." 
+    (Tier3.Report y)  -> do
+       _ <- pure $ foldl (&&) true (flip (>=) 0 <$> [min' y, max' y, sum y, total y, average y, variance y])
        pure unit
 
 reports :: Tier3.Settings -> Tier3.Request Unit
@@ -118,12 +148,12 @@ failure :: Tier3.Settings -> Audit.ReportType -> Audit.EventID -> Tier3.Request 
 failure settings reportType eventID = do
   x <- Tier3.request settings (Route.Report (Report.Audit Audit.Tier3 Audit.Failure eventID reportType))
   case x of
-    (Tier3.Forward _)                -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
-    (Tier3.Report (Statistics.Event y))  -> do
-      result <- pure $ foldl (&&) true (flip (==) 0 <$> [y.min, y.max, y.sum, y.total, y.average, y.variance])
+    (Tier3.Forward _) -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
+    (Tier3.Report y)  -> do
+      result <- pure $ foldl (&&) true (flip (==) 0 <$> [min' y, max' y, sum y, total y, average y, variance y])
       case result of
         true  -> pure unit 
-        _     -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
+        _    -> lift (liftEffect $ Exception.throw "Unexpected audited failure event format.")
 
 failures :: Tier3.Settings -> Tier3.Request Unit
 failures settings = void $ sequence $
@@ -147,14 +177,12 @@ success settings reportType eventID = \request -> do
   _ <- request
   x <- Tier3.request settings (Route.Report (Report.Audit Audit.Tier3 Audit.Success eventID reportType))
   case [w,x] of
-    [(Tier3.Report (Statistics.Event y)), (Tier3.Report (Statistics.Event z))]  -> do
-      result <- pure $ case reportType of
-        Audit.Source   -> foldl (&&) true [z.min >= 0, z.max >= y.max, z.sum >= y.sum,  z.total >= y.total, z.average >= 0, z.variance >= 0]
-        Audit.Duration -> foldl (&&) true [z.min >= 0, z.max >= y.max, z.sum >= y.sum, z.total >= y.total, y.average >= 0, y.variance >= 0]
+    [(Tier3.Report y), (Tier3.Report z)]  -> do
+      result <- pure $ foldl (&&) true [min' z >= 0, max' z >= max' y, sum z >= sum y, total z >= total y, average z >= 0, variance z >= 0]
       case result of
         true  -> pure unit
-        false -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
-    _         -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
+        false -> lift (liftEffect $ Exception.throw "Comparison of audited success events failed.")
+    _ -> lift (liftEffect $ Exception.throw "Unexpected result set type.")
 
 successes :: forall a. Tier3.Settings -> Tier3.Request a -> Tier3.Request Unit
 successes settings request = void $ sequence $ apply request <$>
@@ -324,7 +352,7 @@ suite =  do
   x <- Tier3.execute tests
   case x of
     (Left _)  -> do
-       _ <- liftEffect $ Exception.throw "Unexpected behaviour."
+       _ <- liftEffect $ Exception.throw "Data-access tier availability tests failed."
        pure unit
     (Right _) -> do
        pure unit

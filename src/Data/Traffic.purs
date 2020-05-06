@@ -6,14 +6,14 @@ module Data.Traffic
   , EventURI(..) 
   ) where
 
-import Data.Event (Event, Entity) as Event
+import Data.Event (Event) as Event
 import Data.Flow as Flow
 
 data EventCategory = In | Out
                        
 data EventType     = Success | Failure
 
-type EventID       = Event.Entity
+data EventID       = HTTP | FTP | SSH | MicrosoftDS | WinRM -- | ...
 
 type EventURI      = Flow.Event
 

@@ -3,12 +3,15 @@ module Data.Statistics
   , EventType(..)
   , EventID(..)
   , Event(..)
+  , EventURI(..)
   , eventCategories
   , eventIDs
   , eventTypes
   ) where
 
 import Prelude
+
+import Foreign (Foreign)
 
 import Data.Foldable (foldl)
 
@@ -24,17 +27,22 @@ data EventType = Success | Failure
 
 data EventID = Alert | Audit | Anomalous | Flow | Statistics | Linux | Windows
 
-data Event = Event
-  { eventCategory :: EventCategory
-  , eventType     :: EventType
-  , eventID       :: EventID
-  , eventTime     :: Event.Time
-  , min           :: Int
+data EventURI = EventURI
+  { min           :: Int
   , max           :: Int
   , sum           :: Int
   , total         :: Int
   , average       :: Int
   , variance      :: Int 
+  }
+
+data Event = Event
+  { eventCategory :: EventCategory
+  , eventType     :: EventType
+  , eventID       :: EventID
+  , eventTime     :: Event.Time
+  , eventSource   :: Event.Source
+  , eventURI      :: EventURI
   }
 
 instance showEventStatistics :: Show Event where
@@ -57,6 +65,9 @@ instance showEventIDStatistics :: Show EventID where
   show Linux      = "LINUX"
   show Windows    = "WINDOWS"
 
+instance showEventURIStatistics :: Show EventURI where
+  show (EventURI x) = JSON.stringify $ unsafeCoerce x
+
 instance eqEventCategoryStatistics :: Eq EventCategory where
   eq Source Source     = true
   eq Duration Duration = true
@@ -77,19 +88,28 @@ instance eqEventIDStatistics :: Eq EventID where
   eq Windows    Windows     = true
   eq _          _           = false
 
+instance eqEventURIStatistics :: Eq EventURI where
+  eq (EventURI x) (EventURI y) = foldl (&&) true comparison
+    where
+      comparison =
+        [ eq x.min y.min
+        , eq x.max y.max
+        , eq x.sum y.sum
+        , eq x.total y.total
+        , eq x.average  y.average
+        , eq x.variance y.variance
+        ]
+
 instance eqEventStatistics :: Eq Event where
   eq (Event x) (Event y) = foldl (&&) true comparison
     where
       comparison = 
         [ eq x.eventCategory y.eventCategory
-        , eq x.eventType  y.eventType
-        , eq x.eventID  y.eventID
-        , eq x.eventTime y.eventTime
-        , eq x.min  y.min
-        , eq x.max  y.max
-        , eq x.sum  y.sum
-        , eq x.total  y.total
-        , eq x.average  y.average
+        , eq x.eventType     y.eventType
+        , eq x.eventID       y.eventID
+        , eq x.eventSource   y.eventSource
+        , eq x.eventTime     y.eventTime
+        , eq x.eventURI      y.eventURI
         ]
 
 eventCategories :: Array EventCategory
@@ -101,16 +121,22 @@ eventIDs = [ Alert, Audit, Anomalous, Flow, Statistics, Linux, Windows ]
 eventTypes :: Array EventType
 eventTypes = [ Success, Failure ]
 
+foreignURI :: EventURI -> Foreign
+foreignURI (EventURI x) = unsafeCoerce $
+  { min      : show x.min
+  , max      : show x.max
+  , sum      : show x.sum
+  , total    : show x.total
+  , average  : show x.average
+  , variance : show x.variance
+  }
+
 uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
   { eventCategory : show event'.eventCategory
   , eventType     : show event'.eventType
   , eventID       : show event'.eventID
-  , eventTime     : show event'.eventTime
-  , min           : show event'.min
-  , max           : show event'.max
-  , sum           : show event'.sum
-  , total         : show event'.total
-  , average       : show event'.average
-  , variance      : show event'.variance
+  , eventTime     : Event.foreignTime   $ event'.eventTime
+  , eventSource   : Event.foreignSource $ event'.eventSource
+  , eventURI      : foreignURI event'.eventURI
   }

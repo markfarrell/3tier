@@ -234,8 +234,14 @@ insertWindowsURI (Windows.Event event) = do
       , Tuple "StartTime" $ case event.eventTime of (Event.Time x) -> show x.startTime
       , Tuple "Duration"  $ case event.eventTime of (Event.Time x) -> show x.duration
       , Tuple "EndTime"   $ case event.eventTime of (Event.Time x) -> show x.endTime
-      , Tuple "IP"        $ case event.eventSource of (Event.Host x) -> show x.ip
-      , Tuple "Port"      $ case event.eventSource of (Event.Host x) -> show x.port
+      , Tuple "IP"        $
+          case event.eventSource of 
+            (Event.Host x) -> show x.ip
+            _              -> "???"
+      , Tuple "Port"      $ 
+        case event.eventSource of 
+            (Event.Host x) -> show x.port
+            _              -> "???"
       ]
 
 insertLinuxURI :: Linux.Event -> Aff String
@@ -253,21 +259,23 @@ insertLinuxURI (Linux.Event event) = do
       , Tuple "SPort" (show event.sPort)
       ]
 
-insertReportURI :: Statistics.Event -> Aff String
-insertReportURI (Statistics.Event event) = do
+insertStatisticsURI :: Statistics.Event -> Aff String
+insertStatisticsURI (Statistics.Event event) = do
   pure $ insertURI' "Report" params
   where 
-    params  =
-      [ Tuple "EventType" (show event.eventType)
-      , Tuple "EventCategory" (show event.eventCategory)
-      , Tuple "EventID" (show event.eventID)
-      , Tuple "Min" (show event.min)
-      , Tuple "Max" (show event.max)
-      , Tuple "Sum" (show event.sum)
-      , Tuple "Total" (show event.total)
-      , Tuple "Average" (show event.average)
-      , Tuple "Variance" (show event.variance)
-      ]
+    params  = 
+      case event.eventURI of
+        (Statistics.EventURI eventURI) ->
+          [ Tuple "EventType" (show event.eventType)
+          , Tuple "EventCategory" (show event.eventCategory)
+          , Tuple "EventID" (show event.eventID)
+          , Tuple "Min" (show eventURI.min)
+          , Tuple "Max" (show eventURI.max)
+          , Tuple "Sum" (show eventURI.sum)
+          , Tuple "Total" (show eventURI.total)
+          , Tuple "Average" (show eventURI.average)
+          , Tuple "Variance" (show eventURI.variance)
+          ]
 
 insertURI' ::  Table -> Array (Tuple String String) -> String
 insertURI'  table' params = query
@@ -283,7 +291,7 @@ insertURI (Forward.Audit event)      = insertAuditURI event
 insertURI (Forward.Alert event)      = insertAlertURI event
 insertURI (Forward.Flow  event)      = insertFlowURI event
 insertURI (Forward.Linux event)      = insertLinuxURI event
-insertURI (Forward.Statistics event) = insertReportURI event
+insertURI (Forward.Statistics event) = insertStatisticsURI event
 insertURI (Forward.Windows event)    = insertWindowsURI event
 
 reportAuditURI' :: Audit.ReportType -> Table -> Table
@@ -411,7 +419,6 @@ executeReport (Replication uri) query = do
     (Just event) -> pure event
     (Nothing)    -> liftEffect $ Exception.throw "Replication failure."
 executeReport (Single uri) query = do
-  startTime  <- liftEffect $ Date.current
   _          <- executeTouch (path uri)
   _          <- executeSchemas (path uri)
   database   <- SQLite3.connect (path uri) SQLite3.OpenReadOnly
@@ -422,20 +429,22 @@ executeReport (Single uri) query = do
   average    <- executeReport'' database (averageURI query)
   variance   <- executeReport'' database (varianceURI query average)
   _          <- SQLite3.close database
-  endTime    <- liftEffect $ Date.current
-  duration   <- pure $ Math.floor $ (Date.getTime endTime) - (Date.getTime startTime)
-  eventTime  <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
-  pure $ Report $ Statistics.Event $
-    { eventCategory : eventCategory query
-    , eventType     : eventType query
-    , eventID       : eventID query
-    , eventTime     : eventTime
-    , min           : Math.floor min
+  eventTime  <- pure $ Event.Time { startTime : Date.epoch, duration : 0, endTime : Date.epoch }
+  eventURI   <- pure $ Statistics.EventURI $
+    { min           : Math.floor min
     , max           : Math.floor max
     , sum           : Math.floor sum
     , total         : Math.floor total
     , average       : Math.floor average
     , variance      : Math.floor variance
+    }
+  pure $ Report $ Statistics.Event $
+    { eventCategory : eventCategory query
+    , eventType     : eventType query
+    , eventID       : eventID query
+    , eventTime     : eventTime
+    , eventSource   : Event.Tier3
+    , eventURI      : eventURI
     }
   where
     eventID       (Report.Audit _ _ _ _)                = Statistics.Audit

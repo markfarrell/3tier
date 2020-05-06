@@ -97,7 +97,7 @@ event = do
   eventType'     <- property "eventType"     x $ showable Windows.eventTypes
   eventURI'      <- property "eventURI"      x $ eventURI
   eventTime'     <- readIndex "eventTime"    x >>= Event.time
-  eventSource'   <- property "eventSource"   x $ Event.source
+  eventSource'   <- property "eventSource"  x $ Event.source
   case eventID' of
     (Tuple eventCategory'' eventID'') -> do
       case eventCategory' == eventCategory'' of

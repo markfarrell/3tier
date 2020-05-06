@@ -105,7 +105,7 @@ data Event = Event
   , eventType     :: EventType
   , eventURI      :: EventURI
   , eventTime     :: Event.Time
-  , eventSource   :: Event.Entity
+  , eventSource   :: Event.Source
   }
 
 instance showEventWindows :: Show Event where

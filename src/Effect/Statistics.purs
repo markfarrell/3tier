@@ -14,6 +14,8 @@ import Effect (Effect)
 import FFI.Date as Date
 import FFI.Math as Math
 
+import Data.IPv4 (IPv4(..))
+
 import Data.Event as Event
 import Data.Statistics as Statistics 
 
@@ -58,15 +60,20 @@ random = do
   eventID'       <- eventID
   eventType'     <- eventType
   eventTime'     <- pure $ Event.Time { startTime : Date.epoch, duration : 0, endTime : Date.epoch }
-  pure $ Statistics.Event $
-    { eventCategory : eventCategory'
-    , eventID       : eventID'
-    , eventType     : eventType'
-    , eventTime     : eventTime'
-    , min           : 0
+  eventSource'   <- pure $ Event.Host { ip : IPv4 0 0 0 0, port : 0 }
+  eventURI'      <- pure $ Statistics.EventURI $
+    { min           : 0
     , max           : 0
     , sum           : 0
     , total         : 0
     , average       : 0
     , variance      : 0
+    }
+  pure $ Statistics.Event $
+    { eventCategory : eventCategory'
+    , eventID       : eventID'
+    , eventType     : eventType'
+    , eventTime     : eventTime'
+    , eventSource   : eventSource'
+    , eventURI      : eventURI'
     }
