@@ -15,6 +15,7 @@ import Test.FFI.UUID as UUID
 
 import Test.Control.Tier3           as Tier3
 import Test.Text.Parsing.Common     as Common
+import Test.Text.Parsing.Audit      as Audit
 import Test.Text.Parsing.Flow       as Flow
 import Test.Text.Parsing.Risk       as Risk
 import Test.Text.Parsing.Statistics as Statistics
@@ -32,18 +33,22 @@ main = void $ launchAff $ do
   _ <- render (assigned suite "FFI.RSA")
   _ <- render (assigned suite "FFI.SQLite3")
   _ <- render (complete suite "FFI.UUID")                *> UUID.suite
-  _ <- render (h2 "Design/Philosophy")
+  _ <- render (h2 "Design/Control")
+  _ <- render (assigned suite "Control.DSL")
+  _ <- render (h2 "Design/Data")
   _ <- render (assigned suite "Data.Event")
   _ <- render (h2 "Parsing/Validation")
-  _ <- render (assigned suite "Text.Parsing.Common")     *> Common.suite
-  _ <- render (assigned suite "Text.Parsing.Alert")
-  _ <- render (assigned suite "Text.Parsing.Audit")
-  _ <- render (pending  suite "Text.Parsing.Flow")       *> Flow.suite
-  _ <- render (assigned suite "Text.Parsing.Linux")
-  _ <- render (complete suite "Text.Parsing.Statistics") *> Statistics.suite
-  _ <- render (assigned suite "Text.Parsing.Risk")       *> Risk.suite
-  _ <- render (assigned suite "Text.Parsing.Windows")    *> Windows.suite
-  _ <- render (assigned suite "Text.Parsing.Route")
+  _ <- render (assigned suite  "Text.Parsing.Common")      *> Common.suite
+  _ <- render (assigned suite  "Text.Parsing.Alert")
+  _ <- render (complete suite  "Text.Parsing.Audit")       *> Audit.suite
+  _ <- render (complete  suite "Text.Parsing.Flow")        *> Flow.suite
+  _ <- render (assigned suite  "Text.Parsing.Linux")
+  _ <- render (complete suite  "Text.Parsing.Statistics")  *> Statistics.suite
+  _ <- render (pending suite   "Text.Parsing.Risk")        *> Risk.suite
+  _ <- render (pending suite   "Text.Parsing.Windows")     *> Windows.suite
+  _ <- render (assigned suite  "Text.Parsing.Forward") 
+  _ <- render (assigned suite  "Text.Parsing.Report") 
+  _ <- render (assigned suite  "Text.Parsing.Route")
   _ <- render (h1 "-------------------\n- Risk Management -\n-------------------")
   _ <- render (h2 "Risk/Audit")
   _ <- render (assigned suite   "Control.Tier3")

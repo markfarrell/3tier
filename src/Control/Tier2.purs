@@ -33,11 +33,12 @@ import Text.Parsing.Parser (runParser)
 
 import Unsafe.Coerce (unsafeCoerce)
 
-import FFI.Date as Date
-import FFI.HTTPS as HTTPS
-import FFI.Math as Math
+import FFI.Date   as Date
+import FFI.HTTPS  as HTTPS
+import FFI.Math   as Math
 import FFI.Socket as Socket
-import FFI.JSON as JSON
+import FFI.JSON   as JSON
+import FFI.UUID   as UUID
 
 import Control.Tier3 as Tier3
 
@@ -52,9 +53,10 @@ import Control.Report (URI(..)) as Report
 import Control.Route (Route)
 import Control.Route as Route
 
-import Data.IPv4 (IPv4(..))
+import Data.IPv4 (IPv4)
 
 import Data.Audit as Audit
+import Data.Event as Event
 import Data.Statistics (Event) as Statistics
 import Data.Schema as Schema
 
@@ -152,21 +154,23 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
                        _      -> case response of
                          (Left _)  -> Audit.Failure
                          (Right _) -> Audit.Success
-  sIP           <- pure $ case (runParser (Socket.remoteAddress $ HTTPS.socket req) ipv4) of
-                     (Left _)  -> (IPv4 (-1) (-1) (-1) (-1))
-                     (Right x) -> x
-  sPort         <- pure $ Socket.remotePort $ HTTPS.socket req
-  event         <- pure $ Audit.Event $
+  eventTime    <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
+  port         <- pure $ Socket.remotePort $ HTTPS.socket req
+  eventSource  <- pure $ case (runParser (Socket.remoteAddress $ HTTPS.socket req) ipv4) of
+                     (Left _)   -> Event.Tier2
+                     (Right ip) -> Event.Host { ip : ip, port : port }
+  {-- todo: derive namespace UUID from authentication settings --}
+  sourceUUID   <- liftEffect $ UUID.uuidv1
+  eventURI     <- liftEffect $ UUID.uuidv5 (HTTPS.messageURL req) sourceUUID 
+  event        <- pure $ Audit.Event $
                      { eventCategory : Audit.Tier2
                      , eventType     : eventType
                      , eventID       : eventID
-                     , startTime     : startTime
-                     , duration      : duration
-                     , endTime       : endTime
-                     , sIP           : sIP
-                     , sPort         : sPort
+                     , eventSource   : eventSource
+                     , eventURI      : eventURI
+                     , eventTime     : eventTime
                      }
-  _             <- Tier3.execute $ audit settings event
+  _            <- Tier3.execute $ audit settings event
   pure unit
 
 producer :: HTTPS.Server -> Producer HTTPS.IncomingRequest Aff Unit

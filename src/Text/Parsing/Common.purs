@@ -19,6 +19,7 @@ module Text.Parsing.Common
   , readArray
   , readIndex
   , readString
+  , uuid
   ) where
 
 import Prelude
@@ -27,7 +28,7 @@ import Control.Monad.Except (runExcept)
 
 import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Foldable (foldMap, foldl)
+import Data.Foldable (foldMap, foldl, intercalate)
 import Data.List as List
 import Data.String.CodeUnits (singleton)
 import Data.Maybe (Maybe(..))
@@ -40,9 +41,12 @@ import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.String (string, anyChar, char)
 import Text.Parsing.Parser.Combinators (optional,choice,try,lookAhead)
 
+import Unsafe.Coerce (unsafeCoerce)
+
 import FFI.Date (Date)
 import FFI.Date as Date
 import FFI.JSON as JSON
+import FFI.UUID (UUID)
 
 import Data.IPv4(IPv4(..))
 import Data.TCP.Flag (Flag(..))
@@ -276,3 +280,31 @@ substring = \x -> do
   case z == -1 of
     true  -> fail $ "Substring not found (" <> x <> "," <> y <> ")"
     false -> string (substringImpl y 0 z) *> string x
+    
+hex :: Parser String String
+hex = choice (string <$> ["a","b","c","d","e","f","0","1","2","3","4","5","6","7","8","9"])
+
+repeat' :: forall a. Monoid a => Int -> Parser String a -> a -> Parser String a
+repeat' n x = \acc ->
+  case n <= 0 of
+    true  -> pure acc
+    false -> do
+      acc' <- x
+      repeat' (n - 1) x $ acc <> acc' 
+
+repeat :: forall a. Monoid a => Int -> Parser String a -> Parser String a
+repeat  n x = repeat' n x $ mempty 
+
+uuid :: Parser String UUID
+uuid = do
+  v <- repeat 8 hex
+  _ <- hyphen
+  w <- repeat 4 hex
+  _ <- hyphen
+  x <- repeat 4 hex
+  _ <- hyphen
+  y <- repeat 4 hex
+  _ <- hyphen
+  z <- repeat 12 hex
+  pure $ unsafeCoerce (intercalate "-" [v,w,x,y,z])
+  where hyphen = char '-'

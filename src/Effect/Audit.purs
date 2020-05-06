@@ -14,10 +14,10 @@ import Effect.Date (random) as Date
 
 import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
-
-import Data.IPv4 (IPv4(..))
+import FFI.UUID as UUID
 
 import Data.Audit as Audit 
+import Data.Event as Event
 
 range :: Int -> Int -> Effect Int
 range min max = do
@@ -53,6 +53,9 @@ eventID = array default $ Audit.eventIDs
 eventType :: Effect Audit.EventType
 eventType = array Audit.Success $ [Audit.Success, Audit.Failure]
 
+eventSource :: Effect Event.Source
+eventSource = array Event.Tier1 $ [Event.Tier1, Event.Tier2, Event.Tier3]
+
 random :: Effect Audit.Event
 random = do
   eventCategory' <- eventCategory
@@ -61,15 +64,14 @@ random = do
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
-  sIP            <- pure $ IPv4 0 0 0 0
-  sPort          <- pure $ 0
+  eventTime      <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
+  eventSource'   <- eventSource
+  eventURI'      <- UUID.uuidv4
   pure $ Audit.Event $
     { eventCategory : eventCategory'
     , eventID       : eventID'
     , eventType     : eventType'
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : sIP
-    , sPort         : sPort
+    , eventSource   : eventSource'
+    , eventURI      : eventURI'
+    , eventTime     : eventTime
     }

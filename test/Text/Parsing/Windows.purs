@@ -45,13 +45,13 @@ eventURI = do
       , categoryNumber     : 13312
       , entryType          : "SuccessAudit"
       , description        : [ Windows.Subject $
-                               { securityID    : "???"
-                               , accountName   : "???"
-                               , accountDomain : "???"
-                               , logonID       : "???"
+                               { securityID    : "S-1-5-18"
+                               , accountName   : "ABCD1234-XY"
+                               , accountDomain : "ABCD1234"
+                               , logonID       : "0x3e7"
                                }
                              ]
-      , source             : "???" 
+      , source             : "Microsoft-Windows-Security-Auditing" 
       , replacementStrings : "System.String[]"
       , instanceID         : "4625"
       , timeGenerated      : Date.epoch
