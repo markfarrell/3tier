@@ -8,6 +8,8 @@ import Prelude
 
 import Data.Foldable (intercalate)
 
+import FFI.String as String
+
 import Data.Audit as Audit
 
 data ReportType = Source | Time
@@ -35,8 +37,8 @@ uris = do
 uri :: URI -> String
 uri (Audit eventCategory eventType eventID reportType) = intercalate "/" $
   [ "/report"
-  , show eventCategory
-  , show eventType
-  , show eventID
-  , show reportType
+  , String.toLowerCase $ show eventCategory
+  , String.toLowerCase $ show eventType
+  , String.toLowerCase $ show eventID
+  , String.toLowerCase $ show reportType
   ]

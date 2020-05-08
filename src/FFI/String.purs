@@ -5,6 +5,7 @@ module FFI.String
   , escape
   , encodeURIComponent
   , encodeURI
+  , toLowerCase
   ) where
 
 foreign import decodeURI :: String -> String
@@ -18,6 +19,8 @@ foreign import escapeImpl :: String -> String
 foreign import encodeURIComponent :: String -> String
 
 foreign import encodeURI :: String -> String
+
+foreign import toLowerCase :: String -> String
 
 escape :: String -> String
 escape = escapeImpl

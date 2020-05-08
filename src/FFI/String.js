@@ -43,3 +43,7 @@ exports.encodeURI = function(uri) {
     return uri;
   }
 };
+
+exports.toLowerCase = function(str) {
+  return str.toLowerCase();
+};
