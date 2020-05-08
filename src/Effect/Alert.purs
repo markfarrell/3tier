@@ -14,8 +14,10 @@ import Effect.Date (random) as Date
 
 import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
+import FFI.UUID as UUID
 
-import Data.IPv4 (IPv4(..))
+import Data.Event as Event
+
 import Data.Alert as Alert 
 
 range :: Int -> Int -> Effect Int
@@ -44,14 +46,18 @@ array w x = do
 
 eventCategory :: Effect Alert.EventCategory
 eventCategory = array default $ Alert.eventCategories
-  where default = Alert.Variance
+  where default = Alert.Audit
 
 eventID :: Effect Alert.EventID
 eventID = array default $ Alert.eventIDs
-  where default = Alert.Anomalous
+  where default = Alert.Source
 
 eventType :: Effect Alert.EventType
-eventType = array Alert.Success $ [Alert.Success, Alert.Failure]
+eventType = array default $ [Alert.Success, Alert.Failure]
+  where default = Alert.Success
+
+eventSource :: Effect Event.Source
+eventSource = array Event.Tier1 $ [Event.Tier1, Event.Tier2, Event.Tier3]
 
 random :: Effect Alert.Event
 random = do
@@ -61,15 +67,14 @@ random = do
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
-  sIP            <- pure $ IPv4 0 0 0 0
-  sPort          <- pure $ 0
+  eventTime      <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
+  eventSource'   <- eventSource
+  eventURI'      <- UUID.uuidv4
   pure $ Alert.Event $
     { eventCategory : eventCategory'
     , eventID       : eventID'
     , eventType     : eventType'
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : sIP
-    , sPort         : sPort
+    , eventSource   : eventSource'
+    , eventURI      : eventURI'
+    , eventTime     : eventTime
     }
