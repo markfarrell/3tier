@@ -17,6 +17,7 @@ import Test.Control.Tier3           as Tier3
 import Test.Data.NetFlowv9          as NetFlowv9
 
 import Test.Text.Parsing.Common     as Common
+import Test.Text.Parsing.Alert      as Alert
 import Test.Text.Parsing.Audit      as Audit
 import Test.Text.Parsing.Flow       as Flow
 import Test.Text.Parsing.Risk       as Risk
@@ -44,7 +45,7 @@ main = void $ launchAff $ do
   {-- RELEASE-01/TIER-02/ISSUE-02 --}
   _ <- render (h2 "Parsing/Validation")
   _ <- render (assigned suite  "Text.Parsing.Common")      *> Common.suite
-  _ <- render (assigned suite  "Text.Parsing.Alert")
+  _ <- render (complete suite  "Text.Parsing.Alert")       *> Alert.suite
   _ <- render (complete suite  "Text.Parsing.Audit")       *> Audit.suite
   _ <- render (complete  suite "Text.Parsing.Flow")        *> Flow.suite
   _ <- render (assigned suite  "Text.Parsing.Linux")

@@ -6,6 +6,7 @@ module Data.Alert
   , Event(..)
   , eventCategories
   , eventIDs
+  , eventTypes
   ) where
 
 import Prelude
@@ -49,11 +50,30 @@ instance showEventIDAlert :: Show EventID where
   show Source = "SOURCE"
   show Time   = "TIME"
 
+instance eqEventCategoryAlert :: Eq EventCategory where
+  eq Audit Audit = true
+
+instance eqEventTypeAlert :: Eq EventType where
+  eq Success Success = true
+  eq Failure Failure = true
+  eq _     _         = false
+
+instance eqEventIDAlert :: Eq EventID where
+  eq Source  Source = true
+  eq Time    Time   = true
+  eq _     _        = false
+
+instance eqEventAlert :: Eq Event where
+  eq (Event x) (Event y) = (x == y)
+
 eventCategories :: Array EventCategory
 eventCategories = [ Audit ]
 
 eventIDs :: Array EventID
 eventIDs = [ Source, Time ]
+  
+eventTypes :: Array EventType
+eventTypes = [ Success, Failure ]
 
 uri :: Event -> String
 uri (Event event') = JSON.stringify $ unsafeCoerce $
@@ -62,4 +82,5 @@ uri (Event event') = JSON.stringify $ unsafeCoerce $
   , eventID       : show event'.eventID
   , eventSource   : Event.foreignSource event'.eventSource
   , eventTime     : Event.foreignTime event'.eventTime
+  , eventURI      : show event'.eventURI
   }
