@@ -44,11 +44,12 @@ array w x = do
     (Nothing) -> pure w
 
 eventCategory :: Effect Audit.EventCategory
-eventCategory = pure Audit.Tier1
+eventCategory = array default $ Audit.eventCategories
+  where default = Audit.Anomalous
 
 eventID :: Effect Audit.EventID
 eventID = array default $ Audit.eventIDs
-  where default = Audit.Anomalous
+  where default = Audit.Risk
 
 eventType :: Effect Audit.EventType
 eventType = array Audit.Success $ [Audit.Success, Audit.Failure]

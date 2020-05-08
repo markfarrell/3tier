@@ -47,7 +47,6 @@ import FFI.UUID    as UUID
 import Control.DSL as DSL
 
 import Data.Audit as Audit
-import Data.Alert as Alert
 import Data.Event as Event
 import Data.Flow (Event(..)) as Flow
 import Data.Linux as Linux
@@ -60,11 +59,11 @@ import Data.Schema as Schema
 import Control.Authorization (Authorization)
 import Control.Authentication (Authentication)
 
-import Control.Route (Route)
-import Control.Route as Route
+import Data.Route (Route)
+import Data.Route as Route
 
-import Control.Forward as Forward
-import Control.Report as Report
+import Data.Forward as Forward
+import Data.Report as Report
 
 import Text.Parsing.Flow (event) as Flow
 
@@ -112,16 +111,6 @@ schemaURI Schema.Audit = schemaURI' "Audit" [] $
   , Tuple "StartTime" Text
   , Tuple "Duration" Integer
   , Tuple "EndTime" Text
-  ]
-schemaURI Schema.Alert = schemaURI' "Alert" [] $
-  [ Tuple "StartTime" Text
-  , Tuple "Duration" Integer
-  , Tuple "EndTime" Text
-  , Tuple "EventType" Text
-  , Tuple "EventCategory" Text
-  , Tuple "EventID" Text
-  , Tuple "SIP" Text
-  , Tuple "SPort" Text
   ]
 schemaURI Schema.Flow = schemaURI' "Flow" [] $ 
   [ Tuple "SIP" Text
@@ -191,21 +180,6 @@ insertAuditURI (Audit.Event event) = do
       , Tuple "StartTime" (show $ startTime event.eventTime)
       , Tuple "Duration" (show $ duration event.eventTime)
       , Tuple "EndTime" (show $ endTime event.eventTime)
-      ]
-
-insertAlertURI :: Alert.Event -> Aff String
-insertAlertURI (Alert.Event event) = do
-  pure $ insertURI' "Alert" params
-  where 
-    params  =
-      [ Tuple "SIP" (show event.sIP)
-      , Tuple "SPort" (show event.sPort)
-      , Tuple "StartTime" (show event.startTime)
-      , Tuple "Duration" (show event.duration)
-      , Tuple "EndTime" (show event.endTime)
-      , Tuple "EventType" (show event.eventType)
-      , Tuple "EventCategory" (show event.eventCategory)
-      , Tuple "EventID" (show event.eventID)
       ]
 
 assert :: forall a b. String -> Either a b -> Aff Unit
@@ -297,15 +271,14 @@ insertURI'  table' params = query
 
 insertURI :: Forward.URI ->  Aff String
 insertURI (Forward.Audit event)      = insertAuditURI event
-insertURI (Forward.Alert event)      = insertAlertURI event
 insertURI (Forward.Flow  event)      = insertFlowURI event
 insertURI (Forward.Linux event)      = insertLinuxURI event
 insertURI (Forward.Statistics event) = insertStatisticsURI event
 insertURI (Forward.Windows event)    = insertWindowsURI event
 
-reportAuditURI' :: Audit.ReportType -> Table -> Table
-reportAuditURI' Audit.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY EventSource" 
-reportAuditURI' Audit.Duration = \table -> "SELECT Duration as X FROM (" <> table <> ")"
+reportAuditURI' :: Report.ReportType -> Table -> Table
+reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY EventSource" 
+reportAuditURI' Report.Time = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Report.URI -> Table
 reportURI (Report.Audit eventCategory eventType eventID reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "' AND EventID='" <> show eventID <> "'"
@@ -349,7 +322,6 @@ executeSchemas :: String -> Aff Unit
 executeSchemas file = do
   database <- SQLite3.connect file SQLite3.OpenReadWrite
   _        <- SQLite3.all (schemaURI Schema.Audit) database
-  _        <- SQLite3.all (schemaURI Schema.Alert) database
   _        <- SQLite3.all (schemaURI Schema.Flow) database
   _        <- SQLite3.all (schemaURI Schema.Statistics) database
   _        <- SQLite3.all (schemaURI Schema.Linux) database
@@ -459,8 +431,8 @@ executeReport (Single uri) query = do
   where
     eventID       (Report.Audit _ _ _ _)                = Statistics.Audit
     eventType     _                                     = Statistics.Success
-    eventCategory (Report.Audit _ _ _ (Audit.Source))   = Statistics.Source
-    eventCategory (Report.Audit _ _ _ (Audit.Duration)) = Statistics.Duration
+    eventCategory (Report.Audit _ _ _ (Report.Source))  = Statistics.Source
+    eventCategory (Report.Audit _ _ _ (Report.Time))    = Statistics.Duration
 
 executeReport'' :: Connection -> String -> Aff Number
 executeReport'' database uri = do
@@ -487,17 +459,19 @@ audit = \settings route -> do
   result      <- lift $ execute (resource settings route)
   endTime'    <- lift $ liftEffect $ Date.current
   duration'   <- pure $ Math.floor $ (Date.getTime endTime') - (Date.getTime startTime')
+  eventCategory <- pure $ case route of
+    (Route.Forward _) -> Audit.Forward
+    (Route.Report  _) -> Audit.Report
   eventID     <- pure $ case route of
-                 (Route.Forward (Forward.Audit _))      -> Audit.Forward Schema.Audit
-                 (Route.Forward (Forward.Alert _))      -> Audit.Forward Schema.Alert
-                 (Route.Forward (Forward.Flow _))       -> Audit.Forward Schema.Flow
-                 (Route.Forward (Forward.Statistics _)) -> Audit.Forward Schema.Statistics
-                 (Route.Forward (Forward.Linux _))      -> Audit.Forward Schema.Linux
-                 (Route.Forward (Forward.Windows _))    -> Audit.Forward Schema.Windows
-                 (Route.Report (Report.Audit _ _ _ _))  -> Audit.Report Schema.Audit
+    (Route.Forward (Forward.Audit _))      -> Audit.Audit
+    (Route.Forward (Forward.Flow _))       -> Audit.Traffic
+    (Route.Forward (Forward.Statistics _)) -> Audit.Statistics
+    (Route.Forward (Forward.Linux _))      -> Audit.Linux
+    (Route.Forward (Forward.Windows _))    -> Audit.Windows
+    (Route.Report (Report.Audit _ _ _ _))  -> Audit.Audit
   eventType   <- pure $ case result of
-                 (Left _)  -> Audit.Failure
-                 (Right _) -> Audit.Success
+    (Left _)  -> Audit.Failure
+    (Right _) -> Audit.Success
   eventTime   <- pure $ Event.Time { startTime : startTime', duration : duration', endTime : endTime' }
   {-- todo: derive event source from auth. settings --}
   eventSource <- pure $ Event.Tier3
@@ -505,7 +479,7 @@ audit = \settings route -> do
   sourceUUID  <- lift $ liftEffect $ UUID.uuidv1
   eventURI    <- lift $ liftEffect $ UUID.uuidv5 (show route) sourceUUID
   event       <- pure $ Audit.Event $
-                 { eventCategory : Audit.Tier3
+                 { eventCategory : eventCategory
                  , eventType     : eventType
                  , eventID       : eventID
                  , eventSource   : eventSource

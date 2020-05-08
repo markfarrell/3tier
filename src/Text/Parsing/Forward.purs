@@ -8,7 +8,7 @@ import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.String (string)
 import Text.Parsing.Parser.Combinators (choice)
 
-import Control.Forward as Forward
+import Data.Forward as Forward
 
 import Text.Parsing.Flow as Flow
 import Text.Parsing.Windows as Windows

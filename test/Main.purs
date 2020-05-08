@@ -26,6 +26,7 @@ import Test.Text.Parsing.Windows    as Windows
 main :: Effect Unit
 main = void $ launchAff $ do
   _ <- render (h1 "--------------------\n- Issue Management -\n--------------------")
+  {-- RELEASE-01/TIER-02/ISSUE-01 --}
   _ <- render (h2 "Dependencies/FFI")
   _ <- render (assigned suite "FFI.Date")
   _ <- render (assigned suite "FFI.HTTPS")
@@ -34,12 +35,13 @@ main = void $ launchAff $ do
   _ <- render (assigned suite "FFI.Readline")
   _ <- render (assigned suite "FFI.RSA")
   _ <- render (assigned suite "FFI.SQLite3")
-  _ <- render (complete suite "FFI.UUID")                *> UUID.suite
+  _ <- render (complete suite "FFI.UUID")                  *> UUID.suite
   _ <- render (h2 "Design/Control")
   _ <- render (assigned suite "Control.DSL")
   _ <- render (h2 "Design/Data")
   _ <- render (assigned suite "Data.Event")
   _ <- render (pending suite "Data.NetFlowv9")             *> NetFlowv9.suite
+  {-- RELEASE-01/TIER-02/ISSUE-02 --}
   _ <- render (h2 "Parsing/Validation")
   _ <- render (assigned suite  "Text.Parsing.Common")      *> Common.suite
   _ <- render (assigned suite  "Text.Parsing.Alert")
@@ -55,28 +57,29 @@ main = void $ launchAff $ do
   _ <- render (assigned suite  "Text.Parsing.Route")
   _ <- render (h1 "-------------------\n- Risk Management -\n-------------------")
   _ <- render (h2 "Risk/Audit")
-  _ <- render (assigned suite   "Control.Tier3")
-  _ <- render (assigned suite  "Control.Tier2")
+  _ <- render (assigned suite "Control.Tier3")
+  {-- RELEASE-01/TIER-02/ISSUE-03 --}
+  _ <- render (assigned suite "Control.Tier2")
   _ <- render (assigned suite "Control.Tier1")
   _ <- render (h2 "Risk/Access-Control")
-  _ <- render (assigned suite   "Control.Tier3")
-  _ <- render (assigned suite  "Control.Tier2")
+  _ <- render (assigned suite "Control.Tier3")
+  _ <- render (assigned suite "Control.Tier2")
   _ <- render (assigned suite "Control.Tier1")
   _ <- render (h2 "Risk/Availability")
-  _ <- render (complete  suite   "Control.Tier3")      *> Tier3.availability
-  _ <- render (assigned suite  "Control.Tier2")
+  _ <- render (complete suite "Control.Tier3")             *> Tier3.availability
+  _ <- render (assigned suite "Control.Tier2")
   _ <- render (assigned suite "Control.Tier1")
   _ <- render (h2 "Risk/Exposure")
   _ <- render (assigned suite   "Control.Tier3")
   _ <- render (assigned suite  "Control.Tier2")
   _ <- render (assigned suite "Control.Tier1")
   _ <- render (h2 "Risk/Injection")
-  _ <- render (assigned suite   "Control.Tier3")
-  _ <- render (assigned suite  "Control.Tier2")
+  _ <- render (assigned suite "Control.Tier3")
+  _ <- render (assigned suite "Control.Tier2")
   _ <- render (assigned suite "Control.Tier1")
   _ <- render (h2 "Risk/Scalability")
-  _ <- render (assigned suite   "Control.Tier3")
-  _ <- render (assigned suite  "Control.Tier2")
+  _ <- render (assigned suite "Control.Tier3")
+  _ <- render (assigned suite "Control.Tier2")
   _ <- render (assigned suite "Control.Tier1")
   pure unit
   where

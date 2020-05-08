@@ -4,7 +4,6 @@ module Data.Audit
   , EventID(..)
   , EventURI
   , Event(..)
-  , ReportType(..)
   , eventCategories
   , eventIDs
   , eventTypes
@@ -14,9 +13,6 @@ import Prelude
 
 import Data.Event as Event
 
-import Data.Schema (Schema)
-import Data.Schema as Schema
-
 import FFI.UUID (UUID)
 import FFI.JSON as JSON
 
@@ -24,13 +20,11 @@ import Unsafe.Coerce (unsafeCoerce)
 
 data EventType = Success | Failure
 
-data EventID = Forward Schema | Report Schema | Risk | Anomalous
+data EventID = Alert | Audit | Traffic | Windows | Linux | Statistics | Risk
 
-data EventCategory = Tier1 | Tier2 | Tier3
+data EventCategory = Forward | Report | Anomalous
 
 type EventURI = UUID
-
-data ReportType = Source | Duration
 
 data Event = Event 
   { eventCategory :: EventCategory
@@ -49,31 +43,24 @@ instance showEventTypeAudit :: Show EventType where
   show Failure = "FAILURE"
 
 instance showEventIDAudit :: Show EventID where
-  show (Forward Schema.Audit)       = "FORWARD-AUDIT"
-  show (Forward Schema.Alert)       = "FORWARD-ALERT"
-  show (Forward Schema.Flow)        = "FORWARD-FLOW"
-  show (Forward Schema.Linux)       = "FORWARD-LINUX"
-  show (Forward Schema.Statistics)  = "FORWARD-STATISTICS"
-  show (Forward Schema.Windows)     = "FORWARD-WINDOWS"
-  show (Report  Schema.Audit)       = "REPORT-AUDIT"
-  show (Report  Schema.Alert)       = "REPORT-ALERT"
-  show (Report  Schema.Flow)        = "REPORT-FLOW"
-  show (Report  Schema.Linux)       = "REPORT-LINUX"
-  show (Report  Schema.Statistics)  = "REPORT-STATISTICS"
-  show (Report  Schema.Windows)     = "REPORT-WINDOWS"
-  show (Risk)                       = "RISK"
-  show (Anomalous)                  = "ANOMALOUS"
+  show (Alert)        = "ALERT"
+  show (Audit)        = "AUDIT"
+  show (Traffic)      = "TRAFFIC"
+  show (Linux)        = "LINUX"
+  show (Statistics)   = "STATISTICS"
+  show (Windows)      = "WINDOWS"
+  show (Risk)         = "RISK"
 
 instance showEventCategory :: Show EventCategory where
-  show Tier1 = "TIER-1"
-  show Tier2 = "TIER-2"
-  show Tier3 = "TIER-3"
+  show Forward   = "FORWARD"
+  show Report    = "REPORT"
+  show Anomalous = "ANOMALOUS"
 
 instance eqEventCategoryAudit :: Eq EventCategory where
-  eq Tier1 Tier1 = true
-  eq Tier2 Tier2 = true
-  eq Tier3 Tier3 = true
-  eq _     _     = false
+  eq Forward Forward      = true
+  eq Report  Report       = true
+  eq Anomalous Anomalous  = true
+  eq _     _              = false
 
 instance eqEventTypeAudit :: Eq EventType where
   eq Success Success = true
@@ -81,34 +68,30 @@ instance eqEventTypeAudit :: Eq EventType where
   eq _       _       = false
 
 instance eqEventIDAudit :: Eq EventID where
-  eq (Forward x) (Forward y) = true
-  eq (Report  x) (Report  y) = true
-  eq (Risk)      (Risk)      = true
-  eq (Anomalous) (Anomalous) = true
-  eq _           _           = false
+  eq (Alert)      (Alert)      = true
+  eq (Audit)      (Audit)      = true
+  eq (Traffic)    (Traffic)    = true
+  eq (Linux)      (Linux)      = true
+  eq (Statistics) (Statistics) = true
+  eq (Windows)    (Windows)    = true
+  eq (Risk)       (Risk)       = true
+  eq _           _             = false
 
 instance eqEventAudit :: Eq Event where
   eq (Event x) (Event y) = (x == y)
 
 eventCategories :: Array EventCategory
-eventCategories = [Tier1, Tier2, Tier3]
+eventCategories = [Forward, Report, Anomalous]
 
 eventIDs :: Array EventID
 eventIDs =
-  [ Anomalous
+  [ Audit
+  , Alert
+  , Traffic
+  , Windows
+  , Linux
+  , Statistics
   , Risk
-  , Forward Schema.Audit
-  , Forward Schema.Alert
-  , Forward Schema.Flow
-  , Forward Schema.Linux
-  , Forward Schema.Statistics
-  , Forward Schema.Windows
-  , Report Schema.Audit
-  , Report Schema.Alert
-  , Report Schema.Flow
-  , Report Schema.Statistics
-  , Report Schema.Linux
-  , Report Schema.Windows
   ]
 
 eventTypes :: Array EventType

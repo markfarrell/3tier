@@ -19,12 +19,9 @@ import Data.Windows (EventURI(..), EventURIComponent(..)) as Windows
 
 import Text.Parsing.Parser (runParser)
 
-import Control.Forward (URI(..)) as Forward
-
 import Effect.Windows (random) as Windows
 
-import Text.Parsing.Forward (event)    as Forward
-import Text.Parsing.Windows (eventURI) as Windows
+import Text.Parsing.Windows (event,eventURI) as Windows
 
 eventURI :: Effect Unit
 eventURI = do
@@ -60,10 +57,10 @@ eventURI = do
       , container          : ""
       }
 
-forward :: Effect Unit
-forward = do
-  input  <- Forward.Windows <$> Windows.random
-  result <- pure (flip runParser Forward.event $ show input)
+event :: Effect Unit
+event = do
+  input  <- Windows.random
+  result <- pure (flip runParser Windows.event $ show input)
   case result of
     (Left  _)      -> Exception.throw (show result)
     (Right output) ->
@@ -71,11 +68,11 @@ forward = do
         false -> Exception.throw (show $ [input, output])
         true  -> pure unit
 
-forwards :: Effect Unit
-forwards = void $ sequence (const forward <$> Array.range 1 10)
+events :: Effect Unit
+events = void $ sequence (const event <$> Array.range 1 10)
 
 suite :: Aff Unit
 suite = do 
   _ <- liftEffect $ eventURI
-  _ <- liftEffect $ forwards
+  _ <- liftEffect $ events
   pure unit

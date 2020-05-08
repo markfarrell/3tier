@@ -47,18 +47,17 @@ import Control.DSL as DSL
 import Control.Authorization as Authorization
 import Control.Authentication as Authentication
 
-import Control.Forward as Forward
-import Control.Report (URI(..)) as Report
+import Data.Forward as Forward
+import Data.Report (URI(..)) as Report
 
-import Control.Route (Route)
-import Control.Route as Route
+import Data.Route (Route)
+import Data.Route as Route
 
 import Data.IPv4 (IPv4)
 
 import Data.Audit as Audit
 import Data.Event as Event
 import Data.Statistics (Event) as Statistics
-import Data.Schema as Schema
 
 import Text.Parsing.Common (ipv4)
 import Text.Parsing.Statistics (event) as Statistics
@@ -80,7 +79,7 @@ data Settings = Settings Authorization Authentication Target
 
 data AuthenticationType = Bearer
 
-data Resource = Forward Unit | Statistics Statistics.Event
+data Resource = Forward Unit | Report Statistics.Event
 
 data Response = Ok Resource | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
 
@@ -97,7 +96,7 @@ audit settings event = do
 
 textJSON :: Resource -> String
 textJSON (Forward _) = ""
-textJSON (Statistics x)  = JSON.stringify $ unsafeCoerce x
+textJSON (Report x)  = JSON.stringify $ unsafeCoerce x
 
 sendResponse :: Response -> HTTPS.ServerResponse -> Aff Unit
 sendResponse (Ok body) = \res -> liftEffect $ do
@@ -126,44 +125,47 @@ databaseRequest settings route req = do
   case result of 
     (Left _)               -> pure  $ InternalServerError ""
     (Right (Tier3.Forward unit)) -> pure $ Ok (Forward unit)
-    (Right (Tier3.Report event)) -> pure $ Ok (Statistics event) 
+    (Right (Tier3.Report event)) -> pure $ Ok (Report event) 
 
 resourceRequest :: Tier3.Settings -> HTTPS.IncomingRequest -> Aff Unit
 resourceRequest settings (HTTPS.IncomingRequest req res) = do
   startTime     <- liftEffect $ Date.current
   routingResult <- Route.execute req
   resource      <- case routingResult of
-                     (Left _)      -> pure $ BadRequest (HTTPS.messageURL req)
-                     (Right route) -> databaseRequest settings route req 
+    (Left _)      -> pure $ BadRequest (HTTPS.messageURL req)
+    (Right route) -> databaseRequest settings route req 
   response      <- try $ sendResponse resource res 
   endTime       <- liftEffect $ Date.current
   duration      <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
+  eventCategory <- pure $ case routingResult of
+    (Left _)                  -> Audit.Anomalous
+    (Right (Route.Forward _)) -> Audit.Forward
+    (Right (Route.Report  _)) -> Audit.Report
   eventID       <- pure $ case routingResult of
-                     (Left _)                                       -> Audit.Anomalous
-                     (Right (Route.Forward (Forward.Audit _)))      -> Audit.Forward Schema.Audit
-                     (Right (Route.Forward (Forward.Alert _)))      -> Audit.Forward Schema.Alert
-                     (Right (Route.Forward (Forward.Flow _)))       -> Audit.Forward Schema.Flow
-                     (Right (Route.Forward (Forward.Statistics _))) -> Audit.Forward Schema.Statistics
-                     (Right (Route.Forward (Forward.Linux  _)))     -> Audit.Forward Schema.Linux
-                     (Right (Route.Forward (Forward.Windows _)))    -> Audit.Forward Schema.Windows
-                     (Right (Route.Report  (Report.Audit _ _ _ _))) -> Audit.Report  Schema.Audit
+    (Left _)                                       -> Audit.Risk
+    (Right (Route.Forward (Forward.Audit _)))      -> Audit.Audit
+    (Right (Route.Forward (Forward.Flow _)))       -> Audit.Traffic
+    (Right (Route.Forward (Forward.Statistics _))) -> Audit.Statistics
+    (Right (Route.Forward (Forward.Linux  _)))     -> Audit.Linux
+    (Right (Route.Forward (Forward.Windows _)))    -> Audit.Windows
+    (Right (Route.Report  (Report.Audit _ _ _ _))) -> Audit.Audit
   eventType     <- pure $ case routingResult of
-                     (Left  _) -> Audit.Failure
-                     (Right _) -> case resource of
-                       (Ok _) -> Audit.Success
-                       _      -> case response of
-                         (Left _)  -> Audit.Failure
-                         (Right _) -> Audit.Success
+    (Left  _) -> Audit.Failure
+    (Right _) -> case resource of
+      (Ok _) -> Audit.Success
+      _      -> case response of
+        (Left _)  -> Audit.Failure
+        (Right _) -> Audit.Success
   eventTime    <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
   port         <- pure $ Socket.remotePort $ HTTPS.socket req
   eventSource  <- pure $ case (runParser (Socket.remoteAddress $ HTTPS.socket req) ipv4) of
-                     (Left _)   -> Event.Tier2
-                     (Right ip) -> Event.Host { ip : ip, port : port }
+    (Left _)   -> Event.Tier2
+    (Right ip) -> Event.Host { ip : ip, port : port }
   {-- todo: derive namespace UUID from authentication settings --}
   sourceUUID   <- liftEffect $ UUID.uuidv1
   eventURI     <- liftEffect $ UUID.uuidv5 (HTTPS.messageURL req) sourceUUID 
   event        <- pure $ Audit.Event $
-                     { eventCategory : Audit.Tier2
+                     { eventCategory : eventCategory
                      , eventType     : eventType
                      , eventID       : eventID
                      , eventSource   : eventSource
@@ -206,8 +208,8 @@ executeForward (Settings _ _ (Single uri)) query = do
         200 -> pure $ Forward unit
         _   -> liftEffect $ Exception.throw "Invalid status code (forward reply)."
 
-executeStatistics :: Settings -> Report.URI -> Aff Resource
-executeStatistics (Settings _ _ (Single uri)) query = do
+executeReport :: Settings -> Report.URI -> Aff Resource
+executeReport (Settings _ _ (Single uri)) query = do
   req <- HTTPS.createRequest HTTPS.Get $ (path uri) <> show query
   res <- HTTPS.endRequest req
   case res of
@@ -216,7 +218,7 @@ executeStatistics (Settings _ _ (Single uri)) query = do
          200 ->
            case runParser body Statistics.event of
              (Left _)      -> liftEffect $ Exception.throw "Invalid body (report reply)."
-             (Right event) -> pure $ Statistics event
+             (Right event) -> pure $ Report event
          _   -> liftEffect $ Exception.throw "Invalid status code (report reply)."
 
 interpret :: forall a. Query (Request a) -> Aff (Request a)
@@ -224,7 +226,7 @@ interpret (DSL.Forward settings query next) = do
   result <- executeForward settings query
   next <$> pure result
 interpret (DSL.Report settings query next) = do
-  result <- executeStatistics settings query
+  result <- executeReport settings query
   next <$> (pure result)
 
 request :: Settings -> Route -> Request Resource

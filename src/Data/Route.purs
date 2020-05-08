@@ -1,4 +1,4 @@
-  module Control.Route
+module Data.Route
   ( Route(..)
   , execute
   ) where
@@ -16,8 +16,8 @@ import Text.Parsing.Parser.Combinators (choice)
 
 import Text.Parsing.Forward (event) as Forward
 
-import Control.Forward (URI) as Forward
-import Control.Report as Report
+import Data.Forward (URI) as Forward
+import Data.Report as Report
 
 import FFI.HTTPS as HTTPS
 import FFI.String as String
