@@ -22,6 +22,7 @@ import Test.Text.Parsing.Audit      as Audit
 import Test.Text.Parsing.Flow       as Flow
 import Test.Text.Parsing.Risk       as Risk
 import Test.Text.Parsing.Statistics as Statistics
+import Test.Text.Parsing.Linux      as Linux
 import Test.Text.Parsing.Windows    as Windows
 
 main :: Effect Unit
@@ -43,7 +44,7 @@ main = void $ launchAff $ do
   _ <- render (completeSuite  "Text.Parsing.Alert")       *> Alert.suite
   _ <- render (completeSuite  "Text.Parsing.Audit")       *> Audit.suite
   _ <- render (completeSuite  "Text.Parsing.Flow")        *> Flow.suite
-  _ <- render (assignedSuite  "Text.Parsing.Linux")
+  _ <- render (completeSuite  "Text.Parsing.Linux")       *> Linux.suite
   _ <- render (completeSuite  "Text.Parsing.Statistics")  *> Statistics.suite
   _ <- render (assignedSuite  "Text.Parsing.Traffic")
   _ <- render (pendingSuite   "Text.Parsing.Risk")        *> Risk.suite

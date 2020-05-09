@@ -14,9 +14,11 @@ import Effect.Date (random) as Date
 
 import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
+import FFI.UUID as UUID
 
 import Data.IPv4 (IPv4(..))
 import Data.Linux as Linux 
+import Data.Event as Event
 
 range :: Int -> Int -> Effect Int
 range min max = do
@@ -50,7 +52,7 @@ eventID :: Effect Linux.EventID
 eventID = range 0 2147483647
 
 eventType :: Effect Linux.EventType
-eventType = array Linux.Success $ [Linux.Success, Linux.Failure]
+eventType = array Linux.Success $ Linux.eventTypes
 
 random :: Effect Linux.Event
 random = do
@@ -60,15 +62,14 @@ random = do
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
-  sIP            <- pure $ IPv4 0 0 0 0
-  sPort          <- pure $ 0
+  eventURI       <- UUID.uuidv4
+  eventSource    <- pure $ Event.Host { ip : IPv4 0 0 0 0, port : 0 }
+  eventTime      <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
   pure $ Linux.Event $
     { eventCategory : eventCategory'
     , eventID       : eventID'
     , eventType     : eventType'
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
-    , sIP           : sIP
-    , sPort         : sPort
+    , eventURI      : eventURI
+    , eventSource   : eventSource
+    , eventTime     : eventTime
     }

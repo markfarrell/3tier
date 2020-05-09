@@ -6,7 +6,6 @@ import Prelude
 
 import Data.Audit as Audit
 import Data.Flow as Flow
-import Data.Linux as Linux
 import Data.Statistics as Statistics
 import Data.Windows as Windows
 

@@ -2,16 +2,18 @@ module Data.Linux
  ( EventCategory(..)
  , EventType(..)
  , EventID
+ , EventURI
  , Event(..)
  , eventCategories
+ , eventTypes
  ) where
 
 import Prelude
 
-import Data.IPv4 (IPv4)
-
-import FFI.Date (Date)
 import FFI.JSON as JSON
+import FFI.UUID (UUID)
+
+import Data.Event as Event
 
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -41,15 +43,15 @@ data EventType = Success | Failure
 
 type EventID = Int
 
+type EventURI = UUID
+
 data Event = Event
   { eventCategory :: EventCategory
   , eventType     :: EventType
   , eventID       :: EventID
-  , startTime     :: Date
-  , duration      :: Int
-  , endTime       :: Date
-  , sIP           :: IPv4
-  , sPort         :: Int
+  , eventURI      :: EventURI
+  , eventSource   :: Event.Source
+  , eventTime     :: Event.Time
   }
 
 instance showEventLinux :: Show Event where
@@ -81,6 +83,36 @@ instance showEventCategoryLinux :: Show EventCategory where
   show AnomPromisc    = "ANOM-PROMISCUOUS"
   show Login          = "LOGIN"
 
+instance eqEventCategoryLinux :: Eq EventCategory where
+  eq DaemonStart    DaemonStart    = true
+  eq ConfigChange   ConfigChange   = true 
+  eq SystemBoot     SystemBoot     = true
+  eq SystemRunLevel SystemRunLevel = true
+  eq ServiceStart   ServiceStart   = true
+  eq NetfilterCfg   NetfilterCfg   = true
+  eq Syscall        Syscall        = true
+  eq Proctitle      Proctitle      = true
+  eq ServiceStop    ServiceStop    = true
+  eq UserStart      UserStart      = true
+  eq UserCmd        UserCmd        = true
+  eq UserEnd        UserEnd        = true
+  eq UserLogin      UserLogin      = true
+  eq UserAuth       UserAuth       = true
+  eq UserAcct       UserAcct       = true
+  eq CredAcq        CredAcq        = true
+  eq CredDisp       CredDisp       = true
+  eq CredRefr       CredRefr       = true
+  eq AnomPromisc    AnomPromisc    = true
+  eq Login          Login          = true
+  eq _              _              = false
+
+instance eqEventTypeLinux :: Eq EventType where
+  eq Success Success = true
+  eq Failure Failure = true
+  eq _       _       = false
+
+instance eqEventLinux :: Eq Event where
+  eq (Event x) (Event y) = (x == y)
 
 eventCategories :: Array EventCategory
 eventCategories =
@@ -106,14 +138,15 @@ eventCategories =
   , Login
   ]
 
+eventTypes :: Array EventType
+eventTypes = [ Success, Failure ]
+
 uri :: Event -> String
-uri (Event event') = JSON.stringify $ unsafeCoerce $
-  { eventCategory : show event'.eventCategory
-  , eventType     : show event'.eventType
-  , eventID       : event'.eventID
-  , startTime     : show event'.startTime
-  , duration      : event'.duration
-  , endTime       : show event'.endTime
-  , sIP           : show event'.sIP
-  , sPort         : event'.sPort
+uri (Event x) = JSON.stringify $ unsafeCoerce $
+  { eventCategory : show x.eventCategory
+  , eventType     : show x.eventType
+  , eventID       : show x.eventID
+  , eventURI      : show x.eventURI
+  , eventTime     : Event.foreignTime x.eventTime
+  , eventSource   : Event.foreignSource x.eventSource
   }
