@@ -18,7 +18,6 @@ import Effect.Exception (throw) as Exception
 
 import Effect.Audit (random) as Audit
 import Effect.Flow (random) as Flow
-import Effect.Linux (random) as Linux
 import Effect.Statistics (random) as Statistics
 import Effect.Windows (random) as Windows
 
@@ -100,14 +99,8 @@ forwardFlow settings = do
   _     <- Tier3.request settings (Route.Forward (Forward.Flow event)) 
   pure unit 
 
-forwardLinux :: Tier3.Settings -> Tier3.Request Unit
-forwardLinux settings = do
-  event <- lift $ liftEffect Linux.random
-  _     <- Tier3.request settings (Route.Forward (Forward.Linux event)) 
-  pure unit 
-
-forwardReport :: Tier3.Settings -> Tier3.Request Unit
-forwardReport settings = do
+forwardStatistics :: Tier3.Settings -> Tier3.Request Unit
+forwardStatistics settings = do
   event <- lift $ liftEffect Statistics.random
   _     <- Tier3.request settings (Route.Forward (Forward.Statistics event)) 
   pure unit 
@@ -120,12 +113,11 @@ forwardWindows settings = do
    
 forward :: Tier3.Settings -> Tier3.Request Unit
 forward settings = do
-  choice <- lift $ liftEffect (Math.floor <$> ((*) 5.0) <$> Math.random)
+  choice <- lift $ liftEffect (Math.floor <$> ((*) 4.0) <$> Math.random)
   case choice of
     0 -> forwardAudit   settings
     1 -> forwardFlow    settings
-    2 -> forwardReport  settings
-    3 -> forwardLinux   settings
+    2 -> forwardStatistics  settings
     _ -> forwardWindows settings 
 
 forwards :: Tier3.Settings -> Int -> Tier3.Request Unit
