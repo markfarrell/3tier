@@ -46,11 +46,11 @@ array w x = do
 
 eventCategory :: Effect Alert.EventCategory
 eventCategory = array default $ Alert.eventCategories
-  where default = Alert.Audit
+  where default = Alert.Source
 
 eventID :: Effect Alert.EventID
 eventID = array default $ Alert.eventIDs
-  where default = Alert.Source
+  where default = Alert.Audit
 
 eventType :: Effect Alert.EventType
 eventType = array default $ [Alert.Success, Alert.Failure]

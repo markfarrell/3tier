@@ -19,11 +19,11 @@ import FFI.UUID (UUID)
 
 import Unsafe.Coerce (unsafeCoerce)
 
-data EventCategory = Audit
+data EventCategory = Source | Time
 
 data EventType = Success | Failure
 
-data EventID = Source | Time
+data EventID = Audit
 
 type EventURI = UUID
 
@@ -40,37 +40,38 @@ instance showEventAlert :: Show Event where
   show = uri
 
 instance showEventCategoryAlert :: Show EventCategory where
+  show Source = "SOURCE"
+  show Time   = "TIME"
+
+instance showEventIDAlert :: Show EventID where
   show Audit = "AUDIT"
 
 instance showEventTypeAlert :: Show EventType where
   show Success = "SUCCESS"
   show Failure = "FAILURE"
 
-instance showEventIDAlert :: Show EventID where
-  show Source = "SOURCE"
-  show Time   = "TIME"
-
-instance eqEventCategoryAlert :: Eq EventCategory where
-  eq Audit Audit = true
-
 instance eqEventTypeAlert :: Eq EventType where
   eq Success Success = true
   eq Failure Failure = true
   eq _     _         = false
 
-instance eqEventIDAlert :: Eq EventID where
+instance eqEventCategoryAlert :: Eq EventCategory where
   eq Source  Source = true
   eq Time    Time   = true
   eq _     _        = false
+
+instance eqEventIDAlert :: Eq EventID where
+  eq Audit Audit = true
+
 
 instance eqEventAlert :: Eq Event where
   eq (Event x) (Event y) = (x == y)
 
 eventCategories :: Array EventCategory
-eventCategories = [ Audit ]
+eventCategories = [ Source, Time ]
 
 eventIDs :: Array EventID
-eventIDs = [ Source, Time ]
+eventIDs = [ Audit ]
   
 eventTypes :: Array EventType
 eventTypes = [ Success, Failure ]
