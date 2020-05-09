@@ -11,7 +11,7 @@ import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.String (char)
 import Text.Parsing.Parser.Combinators (choice)
 
-import Text.Parsing.Common (ipv4, port, property, date, nonnegativeInteger, showable)
+import Text.Parsing.Common (ipv4, port, property, date, nonnegativeInteger, array)
 
 import Data.Event as Event
 
@@ -26,7 +26,7 @@ host = do
     }
 
 tier :: Parser String Event.Source
-tier = showable [ Event.Tier1, Event.Tier2, Event.Tier3]
+tier = array [ Event.Tier1, Event.Tier2, Event.Tier3]
 
 source :: Parser String Event.Source
 source = choice [ host, tier ]

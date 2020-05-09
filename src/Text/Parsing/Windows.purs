@@ -18,9 +18,9 @@ import Text.Parsing.Event (source, time) as Event
 event :: Parser String Windows.Event
 event = do
   x              <- Common.json
-  eventCategory' <- Common.property "eventCategory" x $ Common.showable Windows.eventCategories
+  eventCategory' <- Common.property "eventCategory" x $ Common.array Windows.eventCategories
   eventID'       <- Common.property "eventID"       x $ eventID eventCategory'
-  eventType'     <- Common.property "eventType"     x $ Common.showable Windows.eventTypes
+  eventType'     <- Common.property "eventType"     x $ Common.array Windows.eventTypes
   eventURI'      <- Common.property "eventURI"      x $ Common.uuid
   eventTime'     <- Common.readIndex "eventTime"    x >>= Event.time
   eventSource'   <- Common.property "eventSource"   x $ Event.source

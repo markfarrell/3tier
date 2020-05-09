@@ -14,7 +14,7 @@ module Text.Parsing.Common
   , json
   , property
   , validation
-  , showable
+  , array
   , substring
   , readArray
   , readIndex
@@ -266,8 +266,8 @@ validation = \x y z -> do
         (Right _)   -> fail $ "Invalid foreign property (" <> x <> ")."
         (Left _)    -> pure y
 
-showable :: forall a. Show a => Array a -> Parser String a
-showable = \x -> choice (show' <$> x)
+array :: forall a. Show a => Array a -> Parser String a
+array = \x -> choice (show' <$> x)
   where
     show' = \x -> do
       _ <- string (show x)

@@ -13,8 +13,6 @@ import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Exception (throw) as Exception
 
-import FFI.Date as Date
-
 import Text.Parsing.Parser (runParser)
 
 import Effect.Windows (random) as Windows
