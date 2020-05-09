@@ -13,7 +13,6 @@ import Data.Windows as Windows
 data URI = Audit Audit.Event 
   | Flow Flow.Event 
   | Statistics Statistics.Event 
-  | Linux Linux.Event 
   | Windows Windows.Event 
 
 instance showURIForward :: Show URI where
@@ -27,6 +26,5 @@ instance eqURIForward :: Eq URI where
 uri :: URI -> String
 uri (Audit event)      = "/forward/audit?"   <> show event
 uri (Flow event)       = "/forward/flow?"    <> show event
-uri (Linux event)      = "/forward/linux?"   <> show event
 uri (Statistics event) = "/forward/statistics?"  <> show event
 uri (Windows event)    = "/forward/windows?" <> show event

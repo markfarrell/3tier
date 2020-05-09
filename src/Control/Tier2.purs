@@ -146,7 +146,6 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
     (Right (Route.Forward (Forward.Audit _)))      -> Audit.Audit
     (Right (Route.Forward (Forward.Flow _)))       -> Audit.Traffic
     (Right (Route.Forward (Forward.Statistics _))) -> Audit.Statistics
-    (Right (Route.Forward (Forward.Linux  _)))     -> Audit.Linux
     (Right (Route.Forward (Forward.Windows _)))    -> Audit.Windows
     (Right (Route.Report  (Report.Audit _ _ _ _))) -> Audit.Audit
   eventType     <- pure $ case routingResult of

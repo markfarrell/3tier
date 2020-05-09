@@ -49,7 +49,6 @@ import Control.DSL as DSL
 import Data.Audit as Audit
 import Data.Event as Event
 import Data.Flow (Event(..)) as Flow
-import Data.Linux as Linux
 import Data.Statistics as Statistics
 import Data.Windows as Windows
 
@@ -130,21 +129,10 @@ schemaURI Schema.Windows = schemaURI' "Windows" [] $
   , Tuple "EventType" Text
   , Tuple "EventID" Text
   , Tuple "EventURI" Text
+  , Tuple "EventSource" Text
   , Tuple "StartTime" Text
   , Tuple "Duration" Integer
   , Tuple "EndTime" Text
-  , Tuple "IP" Text
-  , Tuple "Port" Integer
-  ]
-schemaURI Schema.Linux = schemaURI' "Linux" [] $
-  [ Tuple "StartTime" Text
-  , Tuple "Duration" Integer
-  , Tuple "EndTime" Text
-  , Tuple "EventType" Text
-  , Tuple "EventCategory" Text
-  , Tuple "EventID" Text
-  , Tuple "SIP" Text
-  , Tuple "SPort" Text
   ]
 schemaURI Schema.Statistics = schemaURI' "Statistics" [] $
   [ Tuple "EventType" Text
@@ -214,32 +202,10 @@ insertWindowsURI (Windows.Event event) = do
       , Tuple "EventType" (show event.eventType)
       , Tuple "EventID" (show event.eventID)
       , Tuple "EventURI" (show event.eventURI)
+      , Tuple "EventSource" (show event.eventSource)
       , Tuple "StartTime" $ case event.eventTime of (Event.Time x) -> show x.startTime
       , Tuple "Duration"  $ case event.eventTime of (Event.Time x) -> show x.duration
       , Tuple "EndTime"   $ case event.eventTime of (Event.Time x) -> show x.endTime
-      , Tuple "IP"        $
-          case event.eventSource of 
-            (Event.Host x) -> show x.ip
-            _              -> "???"
-      , Tuple "Port"      $ 
-        case event.eventSource of 
-            (Event.Host x) -> show x.port
-            _              -> "???"
-      ]
-
-insertLinuxURI :: Linux.Event -> Aff String
-insertLinuxURI (Linux.Event event) = do
-  pure $ insertURI' "Linux" params
-  where 
-    params  =
-      [ Tuple "StartTime" (show event.startTime)
-      , Tuple "Duration" (show event.duration)
-      , Tuple "EndTime" (show event.endTime)
-      , Tuple "EventType" (show event.eventType)
-      , Tuple "EventCategory" (show event.eventCategory)
-      , Tuple "EventID" (show event.eventID)
-      , Tuple "SIP" (show event.sIP)
-      , Tuple "SPort" (show event.sPort)
       ]
 
 insertStatisticsURI :: Statistics.Event -> Aff String
@@ -272,7 +238,6 @@ insertURI'  table' params = query
 insertURI :: Forward.URI ->  Aff String
 insertURI (Forward.Audit event)      = insertAuditURI event
 insertURI (Forward.Flow  event)      = insertFlowURI event
-insertURI (Forward.Linux event)      = insertLinuxURI event
 insertURI (Forward.Statistics event) = insertStatisticsURI event
 insertURI (Forward.Windows event)    = insertWindowsURI event
 
@@ -324,7 +289,6 @@ executeSchemas file = do
   _        <- SQLite3.all (schemaURI Schema.Audit) database
   _        <- SQLite3.all (schemaURI Schema.Flow) database
   _        <- SQLite3.all (schemaURI Schema.Statistics) database
-  _        <- SQLite3.all (schemaURI Schema.Linux) database
   _        <- SQLite3.all (schemaURI Schema.Windows) database
   _        <- SQLite3.close database
   pure unit
@@ -466,7 +430,6 @@ audit = \settings route -> do
     (Route.Forward (Forward.Audit _))      -> Audit.Audit
     (Route.Forward (Forward.Flow _))       -> Audit.Traffic
     (Route.Forward (Forward.Statistics _)) -> Audit.Statistics
-    (Route.Forward (Forward.Linux _))      -> Audit.Linux
     (Route.Forward (Forward.Windows _))    -> Audit.Windows
     (Route.Report (Report.Audit _ _ _ _))  -> Audit.Audit
   eventType   <- pure $ case result of
