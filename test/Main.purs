@@ -50,9 +50,9 @@ main = void $ launchAff $ do
   _ <- render (complete  suite "Text.Parsing.Flow")        *> Flow.suite
   _ <- render (assigned suite  "Text.Parsing.Linux")
   _ <- render (complete suite  "Text.Parsing.Statistics")  *> Statistics.suite
-  _ <- render (assigned suite "Text.Parsing.Traffic")
+  _ <- render (assigned suite  "Text.Parsing.Traffic")
   _ <- render (pending suite   "Text.Parsing.Risk")        *> Risk.suite
-  _ <- render (pending suite   "Text.Parsing.Windows")     *> Windows.suite
+  _ <- render (complete suite  "Text.Parsing.Windows")     *> Windows.suite
   _ <- render (assigned suite  "Text.Parsing.Forward") 
   _ <- render (assigned suite  "Text.Parsing.Report") 
   _ <- render (assigned suite  "Text.Parsing.Route")

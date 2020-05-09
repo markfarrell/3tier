@@ -2,25 +2,8 @@ module Data.Windows
   ( EventCategory(..) 
   , EventID
   , EventType(..)
+  , EventURI
   , Event(..)
-  , EventURI(..)
-  , MachineName
-  , CategoryName
-  , CategoryNumber
-  , EventURIComponent(..)
-  , Description
-  , Source
-  , EntryNumber
-  , EntryData
-  , EntryType
-  , ReplacementStrings
-  , InstanceID
-  , Site
-  , Container
-  , SecurityID
-  , AccountName
-  , AccountDomain
-  , LogonID
   , eventCategories
   , eventIDs
   , eventIDs'
@@ -37,6 +20,7 @@ import Foreign (Foreign)
 
 import FFI.Date (Date)
 import FFI.JSON as JSON
+import FFI.UUID (UUID)
 
 import Data.Event as Event
 
@@ -52,52 +36,11 @@ data EventCategory = AccountLogon
   | System
   | Uncategorized
 
-type EventID = Int
-
 data EventType = Success | Failure
 
-type MachineName        = String
-type CategoryName       = String
-type CategoryNumber     = Int
-type Description        = Array EventURIComponent
-type Source             = String
-type EntryNumber        = Int
-type EntryType          = String
-type EntryData          = String
-type ReplacementStrings = String
-type InstanceID         = String
-type Site               = String
-type Container          = String
+type EventID = Int
 
-type SecurityID    = String
-type AccountName   = String
-type AccountDomain = String
-type LogonID       = String
-
-data EventURIComponent = Subject
-  { securityID    :: SecurityID
-  , accountName   :: AccountName
-  , accountDomain :: AccountDomain
-  , logonID       :: LogonID
-  }
-
-data EventURI = Security
-  { eventID            :: EventID
-  , machineName        :: MachineName
-  , entryNumber        :: EntryNumber 
-  , entryData          :: EntryData
-  , category           :: CategoryName
-  , categoryNumber     :: CategoryNumber
-  , entryType          :: EntryType
-  , description        :: Description
-  , source             :: Source
-  , replacementStrings :: ReplacementStrings
-  , instanceID         :: InstanceID
-  , timeGenerated      :: Date
-  , timeWritten        :: Date
-  , site               :: Site
-  , container          :: Container 
-  }
+type EventURI = UUID
 
 data Event = Event
   { eventCategory :: EventCategory
@@ -128,31 +71,6 @@ instance showEventTypeWindows :: Show EventType where
   show Success = "SUCCESS"
   show Failure = "FAILURE"
 
-instance showEventURIWindows :: Show EventURI where
-  show (Security x) = JSON.stringify $ unsafeCoerce $
-    { eventID            : show x.eventID
-    , machineName        : x.machineName
-    , entryNumber        : show x.entryNumber
-    , entryData          : x.entryData
-    , category           : x.category
-    , categoryNumber     : show x.categoryNumber
-    , entryType          : x.entryType
-    , description        : toForeign <<< eventURIComponent <$> x.description
-    , source             : x.source 
-    , replacementStrings : x.replacementStrings
-    , instanceID         : x.instanceID
-    , timeGenerated      : show x.timeGenerated
-    , timeWritten        : show x.timeWritten
-    , site               : x.site
-    , container          : x.container
-    }
-    where
-      eventURIComponent (Subject y) = unsafeCoerce $
-        { securityID    : y.securityID
-        , accountName   : y.accountName
-        , accountDomain : y.accountDomain
-        , logonID       : y.logonID
-        }
 
 instance eqEventCategoryWindows :: Eq EventCategory where
   eq AccountLogon      AccountLogon      = true 
@@ -172,12 +90,6 @@ instance eqEventTypeWindows :: Eq EventType where
   eq Success Success = true
   eq Failure Failure = true
   eq _       _       = false
-
-instance eqEventURIWindows :: Eq EventURI where
-  eq (Security x) (Security y) = (x == y) 
-
-instance eqEventURIComponentWindows :: Eq EventURIComponent where
-  eq (Subject x) (Subject y) = (x == y)
 
 instance eqEventWindows :: Eq Event where
   eq (Event x) (Event y) = (x == y)
@@ -700,21 +612,12 @@ processTracking =
 privilegeUse :: Array Int
 privilegeUse = [ 4673, 4674 ]
 
-toForeign :: forall a. a -> Foreign
-toForeign = unsafeCoerce
-
 uri :: Event -> String
-uri (Event event') = JSON.stringify $ toForeign $
+uri (Event event') = JSON.stringify $ unsafeCoerce $
  { eventCategory : show event'.eventCategory
  , eventType     : show event'.eventType
  , eventID       : show event'.eventID
  , eventURI      : show event'.eventURI
- , eventTime     : toForeign $ eventTime' event'.eventTime
- , eventSource   : show event'.eventSource
+ , eventTime     : Event.foreignTime event'.eventTime
+ , eventSource   : Event.foreignSource event'.eventSource
  }
- where
-   eventTime' (Event.Time t) =
-    { startTime : show t.startTime
-    , duration  : show t.duration
-    , endTime   : show t.endTime
-    } 

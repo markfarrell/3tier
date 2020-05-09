@@ -14,8 +14,10 @@ import Effect.Date (random) as Date
 
 import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
+import FFI.UUID as UUID
 
 import Data.IPv4 (IPv4(..))
+
 import Data.Event as Event
 import Data.Windows as Windows 
 
@@ -61,23 +63,7 @@ random = do
   eventType'     <- eventType
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
-  eventURI'      <- pure $ Windows.Security
-                      { eventID            : eventID'
-                      , machineName        : "???"
-                      , entryNumber        : 0
-                      , entryData          : "???"
-                      , category           : "???"
-                      , categoryNumber     : 0
-                      , entryType          : "???"
-                      , description        : []
-                      , source             : "???" 
-                      , replacementStrings : "???" 
-                      , instanceID         : "???" 
-                      , timeGenerated      : Date.epoch 
-                      , timeWritten        : Date.epoch
-                      , site               : "???" 
-                      , container          : "???" 
-                      }
+  eventURI       <- UUID.uuidv4
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   eventTime'     <- pure $ Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
   eventSource'   <- pure $ Event.Host $ { ip : IPv4 0 0 0 0, port : 0 }
@@ -85,7 +71,7 @@ random = do
     { eventCategory : eventCategory'
     , eventID       : eventID'
     , eventType     : eventType'
-    , eventURI      : eventURI'
+    , eventURI      : eventURI
     , eventTime     : eventTime'
     , eventSource   : eventSource'
     }
