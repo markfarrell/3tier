@@ -275,10 +275,7 @@ executeReport (Single uri) query = do
   average    <- executeReport'' database (averageURI query)
   variance   <- executeReport'' database (varianceURI query average)
   _          <- SQLite3.close database
-  {-- todo: derive event time from auth. settings --}
-  eventTime   <- pure $ Event.EventTime { startTime : Date.epoch, duration : 0, endTime : Date.epoch }
-  eventSource <- pure $ UUID.default 
-  eventURI    <- pure $ Statistics.EventURI $
+  event     <- pure $ Statistics.Event $
     { min           : Math.floor min
     , max           : Math.floor max
     , sum           : Math.floor sum
@@ -286,19 +283,7 @@ executeReport (Single uri) query = do
     , average       : Math.floor average
     , variance      : Math.floor variance
     }
-  pure $ Report $ Statistics.Event $
-    { eventCategory : eventCategory query
-    , eventType     : eventType query
-    , eventID       : eventID query
-    , eventTime     : eventTime
-    , eventSource   : eventSource
-    , eventURI      : eventURI
-    }
-  where
-    eventID       (Report.Audit _ _ _ _)                = Statistics.Audit
-    eventType     _                                     = Event.Success
-    eventCategory (Report.Audit _ _ _ (Report.Source))  = Statistics.Source
-    eventCategory (Report.Audit _ _ _ (Report.Time))    = Statistics.Time
+  pure $ Report event
 
 executeReport'' :: Connection -> String -> Aff Number
 executeReport'' database uri = do
