@@ -1,21 +1,13 @@
 module Data.Linux
- ( EventCategory(..)
- , EventType(..)
+ ( Event
+ , EventCategory(..)
  , EventID
- , EventURI
- , Event(..)
  , eventCategories
- , eventTypes
  ) where
 
 import Prelude
 
-import FFI.JSON as JSON
-import FFI.UUID (UUID)
-
 import Data.Event as Event
-
-import Unsafe.Coerce (unsafeCoerce)
 
 data EventCategory =
     DaemonStart
@@ -39,27 +31,9 @@ data EventCategory =
   | AnomPromisc
   | Login
 
-data EventType = Success | Failure
-
 type EventID = Int
 
-type EventURI = UUID
-
-data Event = Event
-  { eventCategory :: EventCategory
-  , eventType     :: EventType
-  , eventID       :: EventID
-  , eventURI      :: EventURI
-  , eventSource   :: Event.EventSource
-  , eventTime     :: Event.EventTime
-  }
-
-instance showEventLinux :: Show Event where
-  show = uri
-
-instance showEventTypeLinux :: Show EventType where
-  show Success = "SUCCESS"
-  show Failure = "FAILURE"
+type Event = Event.Event EventCategory EventID
 
 instance showEventCategoryLinux :: Show EventCategory where
   show DaemonStart    = "DAEMON-START"
@@ -83,36 +57,7 @@ instance showEventCategoryLinux :: Show EventCategory where
   show AnomPromisc    = "ANOM-PROMISCUOUS"
   show Login          = "LOGIN"
 
-instance eqEventCategoryLinux :: Eq EventCategory where
-  eq DaemonStart    DaemonStart    = true
-  eq ConfigChange   ConfigChange   = true 
-  eq SystemBoot     SystemBoot     = true
-  eq SystemRunLevel SystemRunLevel = true
-  eq ServiceStart   ServiceStart   = true
-  eq NetfilterCfg   NetfilterCfg   = true
-  eq Syscall        Syscall        = true
-  eq Proctitle      Proctitle      = true
-  eq ServiceStop    ServiceStop    = true
-  eq UserStart      UserStart      = true
-  eq UserCmd        UserCmd        = true
-  eq UserEnd        UserEnd        = true
-  eq UserLogin      UserLogin      = true
-  eq UserAuth       UserAuth       = true
-  eq UserAcct       UserAcct       = true
-  eq CredAcq        CredAcq        = true
-  eq CredDisp       CredDisp       = true
-  eq CredRefr       CredRefr       = true
-  eq AnomPromisc    AnomPromisc    = true
-  eq Login          Login          = true
-  eq _              _              = false
-
-instance eqEventTypeLinux :: Eq EventType where
-  eq Success Success = true
-  eq Failure Failure = true
-  eq _       _       = false
-
-instance eqEventLinux :: Eq Event where
-  eq (Event x) (Event y) = (x == y)
+derive instance eqEventCategoryLinux :: Eq EventCategory
 
 eventCategories :: Array EventCategory
 eventCategories =
@@ -137,16 +82,3 @@ eventCategories =
   , AnomPromisc
   , Login
   ]
-
-eventTypes :: Array EventType
-eventTypes = [ Success, Failure ]
-
-uri :: Event -> String
-uri (Event x) = JSON.stringify $ unsafeCoerce $
-  { eventCategory : show x.eventCategory
-  , eventType     : show x.eventType
-  , eventID       : show x.eventID
-  , eventURI      : show x.eventURI
-  , eventTime     : Event.foreignEventTime x.eventTime
-  , eventSource   : Event.foreignEventSource x.eventSource
-  }
