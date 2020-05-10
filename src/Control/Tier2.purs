@@ -146,9 +146,6 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
   eventID       <- pure $ case routingResult of
     (Left _)                                       -> Audit.Alert
     (Right (Route.Forward (Forward.Audit _)))      -> Audit.Audit
-    (Right (Route.Forward (Forward.Flow _)))       -> Audit.Traffic
-    (Right (Route.Forward (Forward.Statistics _))) -> Audit.Statistics
-    (Right (Route.Forward (Forward.Windows _)))    -> Audit.Windows
     (Right (Route.Report  (Report.Audit _ _ _ _))) -> Audit.Audit
   eventType     <- pure $ case routingResult of
     (Left  _) -> Event.Failure

@@ -8,7 +8,9 @@ import Foreign (Foreign)
 
 import Text.Parsing.Parser (Parser)
 
+import Data.Event (eventTypes) as Event
 import Data.Statistics as Statistics
+
 import Text.Parsing.Common (json, property, nonnegativeInteger, array, readIndex)
 import Text.Parsing.Event (source, time) as Event
 
@@ -33,7 +35,7 @@ event :: Parser String Statistics.Event
 event = do
   x              <- json
   eventCategory  <- property "eventCategory" x $ array Statistics.eventCategories
-  eventType      <- property "eventType"     x $ array Statistics.eventTypes
+  eventType      <- property "eventType"     x $ array Event.eventTypes
   eventID        <- property "eventID"       x $ array Statistics.eventIDs
   eventTime      <- readIndex "eventTime"    x >>= Event.time 
   eventSource    <- property  "eventSource"  x $ Event.source

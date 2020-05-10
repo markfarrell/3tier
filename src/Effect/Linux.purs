@@ -9,6 +9,7 @@ import Effect.Date (random) as Date
 
 import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
+import FFI.Number as Number
 import FFI.UUID as UUID
 
 import Data.Linux as Linux 
@@ -22,7 +23,7 @@ import Effect.Range (random) as Range
 random :: Effect Linux.Event
 random = do
   eventCategory' <- Array.random Linux.DaemonStart $ Linux.eventCategories
-  eventID'       <- Range.random 0 999999999
+  eventID'       <- Range.random 0 Number.maxSafeInteger
   eventType'     <- Array.random Event.Success     $ Event.eventTypes
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random

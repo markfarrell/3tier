@@ -4,11 +4,6 @@ module Data.Schema
 
 import Prelude
 
-data Schema = Audit | Flow | Statistics | Windows
+data Schema = Audit
 
-instance eqSchemaData :: Eq Schema where
-  eq Audit      Audit      = true
-  eq Flow       Flow       = true
-  eq Statistics Statistics = true
-  eq Windows    Windows    = true
-  eq _          _          = false
+derive instance eqSchema :: Eq Schema

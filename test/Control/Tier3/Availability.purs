@@ -17,16 +17,13 @@ import Effect.Class (liftEffect)
 import Effect.Exception (throw) as Exception
 
 import Effect.Audit (random) as Audit
-import Effect.Flow (random) as Flow
-import Effect.Statistics (random) as Statistics
-import Effect.Windows (random) as Windows
 
 import FFI.Date as Date
-import FFI.FS as FS
 import FFI.Math as Math
+import FFI.FS as FS
 
 import Data.Audit (EventCategory(..), EventID(..)) as Audit
-import Data.Statistics (Event(..), EventURI(..)) as Statistics
+import Data.Statistics (minimum, maximum, sum, total, average, variance) as S
 
 import Data.Event (EventTime(..), EventType(..)) as Event
 
@@ -39,37 +36,9 @@ import Data.Route as Route
 
 import Control.Tier3 as Tier3
 
+import Effect.Range (random) as Range
+
 import Test.Data.Test as Test
-
-min' :: Statistics.Event -> Int
-min' (Statistics.Event x) =
-  case x.eventURI of
-    (Statistics.EventURI y) -> y.min
-
-max' :: Statistics.Event -> Int
-max' (Statistics.Event x) =
-  case x.eventURI of
-    (Statistics.EventURI y) -> y.max
-
-sum :: Statistics.Event -> Int
-sum (Statistics.Event x) =
-  case x.eventURI of
-    (Statistics.EventURI y) -> y.sum
-
-total :: Statistics.Event -> Int
-total (Statistics.Event x) =
-  case x.eventURI of
-    (Statistics.EventURI y) -> y.total
-
-average :: Statistics.Event -> Int
-average (Statistics.Event x) =
-  case x.eventURI of
-    (Statistics.EventURI y) -> y.average
-
-variance :: Statistics.Event -> Int
-variance (Statistics.Event x) =
-  case x.eventURI of
-    (Statistics.EventURI y) -> y.variance
 
 report :: Tier3.Settings -> Report.URI -> Tier3.Request Unit
 report settings uri = do
@@ -77,7 +46,7 @@ report settings uri = do
   case x of
     (Tier3.Forward _) -> lift $ liftEffect $ Exception.throw "Unexpected behaviour." 
     (Tier3.Report y)  -> do
-       _ <- pure $ foldl (&&) true (flip (>=) 0 <$> [min' y, max' y, sum y, total y, average y, variance y])
+       _ <- pure $ foldl (&&) true (flip (>=) 0 <$> [S.minimum y, S.maximum y, S.sum y, S.total y, S.average y, S.variance y])
        pure unit
 
 reports :: Tier3.Settings -> Tier3.Request Unit
@@ -93,32 +62,12 @@ forwardAudit settings  = do
   _     <- Tier3.request settings (Route.Forward (Forward.Audit event)) 
   pure unit 
 
-forwardFlow :: Tier3.Settings -> Tier3.Request Unit
-forwardFlow settings = do
-  event <- lift $ liftEffect Flow.random
-  _     <- Tier3.request settings (Route.Forward (Forward.Flow event)) 
-  pure unit 
-
-forwardStatistics :: Tier3.Settings -> Tier3.Request Unit
-forwardStatistics settings = do
-  event <- lift $ liftEffect Statistics.random
-  _     <- Tier3.request settings (Route.Forward (Forward.Statistics event)) 
-  pure unit 
-
-forwardWindows :: Tier3.Settings -> Tier3.Request Unit
-forwardWindows settings = do
-  event <- lift $ liftEffect Windows.random
-  _     <- Tier3.request settings (Route.Forward (Forward.Windows event)) 
-  pure unit 
-   
 forward :: Tier3.Settings -> Tier3.Request Unit
 forward settings = do
-  choice <- lift $ liftEffect (Math.floor <$> ((*) 4.0) <$> Math.random)
+  choice <- lift $ liftEffect (Range.random 0 0)
   case choice of
-    0 -> forwardAudit   settings
-    1 -> forwardFlow    settings
-    2 -> forwardStatistics  settings
-    _ -> forwardWindows settings 
+    0 -> forwardAudit settings
+    _ -> lift $ liftEffect $ Exception.throw "Unxpected behaviour." 
 
 forwards :: Tier3.Settings -> Int -> Tier3.Request Unit
 forwards = \settings n ->  do
@@ -133,7 +82,7 @@ failure settings reportType eventCategory eventID = do
   case x of
     (Tier3.Forward _) -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
     (Tier3.Report y)  -> do
-      result <- pure $ foldl (&&) true (flip (==) 0 <$> [min' y, max' y, sum y, total y, average y, variance y])
+      result <- pure $ foldl (&&) true (flip (==) 0 <$> [S.minimum y, S.maximum y, S.sum y, S.total y, S.average y, S.variance y])
       case result of
         true  -> pure unit 
         _    -> lift (liftEffect $ Exception.throw "Unexpected audited failure event format.")
@@ -157,7 +106,7 @@ success settings reportType eventCategory eventID = \request -> do
   x <- Tier3.request settings (Route.Report (Report.Audit eventCategory Event.Success eventID reportType))
   case [w,x] of
     [(Tier3.Report y), (Tier3.Report z)]  -> do
-      result <- pure $ foldl (&&) true [min' z >= 0, max' z >= max' y, sum z >= sum y, total z >= total y, average z >= 0, variance z >= 0]
+      result <- pure $ foldl (&&) true [S.minimum z >= 0, S.maximum z >= S.maximum y, S.sum z >= S.sum y, S.total z >= S.total y, S.average z >= 0, S.variance z >= 0]
       case result of
         true  -> pure unit
         false -> lift (liftEffect $ Exception.throw "Comparison of audited success events failed.")

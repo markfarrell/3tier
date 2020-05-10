@@ -12,8 +12,6 @@ module Data.Event
 
 import Prelude
 
-import Data.Foldable (foldl)
-
 import Foreign (Foreign)
 
 import Unsafe.Coerce (unsafeCoerce)
@@ -21,9 +19,6 @@ import Unsafe.Coerce (unsafeCoerce)
 import FFI.Date (Date)
 import FFI.JSON (stringify) as JSON
 import FFI.UUID (UUID)
-
-import Data.IPv4 (IPv4)
-import Data.Port (Port)
 
 data EventType = Success | Failure
 

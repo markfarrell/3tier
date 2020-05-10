@@ -4,14 +4,13 @@ module Effect.Flow
 
 import Prelude
 
-import Data.Int as Int
-
 import Effect (Effect)
 import Effect.Date (random) as Date
 
 import FFI.Date (epoch, getTime) as Date
 
 import FFI.Math as Math
+import FFI.Number as Number
 
 import Data.IPv4 (IPv4(..))
 import Data.TCP.Flag (Flag(..))
@@ -19,17 +18,10 @@ import Data.TCP.Flag (Flag(..))
 import Data.Flow as Flow 
 
 import Effect.Port as Port
-
-range :: Int -> Int -> Effect Int
-range min max = do
-  w <- Math.random
-  x <- pure $ Int.toNumber min
-  y <- pure $ Int.toNumber max
-  z <- pure $ w * (y - x) + x 
-  pure $ Math.floor z
+import Effect.Range as Range
 
 octet :: Effect Int
-octet = range 0 255
+octet = Range.random 0 255
 
 ipv4 :: Effect IPv4
 ipv4 = do
@@ -45,8 +37,8 @@ random = do
   sPort     <- Port.random
   dIP       <- ipv4
   dPort     <- Port.random
-  packets   <- range 0 999999999
-  bytes     <- range 0 999999999
+  packets   <- Range.random 0 Number.maxSafeInteger
+  bytes     <- Range.random 0 Number.maxSafeInteger
   protocol  <- octet
   flags     <- pure $ [U true, R true, F true,S true, P true, A true]
   startTime <- pure $ Date.epoch

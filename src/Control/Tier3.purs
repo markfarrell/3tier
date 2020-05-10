@@ -36,8 +36,6 @@ import Effect.Exception as Exception
 import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
 
-import Text.Parsing.Parser (runParser)
-
 import FFI.Date (Date)
 import FFI.Date    as Date
 import FFI.Math    as Math
@@ -50,9 +48,7 @@ import Data.Audit as Audit
 
 import Data.Event(Event(..))
 import Data.Event as Event
-import Data.Flow (Event(..)) as Flow
 import Data.Statistics as Statistics
-import Data.Windows as Windows
 
 import Data.Schema (Schema)
 import Data.Schema as Schema
@@ -65,8 +61,6 @@ import Data.Route as Route
 
 import Data.Forward as Forward
 import Data.Report as Report
-
-import Text.Parsing.Flow (event) as Flow
 
 data Role = Production | Testing
 
@@ -113,40 +107,6 @@ schemaURI Schema.Audit = schemaURI' "Audit" [] $
   , Tuple "Duration" Integer
   , Tuple "EndTime" Text
   ]
-schemaURI Schema.Flow = schemaURI' "Flow" [] $ 
-  [ Tuple "SIP" Text
-  , Tuple "DIP" Text
-  , Tuple "SPort" Integer
-  , Tuple "DPort" Integer
-  , Tuple "Protocol" Integer
-  , Tuple "Packets" Integer
-  , Tuple "Bytes" Integer
-  , Tuple "Flags" Text
-  , Tuple "StartTIme" Text
-  , Tuple "Duration" Integer
-  , Tuple "EndTime" Text
-  ]
-schemaURI Schema.Windows = schemaURI' "Windows" [] $
-  [ Tuple "EventCategory" Text
-  , Tuple "EventType" Text
-  , Tuple "EventID" Text
-  , Tuple "EventURI" Text
-  , Tuple "EventSource" Text
-  , Tuple "StartTime" Text
-  , Tuple "Duration" Integer
-  , Tuple "EndTime" Text
-  ]
-schemaURI Schema.Statistics = schemaURI' "Statistics" [] $
-  [ Tuple "EventType" Text
-  , Tuple "EventCategory" Text
-  , Tuple "EventID" Text
-  , Tuple "Min" Text
-  , Tuple "Max" Text
-  , Tuple "Sum" Text
-  , Tuple "Total" Text
-  , Tuple "Average" Text
-  , Tuple "Variance" Text
-  ]
 
 startTime :: Event.EventTime -> Date
 startTime (Event.EventTime x) = x.startTime
@@ -157,76 +117,10 @@ duration (Event.EventTime x) = x.duration
 endTime :: Event.EventTime -> Date
 endTime (Event.EventTime x) = x.endTime
 
-insertAuditURI :: Audit.Event -> Aff String
-insertAuditURI (Event event) = do
-  pure $ insertURI' "Audit" params
-  where 
-    params  =
-      [ Tuple "EventCategory" (show event.eventCategory)
-      , Tuple "EventType" (show event.eventCategory)
-      , Tuple "EventID" (show event.eventID)
-      , Tuple "EventSource" (show event.eventSource)
-      , Tuple "EventURI" (show event.eventURI)
-      , Tuple "StartTime" (show $ startTime event.eventTime)
-      , Tuple "Duration" (show $ duration event.eventTime)
-      , Tuple "EndTime" (show $ endTime event.eventTime)
-      ]
 
 assert :: forall a b. String -> Either a b -> Aff Unit
 assert x (Left _)  = liftEffect $ Exception.throw x
 assert _ (Right _)   = pure unit 
-
-insertFlowURI :: Flow.Event -> Aff String
-insertFlowURI (Flow.Event event) = do
-  _ <- assert "Parsing/validation failure (Flow)." $ runParser (show $ Flow.Event event) Flow.event
-  pure $ insertURI' "Flow" params
-  where
-    params = 
-      [ Tuple "SIP" (show event.sIP)
-      , Tuple "DIP" (show event.dIP)
-      , Tuple "SPort" (show event.sPort)
-      , Tuple "DPort" (show event.dPort)
-      , Tuple "Protocol" (show event.protocol)
-      , Tuple "Packets" (show event.packets)
-      , Tuple "Bytes" (show event.bytes)
-      , Tuple "Flags" (intercalate "" (show <$> event.flags))
-      , Tuple "StartTIme" (show event.startTime)
-      , Tuple "Duration" (show event.duration)
-      , Tuple "EndTime" (show event.endTime)
-      ]
-
-insertWindowsURI :: Windows.Event -> Aff String
-insertWindowsURI (Event event) = do
-  pure $ insertURI' "Windows" params
-  where 
-    params  =
-      [ Tuple "EventCategory" (show event.eventCategory)
-      , Tuple "EventType" (show event.eventType)
-      , Tuple "EventID" (show event.eventID)
-      , Tuple "EventURI" (show event.eventURI)
-      , Tuple "EventSource" (show event.eventSource)
-      , Tuple "StartTime" $ case event.eventTime of (Event.EventTime x) -> show x.startTime
-      , Tuple "Duration"  $ case event.eventTime of (Event.EventTime x) -> show x.duration
-      , Tuple "EndTime"   $ case event.eventTime of (Event.EventTime x) -> show x.endTime
-      ]
-
-insertStatisticsURI :: Statistics.Event -> Aff String
-insertStatisticsURI (Statistics.Event event) = do
-  pure $ insertURI' "Statistics" params
-  where 
-    params  = 
-      case event.eventURI of
-        (Statistics.EventURI eventURI) ->
-          [ Tuple "EventType" (show event.eventType)
-          , Tuple "EventCategory" (show event.eventCategory)
-          , Tuple "EventID" (show event.eventID)
-          , Tuple "Min" (show eventURI.min)
-          , Tuple "Max" (show eventURI.max)
-          , Tuple "Sum" (show eventURI.sum)
-          , Tuple "Total" (show eventURI.total)
-          , Tuple "Average" (show eventURI.average)
-          , Tuple "Variance" (show eventURI.variance)
-          ]
 
 insertURI' ::  Table -> Array (Tuple String String) -> String
 insertURI'  table' params = query
@@ -238,10 +132,18 @@ insertURI'  table' params = query
      values'  = snd <$> params
 
 insertURI :: Forward.URI ->  Aff String
-insertURI (Forward.Audit event)      = insertAuditURI event
-insertURI (Forward.Flow  event)      = insertFlowURI event
-insertURI (Forward.Statistics event) = insertStatisticsURI event
-insertURI (Forward.Windows event)    = insertWindowsURI event
+insertURI (Forward.Audit (Event event)) = pure $ insertURI' "Audit" params
+  where 
+    params  =
+      [ Tuple "EventCategory" (show event.eventCategory)
+      , Tuple "EventType" (show event.eventCategory)
+      , Tuple "EventID" (show event.eventID)
+      , Tuple "EventSource" (show event.eventSource)
+      , Tuple "EventURI" (show event.eventURI)
+      , Tuple "StartTime" (show $ startTime event.eventTime)
+      , Tuple "Duration" (show $ duration event.eventTime)
+      , Tuple "EndTime" (show $ endTime event.eventTime)
+      ]
 
 reportAuditURI' :: Report.ReportType -> Table -> Table
 reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY EventSource" 
@@ -289,9 +191,6 @@ executeSchemas :: String -> Aff Unit
 executeSchemas file = do
   database <- SQLite3.connect file SQLite3.OpenReadWrite
   _        <- SQLite3.all (schemaURI Schema.Audit) database
-  _        <- SQLite3.all (schemaURI Schema.Flow) database
-  _        <- SQLite3.all (schemaURI Schema.Statistics) database
-  _        <- SQLite3.all (schemaURI Schema.Windows) database
   _        <- SQLite3.close database
   pure unit
 
@@ -397,9 +296,9 @@ executeReport (Single uri) query = do
     }
   where
     eventID       (Report.Audit _ _ _ _)                = Statistics.Audit
-    eventType     _                                     = Statistics.Success
+    eventType     _                                     = Event.Success
     eventCategory (Report.Audit _ _ _ (Report.Source))  = Statistics.Source
-    eventCategory (Report.Audit _ _ _ (Report.Time))    = Statistics.Duration
+    eventCategory (Report.Audit _ _ _ (Report.Time))    = Statistics.Time
 
 executeReport'' :: Connection -> String -> Aff Number
 executeReport'' database uri = do
@@ -431,9 +330,6 @@ audit = \settings route -> do
     (Route.Report  _) -> Audit.Report
   eventID     <- pure $ case route of
     (Route.Forward (Forward.Audit _))      -> Audit.Audit
-    (Route.Forward (Forward.Flow _))       -> Audit.Traffic
-    (Route.Forward (Forward.Statistics _)) -> Audit.Statistics
-    (Route.Forward (Forward.Windows _))    -> Audit.Windows
     (Route.Report (Report.Audit _ _ _ _))  -> Audit.Audit
   eventType   <- pure $ case result of
     (Left _)  -> Event.Failure
