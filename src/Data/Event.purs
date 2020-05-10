@@ -4,7 +4,7 @@ module Data.Event
   , EventURI
   , EventSource(..)
   , EventTime(..)
-  , foreignEventType
+  , eventTypes
   , foreignEventURI
   , foreignEventTime
   , foreignEventSource
@@ -50,11 +50,17 @@ instance showEventType :: Show EventType where
   show Success = "SUCCESS"
   show Failure = "FAILURE"
 
+instance showEvent :: (Show a, Show b) => Show (Event a b) where
+  show = JSON.stringify <<< foreignEvent
+
 derive instance eqEventType :: Eq EventType
 
 derive instance eqEventTime :: Eq EventTime
 
 derive instance eqEvent :: (Eq a, Eq b) => Eq (Event a b)
+
+eventTypes :: Array EventType
+eventTypes = [ Success, Failure ]
 
 foreignEventTime :: EventTime -> Foreign
 foreignEventTime (EventTime x) = unsafeCoerce $
@@ -66,8 +72,15 @@ foreignEventTime (EventTime x) = unsafeCoerce $
 foreignEventSource :: EventSource -> Foreign
 foreignEventSource = unsafeCoerce <<< show
 
-foreignEventType :: EventType -> Foreign
-foreignEventType = unsafeCoerce <<< show
-
 foreignEventURI :: EventURI -> Foreign
 foreignEventURI = unsafeCoerce <<< show
+
+foreignEvent :: forall a b. Show a => Show b => Event a b -> Foreign
+foreignEvent (Event x) = unsafeCoerce $
+  { eventCategory : show x.eventCategory
+  , eventType     : show x.eventType
+  , eventID       : show x.eventID
+  , eventSource   : foreignEventSource x.eventSource
+  , eventURI      : foreignEventURI x.eventURI
+  , eventTime     : foreignEventTime x.eventTime
+  }

@@ -16,8 +16,6 @@ import FFI.Date (epoch, getTime) as Date
 import FFI.Math as Math
 import FFI.UUID as UUID
 
-import Data.IPv4 (IPv4(..))
-
 import Data.Event as Event
 import Data.Windows as Windows 
 

@@ -1,6 +1,7 @@
 module Text.Parsing.Event
   ( source
   , time
+  , event
   ) where
 
 import Prelude
@@ -13,11 +14,18 @@ import Text.Parsing.Parser.Combinators (choice)
 
 import FFI.UUID (UUID)
 
-import Text.Parsing.Common (ipv4, port, property, date, nonnegativeInteger, array, uuid)
+import Text.Parsing.Common (json, property, date, nonnegativeInteger, array, uuid, readIndex)
 
+import Data.Event (Event(..))
 import Data.Event as Event
 
-source :: Parser String UUID
+eventType :: Parser String Event.EventType
+eventType = array $ Event.eventTypes
+
+eventURI :: Parser String Event.EventURI
+eventURI = uuid
+
+source :: Parser String Event.EventSource
 source = uuid
 
 time :: Foreign -> Parser String Event.EventTime
@@ -29,4 +37,22 @@ time = \x -> do
     { startTime : startTime
     , duration  : duration
     , endTime   : endTime
+    }
+
+event :: forall a b. Show a => Show b => Array a -> Array b -> Parser String (Event a b)
+event eventCategories eventIDs = do
+  x              <- json
+  eventCategory  <- property  "eventCategory" x $ array eventCategories
+  eventType'     <- property  "eventType"     x $ eventType
+  eventID        <- property  "eventID"       x $ array eventIDs
+  eventTime      <- readIndex "eventTime"     x >>= time 
+  eventSource    <- property  "eventSource"   x $ source
+  eventURI'      <- property  "eventURI"      x $ eventURI
+  pure $ Event $
+    { eventCategory : eventCategory
+    , eventType     : eventType'
+    , eventID       : eventID
+    , eventTime     : eventTime
+    , eventSource   : eventSource
+    , eventURI      : eventURI'
     }

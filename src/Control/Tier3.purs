@@ -47,6 +47,8 @@ import FFI.UUID    as UUID
 import Control.DSL as DSL
 
 import Data.Audit as Audit
+
+import Data.Event(Event(..))
 import Data.Event as Event
 import Data.Flow (Event(..)) as Flow
 import Data.Statistics as Statistics
@@ -156,7 +158,7 @@ endTime :: Event.EventTime -> Date
 endTime (Event.EventTime x) = x.endTime
 
 insertAuditURI :: Audit.Event -> Aff String
-insertAuditURI (Audit.Event event) = do
+insertAuditURI (Event event) = do
   pure $ insertURI' "Audit" params
   where 
     params  =
@@ -434,15 +436,15 @@ audit = \settings route -> do
     (Route.Forward (Forward.Windows _))    -> Audit.Windows
     (Route.Report (Report.Audit _ _ _ _))  -> Audit.Audit
   eventType   <- pure $ case result of
-    (Left _)  -> Audit.Failure
-    (Right _) -> Audit.Success
+    (Left _)  -> Event.Failure
+    (Right _) -> Event.Success
   eventTime   <- pure $ Event.EventTime { startTime : startTime', duration : duration', endTime : endTime' }
   {-- todo: derive event source from auth. settings --}
   eventSource <- lift $ pure UUID.default
   {-- todo: derive namespace UUID from auth. settings --}
   sessionUUID <- lift $ pure UUID.default
   eventURI    <- lift $ liftEffect $ UUID.uuidv5 (show route) sessionUUID
-  event       <- pure $ Audit.Event $
+  event       <- pure $ Event $
                  { eventCategory : eventCategory
                  , eventType     : eventType
                  , eventID       : eventID

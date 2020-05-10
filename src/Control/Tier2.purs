@@ -56,6 +56,8 @@ import Data.Route as Route
 import Data.IPv4 (IPv4)
 
 import Data.Audit as Audit
+
+import Data.Event (Event(..))
 import Data.Event as Event
 import Data.Statistics (Event) as Statistics
 
@@ -149,12 +151,12 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
     (Right (Route.Forward (Forward.Windows _)))    -> Audit.Windows
     (Right (Route.Report  (Report.Audit _ _ _ _))) -> Audit.Audit
   eventType     <- pure $ case routingResult of
-    (Left  _) -> Audit.Failure
+    (Left  _) -> Event.Failure
     (Right _) -> case resource of
-      (Ok _) -> Audit.Success
+      (Ok _) -> Event.Success
       _      -> case response of
-        (Left _)  -> Audit.Failure
-        (Right _) -> Audit.Success
+        (Left _)  -> Event.Failure
+        (Right _) -> Event.Success
   eventTime    <- pure $ Event.EventTime { startTime : startTime, duration : duration, endTime : endTime }
   port         <- pure $ Socket.remotePort $ HTTPS.socket req
   {-- todo: derive namespace UUID from auth. settings  --}
@@ -163,7 +165,7 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
     (Left _)   -> pure $ sessionUUID
     (Right ip) -> liftEffect $ UUID.uuidv5 (show ip <> ":" <> show port) sessionUUID 
   eventURI     <- liftEffect $ UUID.uuidv5 (HTTPS.messageURL req) sessionUUID 
-  event        <- pure $ Audit.Event $
+  event        <- pure $ Event $
                      { eventCategory : eventCategory
                      , eventType     : eventType
                      , eventID       : eventID
