@@ -65,8 +65,8 @@ random = do
   endTime        <- Date.random
   eventURI       <- UUID.uuidv4
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
-  eventTime'     <- pure $ Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
-  eventSource'   <- pure $ Event.Host $ { ip : IPv4 0 0 0 0, port : 0 }
+  eventTime'     <- pure $ Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
+  eventSource'   <- UUID.uuidv4
   pure $ Windows.Event $
     { eventCategory : eventCategory'
     , eventID       : eventID'

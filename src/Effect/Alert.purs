@@ -56,9 +56,6 @@ eventType :: Effect Alert.EventType
 eventType = array default $ [Alert.Success, Alert.Failure]
   where default = Alert.Success
 
-eventSource :: Effect Event.Source
-eventSource = array Event.Tier1 $ [Event.Tier1, Event.Tier2, Event.Tier3]
-
 random :: Effect Alert.Event
 random = do
   eventCategory' <- eventCategory
@@ -67,8 +64,8 @@ random = do
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
-  eventTime      <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
-  eventSource'   <- eventSource
+  eventTime      <- pure $ Event.EventTime { startTime : startTime, duration : duration, endTime : endTime }
+  eventSource'   <- UUID.uuidv4
   eventURI'      <- UUID.uuidv4
   pure $ Alert.Event $
     { eventCategory : eventCategory'

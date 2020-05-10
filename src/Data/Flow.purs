@@ -12,13 +12,14 @@ import FFI.Date (Date)
 import FFI.JSON as JSON
 
 import Data.IPv4 (IPv4)
+import Data.Port (Port)
 import Data.TCP.Flag (Flag)
 
 data Event = Event
   { sIP       :: IPv4
   , dIP       :: IPv4
-  , sPort     :: Int
-  , dPort     :: Int
+  , sPort     :: Port
+  , dPort     :: Port
   , protocol  :: Int
   , packets   :: Int
   , bytes     :: Int

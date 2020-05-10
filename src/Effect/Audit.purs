@@ -54,9 +54,6 @@ eventID = array default $ Audit.eventIDs
 eventType :: Effect Audit.EventType
 eventType = array Audit.Success $ [Audit.Success, Audit.Failure]
 
-eventSource :: Effect Event.Source
-eventSource = array Event.Tier1 $ [Event.Tier1, Event.Tier2, Event.Tier3]
-
 random :: Effect Audit.Event
 random = do
   eventCategory' <- eventCategory
@@ -65,8 +62,8 @@ random = do
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
-  eventTime      <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
-  eventSource'   <- eventSource
+  eventTime      <- pure $ Event.EventTime { startTime : startTime, duration : duration, endTime : endTime }
+  eventSource'   <- UUID.uuidv4
   eventURI'      <- UUID.uuidv4
   pure $ Audit.Event $
     { eventCategory : eventCategory'

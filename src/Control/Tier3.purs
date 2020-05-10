@@ -146,14 +146,14 @@ schemaURI Schema.Statistics = schemaURI' "Statistics" [] $
   , Tuple "Variance" Text
   ]
 
-startTime :: Event.Time -> Date
-startTime (Event.Time x) = x.startTime
+startTime :: Event.EventTime -> Date
+startTime (Event.EventTime x) = x.startTime
 
-duration :: Event.Time -> Int
-duration (Event.Time x) = x.duration
+duration :: Event.EventTime -> Int
+duration (Event.EventTime x) = x.duration
 
-endTime :: Event.Time -> Date
-endTime (Event.Time x) = x.endTime
+endTime :: Event.EventTime -> Date
+endTime (Event.EventTime x) = x.endTime
 
 insertAuditURI :: Audit.Event -> Aff String
 insertAuditURI (Audit.Event event) = do
@@ -203,9 +203,9 @@ insertWindowsURI (Windows.Event event) = do
       , Tuple "EventID" (show event.eventID)
       , Tuple "EventURI" (show event.eventURI)
       , Tuple "EventSource" (show event.eventSource)
-      , Tuple "StartTime" $ case event.eventTime of (Event.Time x) -> show x.startTime
-      , Tuple "Duration"  $ case event.eventTime of (Event.Time x) -> show x.duration
-      , Tuple "EndTime"   $ case event.eventTime of (Event.Time x) -> show x.endTime
+      , Tuple "StartTime" $ case event.eventTime of (Event.EventTime x) -> show x.startTime
+      , Tuple "Duration"  $ case event.eventTime of (Event.EventTime x) -> show x.duration
+      , Tuple "EndTime"   $ case event.eventTime of (Event.EventTime x) -> show x.endTime
       ]
 
 insertStatisticsURI :: Statistics.Event -> Aff String
@@ -374,9 +374,10 @@ executeReport (Single uri) query = do
   average    <- executeReport'' database (averageURI query)
   variance   <- executeReport'' database (varianceURI query average)
   _          <- SQLite3.close database
-  {-- todo: derive event time from authorization settings --}
-  eventTime  <- pure $ Event.Time { startTime : Date.epoch, duration : 0, endTime : Date.epoch }
-  eventURI   <- pure $ Statistics.EventURI $
+  {-- todo: derive event time from auth. settings --}
+  eventTime   <- pure $ Event.EventTime { startTime : Date.epoch, duration : 0, endTime : Date.epoch }
+  eventSource <- pure $ UUID.default 
+  eventURI    <- pure $ Statistics.EventURI $
     { min           : Math.floor min
     , max           : Math.floor max
     , sum           : Math.floor sum
@@ -389,7 +390,7 @@ executeReport (Single uri) query = do
     , eventType     : eventType query
     , eventID       : eventID query
     , eventTime     : eventTime
-    , eventSource   : Event.Tier3
+    , eventSource   : eventSource
     , eventURI      : eventURI
     }
   where
@@ -435,12 +436,12 @@ audit = \settings route -> do
   eventType   <- pure $ case result of
     (Left _)  -> Audit.Failure
     (Right _) -> Audit.Success
-  eventTime   <- pure $ Event.Time { startTime : startTime', duration : duration', endTime : endTime' }
+  eventTime   <- pure $ Event.EventTime { startTime : startTime', duration : duration', endTime : endTime' }
   {-- todo: derive event source from auth. settings --}
-  eventSource <- pure $ Event.Tier3
+  eventSource <- lift $ pure UUID.default
   {-- todo: derive namespace UUID from auth. settings --}
-  sourceUUID  <- lift $ liftEffect $ UUID.uuidv1
-  eventURI    <- lift $ liftEffect $ UUID.uuidv5 (show route) sourceUUID
+  sessionUUID <- lift $ pure UUID.default
+  eventURI    <- lift $ liftEffect $ UUID.uuidv5 (show route) sessionUUID
   event       <- pure $ Audit.Event $
                  { eventCategory : eventCategory
                  , eventType     : eventType

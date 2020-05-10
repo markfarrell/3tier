@@ -28,7 +28,7 @@ import FFI.Math as Math
 import Data.Audit (EventCategory(..), EventType(..), EventID(..)) as Audit
 import Data.Statistics (Event(..), EventURI(..)) as Statistics
 
-import Data.Event (Time(..)) as Event
+import Data.Event (EventTime(..)) as Event
 
 import Control.Authorization as Authorization
 import Control.Authentication as Authentication
@@ -198,7 +198,7 @@ testSingleForward = do
     , eventType     : Test.Single
     , eventID       : Test.Forward
     , eventURI      : unit
-    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
+    , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -220,7 +220,7 @@ testReplicationForward = do
     , eventType     : Test.Replication
     , eventID       : Test.Forward
     , eventURI      : unit
-    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
+    , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -242,7 +242,7 @@ testSingleReports = do
     , eventType     : Test.Single
     , eventID       : Test.Report
     , eventURI      : unit
-    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
+    , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -263,7 +263,7 @@ testReplicationReports = do
     , eventType     : Test.Replication
     , eventID       : Test.Report
     , eventURI      : unit
-    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
+    , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -284,7 +284,7 @@ testFailoverForwards = do
     , eventType     : Test.Failover
     , eventID       : Test.Forward
     , eventURI      : unit
-    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
+    , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit
@@ -306,7 +306,7 @@ testFailoverReports = do
     , eventType     : Test.Failover
     , eventID       : Test.Report
     , eventURI      : unit
-    , eventTime     : Event.Time $ { startTime : startTime, duration : duration, endTime : endTime }
+    , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
   pure unit

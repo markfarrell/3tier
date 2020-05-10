@@ -48,7 +48,8 @@ import FFI.Date as Date
 import FFI.JSON as JSON
 import FFI.UUID (UUID)
 
-import Data.IPv4(IPv4(..))
+import Data.IPv4 (IPv4(..))
+import Data.Port (Port) 
 import Data.TCP.Flag (Flag(..))
 
 foreign import parseInt      :: String -> Int
@@ -152,11 +153,11 @@ octet = do
     (Nothing) -> fail "Invalid octet."
   where octets = Array.range 0 255
 
-port :: Parser String Int
+port :: Parser String Port
 port = do
   w <- nonnegativeInteger
   case Array.elemIndex w ports of
-    (Just _)  -> pure w
+    (Just _)  -> pure $ unsafeCoerce w
     (Nothing) -> fail "Invalid port."
   where ports = Array.range 0 65535
 

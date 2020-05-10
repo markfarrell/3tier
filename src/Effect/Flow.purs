@@ -18,6 +18,8 @@ import Data.TCP.Flag (Flag(..))
 
 import Data.Flow as Flow 
 
+import Effect.Port as Port
+
 range :: Int -> Int -> Effect Int
 range min max = do
   w <- Math.random
@@ -28,9 +30,6 @@ range min max = do
 
 octet :: Effect Int
 octet = range 0 255
-
-port :: Effect Int
-port = range 0 65535
 
 ipv4 :: Effect IPv4
 ipv4 = do
@@ -43,9 +42,9 @@ ipv4 = do
 random :: Effect Flow.Event
 random = do
   sIP       <- ipv4
-  sPort     <- port
+  sPort     <- Port.random
   dIP       <- ipv4
-  dPort     <- port
+  dPort     <- Port.random
   packets   <- range 0 999999999
   bytes     <- range 0 999999999
   protocol  <- octet

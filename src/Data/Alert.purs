@@ -32,8 +32,8 @@ data Event = Event
   , eventType     :: EventType
   , eventID       :: EventID
   , eventURI      :: EventURI
-  , eventSource   :: Event.Source
-  , eventTime     :: Event.Time
+  , eventSource   :: Event.EventSource
+  , eventTime     :: Event.EventTime
   }
 
 instance showEventAlert :: Show Event where
@@ -81,7 +81,7 @@ uri (Event event') = JSON.stringify $ unsafeCoerce $
   { eventCategory : show event'.eventCategory
   , eventType     : show event'.eventType
   , eventID       : show event'.eventID
-  , eventSource   : Event.foreignSource event'.eventSource
-  , eventTime     : Event.foreignTime event'.eventTime
+  , eventSource   : Event.foreignEventSource event'.eventSource
+  , eventTime     : Event.foreignEventTime event'.eventTime
   , eventURI      : show event'.eventURI
   }

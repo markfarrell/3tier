@@ -16,9 +16,6 @@ import Data.Foldable (foldl)
 
 import Unsafe.Coerce (unsafeCoerce)
 
-import Foreign (Foreign)
-
-import FFI.Date (Date)
 import FFI.JSON as JSON
 import FFI.UUID (UUID)
 
@@ -47,8 +44,8 @@ data Event = Event
   , eventID       :: EventID
   , eventType     :: EventType
   , eventURI      :: EventURI
-  , eventTime     :: Event.Time
-  , eventSource   :: Event.Source
+  , eventTime     :: Event.EventTime
+  , eventSource   :: Event.EventSource
   }
 
 instance showEventWindows :: Show Event where
@@ -618,6 +615,6 @@ uri (Event event') = JSON.stringify $ unsafeCoerce $
  , eventType     : show event'.eventType
  , eventID       : show event'.eventID
  , eventURI      : show event'.eventURI
- , eventTime     : Event.foreignTime event'.eventTime
- , eventSource   : Event.foreignSource event'.eventSource
+ , eventTime     : Event.foreignEventTime event'.eventTime
+ , eventSource   : Event.foreignEventSource event'.eventSource
  }

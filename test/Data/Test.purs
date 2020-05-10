@@ -10,7 +10,7 @@ import Prelude
 
 import Data.Foldable (intercalate)
 
-import Data.Event (Time(..)) as Event
+import Data.Event as Event
 
 data EventCategory = Tier1 | Tier2 | Tier3
 
@@ -26,7 +26,7 @@ data Event = Event
   , eventType     :: EventType
   , eventID       :: EventID
   , eventURI      :: EventURI
-  , eventTime     :: Event.Time
+  , eventTime     :: Event.EventTime
   }
 
 instance showEventTest :: Show Event where
@@ -37,7 +37,7 @@ instance showEventTest :: Show Event where
         , dim $ fgMagenta (show test.eventCategory)
         , dim $ fgCyan    (show test.eventType)
         , dim $ fgYellow  (show test.eventID)
-        , dim $ fgWhite $ round (case test.eventTime of (Event.Time x) -> (show $ x.duration / 1000) <> "s")
+        , dim $ fgWhite $ round (case test.eventTime of (Event.EventTime x) -> (show $ x.duration / 1000) <> "s")
         ]
       h1         = dim <<< fgGreen
       h2         = dim <<< fgMagenta

@@ -50,8 +50,8 @@ data Event = Event
   , eventType     :: EventType
   , eventID       :: EventID
   , eventURI      :: EventURI
-  , eventSource   :: Event.Source
-  , eventTime     :: Event.Time
+  , eventSource   :: Event.EventSource
+  , eventTime     :: Event.EventTime
   }
 
 instance showEventLinux :: Show Event where
@@ -147,6 +147,6 @@ uri (Event x) = JSON.stringify $ unsafeCoerce $
   , eventType     : show x.eventType
   , eventID       : show x.eventID
   , eventURI      : show x.eventURI
-  , eventTime     : Event.foreignTime x.eventTime
-  , eventSource   : Event.foreignSource x.eventSource
+  , eventTime     : Event.foreignEventTime x.eventTime
+  , eventSource   : Event.foreignEventSource x.eventSource
   }

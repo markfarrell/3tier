@@ -1,9 +1,13 @@
 module Data.Event
   ( Event(..)
-  , Source(..)
-  , Time(..)
-  , foreignTime
-  , foreignSource
+  , EventType(..)
+  , EventURI
+  , EventSource(..)
+  , EventTime(..)
+  , foreignEventType
+  , foreignEventURI
+  , foreignEventTime
+  , foreignEventSource
   ) where
 
 import Prelude
@@ -16,61 +20,54 @@ import Unsafe.Coerce (unsafeCoerce)
 
 import FFI.Date (Date)
 import FFI.JSON (stringify) as JSON
+import FFI.UUID (UUID)
 
 import Data.IPv4 (IPv4)
+import Data.Port (Port)
 
-data Time = Time
+data EventType = Success | Failure
+
+type EventURI  = UUID 
+
+data EventTime = EventTime
   { startTime :: Date
   , duration  :: Int
   , endTime   :: Date 
   }
 
-data Source = Tier1 | Tier2 | Tier3 | Host { ip :: IPv4, port :: Int }
+type EventSource = UUID
 
-data Event a b c d = Event
+data Event a b = Event
   { eventCategory :: a
-  , eventType     :: b
-  , eventID       :: c
-  , eventURI      :: d
-  , eventTime     :: Time
-  , eventSource   :: Source
+  , eventType     :: EventType
+  , eventID       :: b
+  , eventURI      :: EventURI
+  , eventTime     :: EventTime
+  , eventSource   :: EventSource
   } 
 
-instance showTimeData :: Show Time where
-  show (Time x) = JSON.stringify $ unsafeCoerce $
-    { startTime : show x.startTime
-    , duration  : show x.duration
-    , endTime   : show x.endTime
-    }
+instance showEventType :: Show EventType where
+  show Success = "SUCCESS"
+  show Failure = "FAILURE"
 
-instance showSourceData :: Show Source where
-  show (Tier1)  = "TIER-01"
-  show (Tier2)  = "TIER-02"
-  show (Tier3)  = "TIER-03"
-  show (Host x) = show x.ip <> ":" <> show x.port
+derive instance eqEventType :: Eq EventType
 
-instance eqSourceData :: Eq Source where
-  eq (Host x) (Host y) = (x == y)
-  eq (Tier1)  (Tier1)  = true
-  eq (Tier2)  (Tier2)  = true
-  eq (Tier3)  (Tier3)  = true
-  eq _        _        = false
+derive instance eqEventTime :: Eq EventTime
 
-instance eqTimeData :: Eq Time where
-  eq (Time x) (Time y) = foldl (&&) true comparison
-    where
-      comparison =
-        [ eq x.startTime y.startTime
-        , eq x.duration y.duration
-        , eq x.endTime y.endTime
-        ]
+derive instance eqEvent :: (Eq a, Eq b) => Eq (Event a b)
 
-foreignTime :: Time -> Foreign
-foreignTime (Time x) = unsafeCoerce $
+foreignEventTime :: EventTime -> Foreign
+foreignEventTime (EventTime x) = unsafeCoerce $
   { startTime : show x.startTime
   , duration  : show x.duration
   , endTime   : show x.endTime
   }
 
-foreignSource :: Source -> Foreign
-foreignSource source = unsafeCoerce $ show source
+foreignEventSource :: EventSource -> Foreign
+foreignEventSource = unsafeCoerce <<< show
+
+foreignEventType :: EventType -> Foreign
+foreignEventType = unsafeCoerce <<< show
+
+foreignEventURI :: EventURI -> Foreign
+foreignEventURI = unsafeCoerce <<< show

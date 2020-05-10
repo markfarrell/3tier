@@ -40,8 +40,8 @@ data Event = Event
   { eventCategory :: EventCategory
   , eventType     :: EventType
   , eventID       :: EventID
-  , eventTime     :: Event.Time
-  , eventSource   :: Event.Source
+  , eventTime     :: Event.EventTime
+  , eventSource   :: Event.EventSource
   , eventURI      :: EventURI
   }
 
@@ -136,7 +136,7 @@ uri (Event event') = JSON.stringify $ unsafeCoerce $
   { eventCategory : show event'.eventCategory
   , eventType     : show event'.eventType
   , eventID       : show event'.eventID
-  , eventTime     : Event.foreignTime   $ event'.eventTime
-  , eventSource   : Event.foreignSource $ event'.eventSource
+  , eventTime     : Event.foreignEventTime   $ event'.eventTime
+  , eventSource   : Event.foreignEventSource $ event'.eventSource
   , eventURI      : foreignURI event'.eventURI
   }

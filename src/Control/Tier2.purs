@@ -155,14 +155,14 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
       _      -> case response of
         (Left _)  -> Audit.Failure
         (Right _) -> Audit.Success
-  eventTime    <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
+  eventTime    <- pure $ Event.EventTime { startTime : startTime, duration : duration, endTime : endTime }
   port         <- pure $ Socket.remotePort $ HTTPS.socket req
-  eventSource  <- pure $ case (runParser (Socket.remoteAddress $ HTTPS.socket req) ipv4) of
-    (Left _)   -> Event.Tier2
-    (Right ip) -> Event.Host { ip : ip, port : port }
-  {-- todo: derive namespace UUID from authentication settings --}
-  sourceUUID   <- liftEffect $ UUID.uuidv1
-  eventURI     <- liftEffect $ UUID.uuidv5 (HTTPS.messageURL req) sourceUUID 
+  {-- todo: derive namespace UUID from auth. settings  --}
+  sessionUUID  <- pure $ UUID.default
+  eventSource  <- case (runParser (Socket.remoteAddress $ HTTPS.socket req) ipv4) of
+    (Left _)   -> pure $ sessionUUID
+    (Right ip) -> liftEffect $ UUID.uuidv5 (show ip <> ":" <> show port) sessionUUID 
+  eventURI     <- liftEffect $ UUID.uuidv5 (HTTPS.messageURL req) sessionUUID 
   event        <- pure $ Audit.Event $
                      { eventCategory : eventCategory
                      , eventType     : eventType

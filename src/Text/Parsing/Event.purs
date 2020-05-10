@@ -11,32 +11,21 @@ import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.String (char)
 import Text.Parsing.Parser.Combinators (choice)
 
-import Text.Parsing.Common (ipv4, port, property, date, nonnegativeInteger, array)
+import FFI.UUID (UUID)
+
+import Text.Parsing.Common (ipv4, port, property, date, nonnegativeInteger, array, uuid)
 
 import Data.Event as Event
 
-host :: Parser String Event.Source
-host = do
-  ip   <- ipv4
-  _    <- char ':'
-  port <- port
-  pure $ Event.Host $
-    { ip   : ip
-    , port : port
-    }
+source :: Parser String UUID
+source = uuid
 
-tier :: Parser String Event.Source
-tier = array [ Event.Tier1, Event.Tier2, Event.Tier3]
-
-source :: Parser String Event.Source
-source = choice [ host, tier ]
-
-time :: Foreign -> Parser String Event.Time
+time :: Foreign -> Parser String Event.EventTime
 time = \x -> do
   startTime <- property "startTime" x $ date
   duration  <- property "duration"  x $ nonnegativeInteger
   endTime   <- property "endTime"   x $ date
-  pure $ Event.Time $
+  pure $ Event.EventTime $
     { startTime : startTime
     , duration  : duration
     , endTime   : endTime

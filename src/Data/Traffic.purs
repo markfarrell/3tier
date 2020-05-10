@@ -1,20 +1,22 @@
 module Data.Traffic
   ( Event(..)
   , EventCategory(..)
-  , EventType(..)
-  , EventID(..)
-  , EventURI(..) 
+  , EventID
   ) where
 
-import Data.Event (Event) as Event
-import Data.Flow as Flow
+import Prelude
+
+import Data.Port (Port)
+import Data.Event as Event
 
 data EventCategory = In | Out
                        
-data EventType     = Success | Failure
+type EventID = Port
 
-data EventID       = HTTP | FTP | SSH | MicrosoftDS | WinRM -- | ...
+type Event = Event.Event EventCategory EventID
 
-type EventURI      = Flow.Event
+instance showEventCategoryTraffic :: Show EventCategory where 
+  show In  = "IN"
+  show Out = "OUT"
 
-type Event         = Event.Event EventCategory EventType EventID EventURI
+derive instance eqEventCategoryTraffic :: Eq EventCategory

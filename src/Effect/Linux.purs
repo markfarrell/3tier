@@ -63,8 +63,8 @@ random = do
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   eventURI       <- UUID.uuidv4
-  eventSource    <- pure $ Event.Host { ip : IPv4 0 0 0 0, port : 0 }
-  eventTime      <- pure $ Event.Time { startTime : startTime, duration : duration, endTime : endTime }
+  eventSource    <- UUID.uuidv4
+  eventTime      <- pure $ Event.EventTime { startTime : startTime, duration : duration, endTime : endTime }
   pure $ Linux.Event $
     { eventCategory : eventCategory'
     , eventID       : eventID'
