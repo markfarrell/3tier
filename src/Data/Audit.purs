@@ -12,9 +12,9 @@ import Data.Event as Event
 
 data EventType = Success | Failure
 
-data EventID = Alert | Audit | Traffic | Windows | Linux | Statistics | Risk
+data EventID = Alert | Audit | Traffic | Windows | Linux | Statistics
 
-data EventCategory = Forward | Report | Anomalous
+data EventCategory = Forward | Report
 
 type Event = Event.Event EventCategory EventID
 
@@ -25,19 +25,17 @@ instance showEventIDAudit :: Show EventID where
   show (Linux)        = "LINUX"
   show (Statistics)   = "STATISTICS"
   show (Windows)      = "WINDOWS"
-  show (Risk)         = "RISK"
 
 instance showEventCategory :: Show EventCategory where
   show Forward   = "FORWARD"
   show Report    = "REPORT"
-  show Anomalous = "ANOMALOUS"
 
 derive instance eqEventCategoryAudit :: Eq EventCategory
 
 derive instance eqEventIDAudit :: Eq EventID
 
 eventCategories :: Array EventCategory
-eventCategories = [Forward, Report, Anomalous]
+eventCategories = [Forward, Report]
 
 eventIDs :: Array EventID
 eventIDs =
@@ -47,5 +45,4 @@ eventIDs =
   , Windows
   , Linux
   , Statistics
-  , Risk
   ]

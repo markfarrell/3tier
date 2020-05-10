@@ -140,11 +140,11 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
   endTime       <- liftEffect $ Date.current
   duration      <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
   eventCategory <- pure $ case routingResult of
-    (Left _)                  -> Audit.Anomalous
+    (Left _)                  -> Audit.Forward
     (Right (Route.Forward _)) -> Audit.Forward
     (Right (Route.Report  _)) -> Audit.Report
   eventID       <- pure $ case routingResult of
-    (Left _)                                       -> Audit.Risk
+    (Left _)                                       -> Audit.Alert
     (Right (Route.Forward (Forward.Audit _)))      -> Audit.Audit
     (Right (Route.Forward (Forward.Flow _)))       -> Audit.Traffic
     (Right (Route.Forward (Forward.Statistics _))) -> Audit.Statistics

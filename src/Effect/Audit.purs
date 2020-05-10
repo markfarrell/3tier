@@ -4,11 +4,6 @@ module Effect.Audit
 
 import Prelude
 
-import Data.Array as Array
-
-import Data.Int as Int
-import Data.Maybe (Maybe(..))
-
 import Effect (Effect)
 import Effect.Date (random) as Date
 
