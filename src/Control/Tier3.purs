@@ -196,7 +196,7 @@ insertFlowURI (Flow.Event event) = do
       ]
 
 insertWindowsURI :: Windows.Event -> Aff String
-insertWindowsURI (Windows.Event event) = do
+insertWindowsURI (Event event) = do
   pure $ insertURI' "Windows" params
   where 
     params  =

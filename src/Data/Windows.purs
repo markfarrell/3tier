@@ -1,23 +1,15 @@
 module Data.Windows
-  ( EventCategory(..) 
+  ( Event
+  , EventCategory(..)
   , EventID
-  , EventType(..)
-  , EventURI
-  , Event(..)
   , eventCategories
   , eventIDs
   , eventIDs'
-  , eventTypes
   ) where
 
 import Prelude
 
 import Data.Foldable (foldl)
-
-import Unsafe.Coerce (unsafeCoerce)
-
-import FFI.JSON as JSON
-import FFI.UUID (UUID)
 
 import Data.Event as Event
 
@@ -33,23 +25,9 @@ data EventCategory = AccountLogon
   | System
   | Uncategorized
 
-data EventType = Success | Failure
-
 type EventID = Int
 
-type EventURI = UUID
-
-data Event = Event
-  { eventCategory :: EventCategory
-  , eventID       :: EventID
-  , eventType     :: EventType
-  , eventURI      :: EventURI
-  , eventTime     :: Event.EventTime
-  , eventSource   :: Event.EventSource
-  }
-
-instance showEventWindows :: Show Event where
-  show = uri
+type Event = Event.Event EventCategory EventID
 
 instance showEventCategoryWindows :: Show EventCategory where
   show AccountLogon      = "ACCOUNT-LOGON"
@@ -64,48 +42,23 @@ instance showEventCategoryWindows :: Show EventCategory where
   show System            = "SYSTEM"
   show Uncategorized     = "UNCATEGORIZED"
 
-instance showEventTypeWindows :: Show EventType where
-  show Success = "SUCCESS"
-  show Failure = "FAILURE"
+derive instance eqEventCategoryWindows :: Eq EventCategory
 
+eventIDs :: Array EventID
+eventIDs = foldl (<>) [] (eventIDs' <$> eventCategories)
 
-instance eqEventCategoryWindows :: Eq EventCategory where
-  eq AccountLogon      AccountLogon      = true 
-  eq AccountManagement AccountManagement = true
-  eq DirectoryService  DirectoryService  = true 
-  eq LogonAndLogoff    LogonAndLogoff    = true 
-  eq ObjectAccess      ObjectAccess      = true 
-  eq NonAudit          NonAudit          = true 
-  eq PolicyChange      PolicyChange      = true 
-  eq PrivilegeUse      PrivilegeUse      = true 
-  eq ProcessTracking   ProcessTracking   = true 
-  eq System            System            = true 
-  eq Uncategorized     Uncategorized     = true 
-  eq _                 _                 = false
-
-instance eqEventTypeWindows :: Eq EventType where
-  eq Success Success = true
-  eq Failure Failure = true
-  eq _       _       = false
-
-instance eqEventWindows :: Eq Event where
-  eq (Event x) (Event y) = (x == y)
-
-eventIDs' :: Array Int
-eventIDs' = foldl (<>) [] (eventIDs <$> eventCategories)
-
-eventIDs :: EventCategory -> Array Int
-eventIDs AccountLogon      = accountLogon
-eventIDs AccountManagement = accountManagement
-eventIDs DirectoryService  = directoryService
-eventIDs LogonAndLogoff    = logonAndLogoff
-eventIDs ObjectAccess      = objectAccess
-eventIDs NonAudit          = nonAudit
-eventIDs PolicyChange      = policyChange
-eventIDs PrivilegeUse      = privilegeUse
-eventIDs ProcessTracking   = processTracking
-eventIDs System            = system
-eventIDs Uncategorized     = uncategorized
+eventIDs' :: EventCategory -> Array EventID
+eventIDs' AccountLogon      = accountLogon
+eventIDs' AccountManagement = accountManagement
+eventIDs' DirectoryService  = directoryService
+eventIDs' LogonAndLogoff    = logonAndLogoff
+eventIDs' ObjectAccess      = objectAccess
+eventIDs' NonAudit          = nonAudit
+eventIDs' PolicyChange      = policyChange
+eventIDs' PrivilegeUse      = privilegeUse
+eventIDs' ProcessTracking   = processTracking
+eventIDs' System            = system
+eventIDs' Uncategorized     = uncategorized
 
 eventCategories :: Array EventCategory
 eventCategories = 
@@ -121,27 +74,6 @@ eventCategories =
   , System
   , Uncategorized
   ]
-
-eventTypes :: Array EventType
-eventTypes = [ Success, Failure ] 
-
-writeEventCategory :: EventCategory -> String
-writeEventCategory AccountLogon      = "account-logon"
-writeEventCategory AccountManagement = "account-management"
-writeEventCategory DirectoryService  = "directory-service"
-writeEventCategory LogonAndLogoff    = "logon-and-logoff"
-writeEventCategory ObjectAccess      = "object-access"
-writeEventCategory NonAudit          = "non-audit"
-writeEventCategory PolicyChange      = "policy-change"
-writeEventCategory PrivilegeUse      = "privilege-use"
-writeEventCategory ProcessTracking   = "process-tracking"
-writeEventCategory System            = "system"
-writeEventCategory Uncategorized     = "uncategorized"
-
-
-writeEventType :: EventType -> String
-writeEventType Success = "success"
-writeEventType Failure = "failure"
 
 accountLogon :: Array Int
 accountLogon =
@@ -608,13 +540,3 @@ processTracking =
 
 privilegeUse :: Array Int
 privilegeUse = [ 4673, 4674 ]
-
-uri :: Event -> String
-uri (Event event') = JSON.stringify $ unsafeCoerce $
- { eventCategory : show event'.eventCategory
- , eventType     : show event'.eventType
- , eventID       : show event'.eventID
- , eventURI      : show event'.eventURI
- , eventTime     : Event.foreignEventTime event'.eventTime
- , eventSource   : Event.foreignEventSource event'.eventSource
- }
