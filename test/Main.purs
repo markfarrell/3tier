@@ -46,7 +46,7 @@ main = void $ launchAff $ do
   _ <- render (completeSuite  "Text.Parsing.Audit")       *> Audit.suite
   _ <- render (completeSuite  "Text.Parsing.Flow")        *> Flow.suite
   _ <- render (completeSuite  "Text.Parsing.Linux")       *> Linux.suite
-  _ <- render (completeSuite  "Text.Parsing.Statistics")  *> Statistics.suite
+  _ <- render (pendingSuite  "Text.Parsing.Statistics")   *> Statistics.suite
   _ <- render (completeSuite  "Text.Parsing.Traffic")     *> Traffic.suite
   _ <- render (pendingSuite   "Text.Parsing.Risk")        *> Risk.suite
   _ <- render (completeSuite  "Text.Parsing.Windows")     *> Windows.suite
