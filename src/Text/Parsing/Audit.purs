@@ -5,7 +5,9 @@ module Text.Parsing.Audit
 import Text.Parsing.Parser (Parser)
 
 import Data.Audit as Audit
+
+import Text.Parsing.Common (array)
 import Text.Parsing.Event (event) as Event
 
 event :: Parser String Audit.Event
-event = Event.event Audit.eventCategories Audit.eventIDs
+event = Event.event (array Audit.eventCategories) (array Audit.eventIDs)

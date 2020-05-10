@@ -9,10 +9,6 @@ import Prelude
 import Foreign (Foreign)
 
 import Text.Parsing.Parser (Parser)
-import Text.Parsing.Parser.String (char)
-import Text.Parsing.Parser.Combinators (choice)
-
-import FFI.UUID (UUID)
 
 import Text.Parsing.Common (json, property, date, nonnegativeInteger, array, uuid, readIndex)
 
@@ -39,19 +35,19 @@ time = \x -> do
     , endTime   : endTime
     }
 
-event :: forall a b. Show a => Show b => Array a -> Array b -> Parser String (Event a b)
-event eventCategories eventIDs = do
+event :: forall a b. Parser String a -> Parser String b -> Parser String (Event a b)
+event eventCategory eventID = do
   x              <- json
-  eventCategory  <- property  "eventCategory" x $ array eventCategories
+  eventCategory' <- property  "eventCategory" x $ eventCategory
   eventType'     <- property  "eventType"     x $ eventType
-  eventID        <- property  "eventID"       x $ array eventIDs
+  eventID'       <- property  "eventID"       x $ eventID
   eventTime      <- readIndex "eventTime"     x >>= time 
   eventSource    <- property  "eventSource"   x $ source
   eventURI'      <- property  "eventURI"      x $ eventURI
   pure $ Event $
-    { eventCategory : eventCategory
+    { eventCategory : eventCategory'
     , eventType     : eventType'
-    , eventID       : eventID
+    , eventID       : eventID'
     , eventTime     : eventTime
     , eventSource   : eventSource
     , eventURI      : eventURI'

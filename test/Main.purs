@@ -19,6 +19,7 @@ import Test.Data.NetFlowv9          as NetFlowv9
 import Test.Text.Parsing.Common     as Common
 import Test.Text.Parsing.Alert      as Alert
 import Test.Text.Parsing.Audit      as Audit
+import Test.Text.Parsing.Traffic    as Traffic
 import Test.Text.Parsing.Flow       as Flow
 import Test.Text.Parsing.Risk       as Risk
 import Test.Text.Parsing.Statistics as Statistics
@@ -46,7 +47,7 @@ main = void $ launchAff $ do
   _ <- render (completeSuite  "Text.Parsing.Flow")        *> Flow.suite
   _ <- render (completeSuite  "Text.Parsing.Linux")       *> Linux.suite
   _ <- render (completeSuite  "Text.Parsing.Statistics")  *> Statistics.suite
-  _ <- render (assignedSuite  "Text.Parsing.Traffic")
+  _ <- render (completeSuite  "Text.Parsing.Traffic")     *> Traffic.suite
   _ <- render (pendingSuite   "Text.Parsing.Risk")        *> Risk.suite
   _ <- render (completeSuite  "Text.Parsing.Windows")     *> Windows.suite
   _ <- render (assignedSuite  "Text.Parsing.Forward") 
