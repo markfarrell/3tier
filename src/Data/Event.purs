@@ -6,9 +6,7 @@ module Data.Event
   , EventTime(..)
   , module Data.Event.Class
   , eventTypes
-  , foreignEventURI
-  , foreignEventTime
-  , foreignEventSource
+  , foreignEvent
   ) where
 
 import Prelude
@@ -48,7 +46,7 @@ instance showEventType :: Show EventType where
   show Success = "SUCCESS"
   show Failure = "FAILURE"
 
-instance showEvent :: (Show a, Show b) => Show (Event a b) where
+instance showEvent :: (EventCategory a, EventID b) => Show (Event a b) where
   show = JSON.stringify <<< foreignEvent
 
 derive instance eqEventType :: Eq EventType
@@ -73,7 +71,7 @@ foreignEventSource = unsafeCoerce <<< show
 foreignEventURI :: EventURI -> Foreign
 foreignEventURI = unsafeCoerce <<< show
 
-foreignEvent :: forall a b. Show a => Show b => Event a b -> Foreign
+foreignEvent :: forall a b. EventCategory a => EventID b => Event a b -> Foreign
 foreignEvent (Event x) = unsafeCoerce $
   { eventCategory : show x.eventCategory
   , eventType     : show x.eventType
