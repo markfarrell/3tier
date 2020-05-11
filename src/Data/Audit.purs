@@ -2,29 +2,24 @@ module Data.Audit
   ( Event(..)
   , EventCategory(..)
   , EventID(..)
-  , eventCategories
-  , eventIDs
   ) where
 
 import Prelude
 
-import Data.Event as Event
+import Data.Event as E
 
-data EventType = Success | Failure
-
-data EventID = Alert | Audit | Traffic | Windows | Linux | Statistics
+data EventID = Alert | Audit | Traffic | Windows | Linux
 
 data EventCategory = Forward | Report
 
-type Event = Event.Event EventCategory EventID
+type Event = E.Event EventCategory EventID
 
 instance showEventIDAudit :: Show EventID where
-  show (Alert)        = "ALERT"
-  show (Audit)        = "AUDIT"
-  show (Traffic)      = "TRAFFIC"
-  show (Linux)        = "LINUX"
-  show (Statistics)   = "STATISTICS"
-  show (Windows)      = "WINDOWS"
+  show Alert      = "ALERT"
+  show Audit      = "AUDIT"
+  show Traffic    = "TRAFFIC"
+  show Linux      = "LINUX"
+  show Windows    = "WINDOWS"
 
 instance showEventCategory :: Show EventCategory where
   show Forward   = "FORWARD"
@@ -34,15 +29,8 @@ derive instance eqEventCategoryAudit :: Eq EventCategory
 
 derive instance eqEventIDAudit :: Eq EventID
 
-eventCategories :: Array EventCategory
-eventCategories = [Forward, Report]
+instance eventCategoryAudit :: E.EventCategory EventCategory where
+  eventCategories = [ Forward, Report ]
 
-eventIDs :: Array EventID
-eventIDs =
-  [ Audit
-  , Alert
-  , Traffic
-  , Windows
-  , Linux
-  , Statistics
-  ]
+instance eventIDAudit :: E.EventID EventID where
+  eventIDs = [ Alert, Audit, Traffic, Windows, Linux ]

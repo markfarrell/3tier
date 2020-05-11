@@ -90,11 +90,9 @@ failure settings reportType eventCategory eventID = do
 failures :: Tier3.Settings -> Tier3.Request Unit
 failures settings = void $ sequence $
   [ failure settings Report.Source Audit.Forward Audit.Traffic
-  , failure settings Report.Source Audit.Forward Audit.Statistics
   , failure settings Report.Source Audit.Forward Audit.Linux
   , failure settings Report.Source Audit.Forward Audit.Windows
   , failure settings Report.Time   Audit.Forward Audit.Traffic
-  , failure settings Report.Time   Audit.Forward Audit.Statistics
   , failure settings Report.Time   Audit.Forward Audit.Linux 
   , failure settings Report.Time   Audit.Forward Audit.Windows
   ]
@@ -115,11 +113,9 @@ success settings reportType eventCategory eventID = \request -> do
 successes :: forall a. Tier3.Settings -> Tier3.Request a -> Tier3.Request Unit
 successes settings request = void $ sequence $ apply request <$>
   [ success settings Report.Source Audit.Forward Audit.Traffic
-  , success settings Report.Source Audit.Forward Audit.Statistics
   , success settings Report.Source Audit.Forward Audit.Linux
   , success settings Report.Source Audit.Forward Audit.Windows
   , success settings Report.Time   Audit.Forward Audit.Traffic
-  , success settings Report.Time   Audit.Forward Audit.Statistics
   , success settings Report.Time   Audit.Forward Audit.Linux 
   , success settings Report.Time   Audit.Forward Audit.Windows
   ]

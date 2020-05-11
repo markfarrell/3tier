@@ -31,9 +31,9 @@ reportTypes = [ Source, Time ]
 events :: Array Event
 events = do
   reportType    <- reportTypes
-  eventCategory <- Audit.eventCategories
+  eventCategory <- Event.eventCategories
   eventType     <- Event.eventTypes
-  eventID       <- Audit.eventIDs
+  eventID       <- Event.eventIDs
   pure $ Audit eventCategory eventType eventID reportType 
 
 uri :: Event -> String

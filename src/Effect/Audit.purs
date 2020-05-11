@@ -20,8 +20,8 @@ import Effect.Array (random) as Array
 
 random :: Effect Audit.Event
 random = do
-  eventCategory' <- Array.random Audit.Forward $ Audit.eventCategories
-  eventID'       <- Array.random Audit.Alert   $ Audit.eventIDs
+  eventCategory' <- Array.random Audit.Forward $ Event.eventCategories
+  eventID'       <- Array.random Audit.Alert   $ Event.eventIDs
   eventType'     <- Array.random Event.Success $ Event.eventTypes
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
