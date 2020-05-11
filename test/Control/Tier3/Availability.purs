@@ -31,7 +31,7 @@ import Control.Authorization as Authorization
 import Control.Authentication as Authentication
 
 import Data.Forward as Forward
-import Data.Report (URI(..), ReportType(..), uris) as Report
+import Data.Report (Event(..), ReportType(..), events) as Report
 import Data.Route as Route
 
 import Control.Tier3 as Tier3
@@ -40,7 +40,7 @@ import Effect.Range (random) as Range
 
 import Test.Data.Test as Test
 
-report :: Tier3.Settings -> Report.URI -> Tier3.Request Unit
+report :: Tier3.Settings -> Report.Event -> Tier3.Request Unit
 report settings uri = do
   x <- Tier3.request settings (Route.Report uri)
   case x of
@@ -52,7 +52,7 @@ report settings uri = do
 reports :: Tier3.Settings -> Tier3.Request Unit
 reports settings = do
   _ <- failures settings
-  _ <- sequence (report settings <$> Report.uris) 
+  _ <- sequence (report settings <$> Report.events) 
   _ <- failures settings
   pure unit
 

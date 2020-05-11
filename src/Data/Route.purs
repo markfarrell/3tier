@@ -16,23 +16,23 @@ import Text.Parsing.Parser.Combinators (choice)
 
 import Text.Parsing.Forward (event) as Forward
 
-import Data.Forward (URI) as Forward
+import Data.Forward (Event) as Forward
 import Data.Report as Report
 
 import FFI.HTTPS as HTTPS
 import FFI.String as String
 
-data Route = Forward Forward.URI | Report Report.URI
+data Route = Forward Forward.Event | Report Report.Event
 
 instance showRoute :: Show Route where
   show (Forward uri)  = show uri
   show (Report  uri)  = show uri
 
-report :: Report.URI -> Parser String Route
+report :: Report.Event -> Parser String Route
 report report' = (string $ show report') *> pure (Report report')
 
 reports :: Parser String Route
-reports = choice (report <$> Report.uris)
+reports = choice (report <$> Report.events)
 
 route :: Parser String Route
 route = choice [Forward <$> Forward.event, reports]

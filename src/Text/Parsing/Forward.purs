@@ -12,7 +12,7 @@ import Data.Forward as Forward
 
 import Text.Parsing.Audit as Audit
 
-event :: Parser String Forward.URI
+event :: Parser String Forward.Event
 event = choice $
   [ (string "/forward/audit?") *> (Forward.Audit <$> Audit.event)
   ]

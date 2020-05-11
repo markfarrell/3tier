@@ -80,9 +80,9 @@ data ColumnType = Text | Integer
 
 data Resource = Forward Unit | Report Statistics.Event
 
-type Query a = DSL.Query Settings Resource Forward.URI Report.URI a
+type Query a = DSL.Query Settings Resource Forward.Event Report.Event a
 
-type Request a = DSL.Request Settings Resource Forward.URI Report.URI a
+type Request a = DSL.Request Settings Resource Forward.Event Report.Event a
 
 type Result a = DSL.Result a
 
@@ -131,7 +131,7 @@ insertURI'  table' params = query
      columns' = fst <$> params
      values'  = snd <$> params
 
-insertURI :: Forward.URI ->  Aff String
+insertURI :: Forward.Event ->  Aff String
 insertURI (Forward.Audit (Event event)) = pure $ insertURI' "Audit" params
   where 
     params  =
@@ -149,25 +149,25 @@ reportAuditURI' :: Report.ReportType -> Table -> Table
 reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY EventSource" 
 reportAuditURI' Report.Time = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
-reportURI :: Report.URI -> Table
+reportURI :: Report.Event -> Table
 reportURI (Report.Audit eventCategory eventType eventID reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "' AND EventID='" <> show eventID <> "'"
 
-maxURI :: Report.URI -> String
+maxURI :: Report.Event -> String
 maxURI report = "SELECT MAX(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-minURI :: Report.URI -> String
+minURI :: Report.Event -> String
 minURI report = "SELECT MIN(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-averageURI :: Report.URI -> String
+averageURI :: Report.Event -> String
 averageURI report = "SELECT AVG(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-sumURI :: Report.URI -> String
+sumURI :: Report.Event -> String
 sumURI report = "SELECT SUM(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-totalURI :: Report.URI -> String
+totalURI :: Report.Event -> String
 totalURI report = "SELECT COUNT(*) as Y FROM (" <> (reportURI report) <> ")"
 
-varianceURI :: Report.URI -> Number -> String
+varianceURI :: Report.Event -> Number -> String
 varianceURI report avg = query
   where 
     query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
@@ -194,7 +194,7 @@ executeSchemas file = do
   _        <- SQLite3.close database
   pure unit
 
-executeForward :: Target -> Forward.URI -> Aff Resource
+executeForward :: Target -> Forward.Event -> Aff Resource
 executeForward (Failover uri) query = do
   result  <- try $ executeForward (Replication uri) query
   result' <- try $ Aff.sequential (Foldable.oneOf (Aff.parallel <$> flip executeForward query <$> failoverSites uri))
@@ -248,7 +248,7 @@ replication w = foldl f (Array.head w) (sequence $ Array.tail w)
     f (Just (Report x)) (Just (Report y))   = if (x == y) then (Just (Report x))  else (Nothing)
     f  _                _                   = Nothing
 
-executeReport :: Target -> Report.URI -> Aff Resource
+executeReport :: Target -> Report.Event -> Aff Resource
 executeReport (Failover uri) query = do
   result  <- try $ executeReport (Replication uri) query
   case result of

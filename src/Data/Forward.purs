@@ -1,17 +1,17 @@
 module Data.Forward
-  ( URI(..)
+  ( Event(..)
   ) where
 
 import Prelude
 
 import Data.Audit as Audit
 
-data URI = Audit Audit.Event 
+data Event = Audit Audit.Event 
 
-instance showURIForward :: Show URI where
+instance showEventForward :: Show Event where
   show = uri
 
-derive instance eqForwardURI :: Eq URI
+derive instance eqForwardEvent :: Eq Event
 
-uri :: URI -> String
+uri :: Event -> String
 uri (Audit event)      = "/forward/audit?"   <> show event

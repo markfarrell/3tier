@@ -1,7 +1,7 @@
 module Data.Report
-  ( URI(..)
+  ( Event(..)
   , ReportType(..)
-  , uris
+  , events
   ) where
 
 import Prelude
@@ -15,9 +15,10 @@ import Data.Event as Event
 
 data ReportType = Source | Time
 
-data URI = Audit Audit.EventCategory Event.EventType Audit.EventID ReportType
+{-- todo: same format as Forward.event, e.g. SQLite3 LIKE clause on start time and end time? --}
+data Event = Audit Audit.EventCategory Event.EventType Audit.EventID ReportType
 
-instance showURIReport :: Show URI where
+instance showEventReport :: Show Event where
   show = uri
 
 instance showReportType :: Show ReportType where
@@ -27,15 +28,15 @@ instance showReportType :: Show ReportType where
 reportTypes :: Array ReportType
 reportTypes = [ Source, Time ]
 
-uris :: Array URI
-uris = do
+events :: Array Event
+events = do
   reportType    <- reportTypes
   eventCategory <- Audit.eventCategories
   eventType     <- Event.eventTypes
   eventID       <- Audit.eventIDs
   pure $ Audit eventCategory eventType eventID reportType 
 
-uri :: URI -> String
+uri :: Event -> String
 uri (Audit eventCategory eventType eventID reportType) = intercalate "/" $
   [ "/report"
   , String.toLowerCase $ show eventCategory

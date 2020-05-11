@@ -48,7 +48,7 @@ import Control.Authorization as Authorization
 import Control.Authentication as Authentication
 
 import Data.Forward as Forward
-import Data.Report (URI(..)) as Report
+import Data.Report  as Report
 
 import Data.Route (Route)
 import Data.Route as Route
@@ -85,9 +85,9 @@ data Resource = Forward Unit | Report Statistics.Event
 
 data Response = Ok Resource | InternalServerError String | BadRequest String | Forbidden AuthenticationType String
 
-type Query a = DSL.Query Settings Resource Forward.URI Report.URI a
+type Query a = DSL.Query Settings Resource Forward.Event Report.Event a
 
-type Request a = DSL.Request Settings Resource Forward.URI Report.URI a
+type Request a = DSL.Request Settings Resource Forward.Event Report.Event a
 
 type Result a = DSL.Result a
 
@@ -196,7 +196,7 @@ path (Primary Testing)      = "http://localhost:3003"
 path (Secondary Testing)    = "http://localhost:3004"
 path (Offsite Testing)      = "http://localhost:3005"
 
-executeForward :: Settings -> Forward.URI -> Aff Resource
+executeForward :: Settings -> Forward.Event -> Aff Resource
 executeForward (Settings _ _ (Single uri)) query = do
   req <- HTTPS.createRequest HTTPS.Post $ (path uri) <> show query
   res <- HTTPS.endRequest req
@@ -206,7 +206,7 @@ executeForward (Settings _ _ (Single uri)) query = do
         200 -> pure $ Forward unit
         _   -> liftEffect $ Exception.throw "Invalid status code (forward reply)."
 
-executeReport :: Settings -> Report.URI -> Aff Resource
+executeReport :: Settings -> Report.Event -> Aff Resource
 executeReport (Settings _ _ (Single uri)) query = do
   req <- HTTPS.createRequest HTTPS.Get $ (path uri) <> show query
   res <- HTTPS.endRequest req
