@@ -22,8 +22,8 @@ import Effect.Range (random) as Range
 
 random :: Effect Linux.Event
 random = do
-  eventCategory' <- Array.random Linux.DaemonStart $ Linux.eventCategories
-  eventID'       <- Range.random 0 Number.maxSafeInteger
+  eventCategory' <- Array.random Linux.DaemonStart $ Event.eventCategories
+  eventID'       <- Linux.EventID <$> Range.random 0 Number.maxSafeInteger
   eventType'     <- Array.random Event.Success     $ Event.eventTypes
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random

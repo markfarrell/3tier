@@ -1,13 +1,12 @@
 module Data.Linux
  ( Event
  , EventCategory(..)
- , EventID
- , eventCategories
+ , EventID(..)
  ) where
 
 import Prelude
 
-import Data.Event as Event
+import Data.Event as E
 
 data EventCategory =
     DaemonStart
@@ -31,9 +30,9 @@ data EventCategory =
   | AnomPromisc
   | Login
 
-type EventID = Int
+data EventID = EventID Int
 
-type Event = Event.Event EventCategory EventID
+type Event = E.Event EventCategory EventID
 
 instance showEventCategoryLinux :: Show EventCategory where
   show DaemonStart    = "DAEMON-START"
@@ -57,28 +56,36 @@ instance showEventCategoryLinux :: Show EventCategory where
   show AnomPromisc    = "ANOM-PROMISCUOUS"
   show Login          = "LOGIN"
 
+instance showEventIDLinux :: Show EventID where
+  show (EventID x) = show x
+
 derive instance eqEventCategoryLinux :: Eq EventCategory
 
-eventCategories :: Array EventCategory
-eventCategories =
-  [ DaemonStart
-  , ConfigChange
-  , SystemBoot
-  , SystemRunLevel
-  , ServiceStart
-  , NetfilterCfg
-  , Syscall
-  , Proctitle
-  , ServiceStop
-  , UserStart
-  , UserCmd
-  , UserEnd
-  , UserLogin
-  , UserAuth
-  , UserAcct
-  , CredAcq
-  , CredDisp
-  , CredRefr
-  , AnomPromisc
-  , Login
-  ]
+derive instance eqEventIDLinux :: Eq EventID
+
+instance eventCategoryLinux :: E.EventCategory EventCategory where
+  eventCategories =
+    [ DaemonStart
+    , ConfigChange
+    , SystemBoot
+    , SystemRunLevel
+    , ServiceStart
+    , NetfilterCfg
+    , Syscall
+    , Proctitle
+    , ServiceStop
+    , UserStart
+    , UserCmd
+    , UserEnd
+    , UserLogin
+    , UserAuth
+    , UserAcct
+    , CredAcq
+    , CredDisp
+    , CredRefr
+    , AnomPromisc
+    , Login
+    ]
+
+instance eventIDLinux :: E.EventID EventID where
+  eventIDs = []

@@ -13,3 +13,5 @@ class (Show a) <= EventCategory a where
 
 class (Show a) <= EventID a where
   eventIDs :: Array a
+
+{-- todo: use Data.NonEmpty -- }

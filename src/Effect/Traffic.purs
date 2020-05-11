@@ -22,8 +22,8 @@ import Unsafe.Coerce (unsafeCoerce)
 
 random :: Effect Traffic.Event
 random = do
-  eventCategory' <- Array.random Traffic.In       $ Traffic.eventCategories
-  eventID'       <- Array.random (unsafeCoerce 0) $ Traffic.eventIDs
+  eventCategory' <- Array.random Traffic.In $ Event.eventCategories
+  eventID'       <- Array.random (Traffic.EventID $ unsafeCoerce 0) $ Event.eventIDs
   eventType'     <- Array.random Event.Success $ Event.eventTypes
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random

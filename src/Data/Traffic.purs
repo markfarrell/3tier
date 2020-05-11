@@ -1,9 +1,7 @@
 module Data.Traffic
   ( Event(..)
   , EventCategory(..)
-  , EventID
-  , eventCategories
-  , eventIDs
+  , EventID(..)
   ) where
 
 import Prelude
@@ -13,22 +11,28 @@ import Data.Array as Array
 import Unsafe.Coerce (unsafeCoerce)
 
 import Data.Port (Port)
-import Data.Event as Event
+import Data.Event as E
 
 data EventCategory = In | Out
                        
-type EventID = Port
+data EventID = EventID Port
 
-type Event = Event.Event EventCategory EventID
+type Event = E.Event EventCategory EventID
 
 instance showEventCategoryTraffic :: Show EventCategory where 
   show In  = "IN"
   show Out = "OUT"
 
+instance showEventIDTraffic :: Show EventID where
+  show (EventID port) = show port
+
 derive instance eqEventCategoryTraffic :: Eq EventCategory
 
-eventCategories :: Array EventCategory
-eventCategories = [In, Out]
+derive instance eqEventIDTraffic :: Eq EventID
 
-eventIDs :: Array EventID
-eventIDs = unsafeCoerce <$> Array.range 0 65535
+instance eventCategoryTraffic :: E.EventCategory EventCategory where
+  eventCategories = [ In, Out ]
+
+instance eventIDTraffic :: E.EventID EventID where
+  eventIDs = EventID <$> ports
+    where ports = unsafeCoerce <$> Array.range 0 65535

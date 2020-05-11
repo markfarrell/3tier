@@ -1,9 +1,7 @@
 module Data.Windows
   ( Event
   , EventCategory(..)
-  , EventID
-  , eventCategories
-  , eventIDs
+  , EventID(..)
   , eventIDs'
   ) where
 
@@ -11,7 +9,7 @@ import Prelude
 
 import Data.Foldable (foldl)
 
-import Data.Event as Event
+import Data.Event as E
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -25,9 +23,9 @@ data EventCategory = AccountLogon
   | System
   | Uncategorized
 
-type EventID = Int
+data EventID = EventID Int
 
-type Event = Event.Event EventCategory EventID
+type Event = E.Event EventCategory EventID
 
 instance showEventCategoryWindows :: Show EventCategory where
   show AccountLogon      = "ACCOUNT-LOGON"
@@ -42,26 +40,37 @@ instance showEventCategoryWindows :: Show EventCategory where
   show System            = "SYSTEM"
   show Uncategorized     = "UNCATEGORIZED"
 
-derive instance eqEventCategoryWindows :: Eq EventCategory
+instance showEventIDWindows :: Show EventID where
+  show (EventID x) = show x
 
-eventIDs :: Array EventID
-eventIDs = foldl (<>) [] (eventIDs' <$> eventCategories)
+derive instance eqEventCategoryWindows :: Eq EventCategory
+ 
+derive instance eqEventIDWindows :: Eq EventID
+
+instance eventCategoryWindws :: E.EventCategory EventCategory where
+  eventCategories = eventCategories'
+
+instance eventIDWindows :: E.EventID EventID where
+  eventIDs = foldl (<>) [] (eventIDs' <$> eventCategories')
 
 eventIDs' :: EventCategory -> Array EventID
-eventIDs' AccountLogon      = accountLogon
-eventIDs' AccountManagement = accountManagement
-eventIDs' DirectoryService  = directoryService
-eventIDs' LogonAndLogoff    = logonAndLogoff
-eventIDs' ObjectAccess      = objectAccess
-eventIDs' NonAudit          = nonAudit
-eventIDs' PolicyChange      = policyChange
-eventIDs' PrivilegeUse      = privilegeUse
-eventIDs' ProcessTracking   = processTracking
-eventIDs' System            = system
-eventIDs' Uncategorized     = uncategorized
+eventIDs' eventCategory = EventID <$> eventIDs'' eventCategory
 
-eventCategories :: Array EventCategory
-eventCategories = 
+eventIDs'' :: EventCategory -> Array Int
+eventIDs'' AccountLogon      = accountLogon
+eventIDs'' AccountManagement = accountManagement
+eventIDs'' DirectoryService  = directoryService
+eventIDs'' LogonAndLogoff    = logonAndLogoff
+eventIDs'' ObjectAccess      = objectAccess
+eventIDs'' NonAudit          = nonAudit
+eventIDs'' PolicyChange      = policyChange
+eventIDs'' PrivilegeUse      = privilegeUse
+eventIDs'' ProcessTracking   = processTracking
+eventIDs'' System            = system
+eventIDs'' Uncategorized     = uncategorized
+
+eventCategories' :: Array EventCategory
+eventCategories' = 
   [ AccountLogon
   , AccountManagement
   , DirectoryService

@@ -20,9 +20,9 @@ import Effect.Array (random) as Array
 
 random :: Effect Windows.Event
 random = do
-  eventCategory' <- Array.random Windows.AccountLogon $ Windows.eventCategories
-  eventID'       <- Array.random 0                    $ Windows.eventIDs' eventCategory'
-  eventType'     <- Array.random Event.Success     $ Event.eventTypes
+  eventCategory' <- Array.random Windows.AccountLogon $ Event.eventCategories
+  eventID'       <- Array.random (Windows.EventID 0)  $ Windows.eventIDs' eventCategory'
+  eventType'     <- Array.random Event.Success        $ Event.eventTypes
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
