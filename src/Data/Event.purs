@@ -4,6 +4,7 @@ module Data.Event
   , EventURI
   , EventSource(..)
   , EventTime(..)
+  , module Data.Event.Class
   , eventTypes
   , foreignEventURI
   , foreignEventTime
@@ -19,6 +20,8 @@ import Unsafe.Coerce (unsafeCoerce)
 import FFI.Date (Date)
 import FFI.JSON (stringify) as JSON
 import FFI.UUID (UUID)
+
+import Data.Event.Class (class EventCategory, class EventID, eventCategories, eventIDs)
 
 data EventType = Success | Failure
 
