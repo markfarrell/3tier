@@ -2,19 +2,17 @@ module Data.Alert
   ( Event(..)
   , EventCategory(..)
   , EventID(..)
-  , eventCategories
-  , eventIDs
   ) where
 
 import Prelude
 
-import Data.Event as Event
+import Data.Event as E
 
 data EventCategory = Anomalous
 
 data EventID = Risk
 
-type Event = Event.Event EventCategory EventID
+type Event = E.Event EventCategory EventID
 
 instance showEventCategory :: Show EventCategory where
   show Anomalous = "ANOMALOUS"
@@ -26,8 +24,8 @@ derive instance eqEventCategoryAlert :: Eq EventCategory
 
 derive instance eqEventIDAlert :: Eq EventID
 
-eventCategories :: Array EventCategory
-eventCategories = [ Anomalous ]
+instance eventCategoryAlert :: E.EventCategory EventCategory where
+  eventCategories = [ Anomalous ]
 
-eventIDs :: Array EventID
-eventIDs = [ Risk ]
+instance eventIDAlert :: E.EventID EventID where
+  eventIDs = [ Risk ]

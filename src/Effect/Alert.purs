@@ -20,8 +20,8 @@ import Effect.Array (random) as Array
 
 random :: Effect Alert.Event
 random = do
-  eventCategory' <- Array.random Alert.Anomalous $ Alert.eventCategories
-  eventID'       <- Array.random Alert.Risk      $ Alert.eventIDs
+  eventCategory' <- Array.random Alert.Anomalous $ Event.eventCategories
+  eventID'       <- Array.random Alert.Risk      $ Event.eventIDs
   eventType'     <- Array.random Event.Success   $ Event.eventTypes
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
