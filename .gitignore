@@ -11,3 +11,5 @@
 *.db
 *.db-journal
 *.sh
+*.pem
+*.crt

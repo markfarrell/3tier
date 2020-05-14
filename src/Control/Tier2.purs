@@ -123,7 +123,7 @@ sendResponse (InternalServerError _) = \res -> liftEffect $ do
 
 databaseRequest :: Tier3.Settings -> Route -> HTTPS.IncomingMessage -> Aff Response 
 databaseRequest settings route req = do
-  result    <- Tier3.execute $ Tier3.request settings route
+  result <- Tier3.execute $ Tier3.request settings route
   case result of 
     (Left _)               -> pure  $ InternalServerError ""
     (Right (Tier3.Forward unit)) -> pure $ Ok (Forward unit)
