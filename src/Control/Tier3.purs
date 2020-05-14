@@ -46,7 +46,7 @@ import Control.DSL as DSL
 
 import Data.Audit as Audit
 
-import Data.Event(Event(..))
+import Data.Event (Event(..))
 import Data.Event as Event
 import Data.Statistics as Statistics
 
@@ -122,19 +122,15 @@ assert :: forall a b. String -> Either a b -> Aff Unit
 assert x (Left _)  = liftEffect $ Exception.throw x
 assert _ (Right _)   = pure unit 
 
-insertURI' ::  Table -> Array (Tuple String String) -> String
-insertURI'  table' params = query
+insertURI' :: forall a b. Event.EventCategory a => Event.EventID b => Table -> Event a b -> String
+insertURI' table' (Event event) = query
   where
-     query = "INSERT INTO " <> table' <> " (" <> columns <> ") VALUES (" <> values <> ")"
-     columns  = "'" <> (intercalate "','" columns') <> "'"
-     values   = "'" <> (intercalate "','" values') <> "'"
-     columns' = fst <$> params
-     values'  = snd <$> params
-
-insertURI :: Forward.Event ->  Aff String
-insertURI (Forward.Audit (Event event)) = pure $ insertURI' "Audit" params
-  where 
-    params  =
+    query = "INSERT INTO " <> table' <> " (" <> columns <> ") VALUES (" <> values <> ")"
+    columns  = "'" <> (intercalate "','" columns') <> "'"
+    values   = "'" <> (intercalate "','" values') <> "'"
+    columns' = fst <$> params
+    values'  = snd <$> params
+    params   =
       [ Tuple "EventCategory" (show event.eventCategory)
       , Tuple "EventType" (show event.eventCategory)
       , Tuple "EventID" (show event.eventID)
@@ -144,6 +140,13 @@ insertURI (Forward.Audit (Event event)) = pure $ insertURI' "Audit" params
       , Tuple "Duration" (show $ duration event.eventTime)
       , Tuple "EndTime" (show $ endTime event.eventTime)
       ]
+
+insertURI :: Forward.Event ->  Aff String
+insertURI (Forward.Alert event)   = pure $ insertURI' "Alert" event
+insertURI (Forward.Audit event)   = pure $ insertURI' "Audit" event
+insertURI (Forward.Traffic event) = pure $ insertURI' "Traffic" event 
+insertURI (Forward.Linux event)   = pure $ insertURI' "Linux" event 
+insertURI (Forward.Windows event) = pure $ insertURI' "Windows" event 
 
 reportAuditURI' :: Report.ReportType -> Table -> Table
 reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY EventSource" 
@@ -314,8 +317,12 @@ audit = \settings route -> do
     (Route.Forward _) -> Audit.Forward
     (Route.Report  _) -> Audit.Report
   eventID     <- pure $ case route of
-    (Route.Forward (Forward.Audit _))      -> Audit.Audit
-    (Route.Report (Report.Audit _ _ _ _))  -> Audit.Audit
+    (Route.Forward (Forward.Alert _))     -> Audit.Alert
+    (Route.Forward (Forward.Audit _))     -> Audit.Audit
+    (Route.Forward (Forward.Traffic _))   -> Audit.Traffic
+    (Route.Forward (Forward.Linux _))     -> Audit.Linux
+    (Route.Forward (Forward.Windows _))   -> Audit.Windows
+    (Route.Report (Report.Audit _ _ _ _)) -> Audit.Audit
   eventType   <- pure $ case result of
     (Left _)  -> Event.Failure
     (Right _) -> Event.Success
