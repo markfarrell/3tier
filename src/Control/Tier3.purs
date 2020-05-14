@@ -74,10 +74,6 @@ data Settings = Settings Authorization Authentication Target
 
 type Table = String
 
-type Column = Tuple String ColumnType
- 
-data ColumnType = Text | Integer
-
 data Resource = Forward Unit | Report Statistics.Event
 
 type Query a = DSL.Query Settings Resource Forward.Event Report.Event a
@@ -85,28 +81,6 @@ type Query a = DSL.Query Settings Resource Forward.Event Report.Event a
 type Request a = DSL.Request Settings Resource Forward.Event Report.Event a
 
 type Result a = DSL.Result a
-
-schemaURI' :: Table -> Array Column -> Array Column -> String
-schemaURI' table' params params' = query
-  where
-     query              = "CREATE TABLE IF NOT EXISTS " <> table' <> " (" <> columns <> ")"
-     columns            = (intercalate "," columns')
-     columns'           = column <$> (params <> params')
-     column param       = intercalate " " $ [fst param, columnType $ snd param]
-     columnType Text    = "TEXT NOT NULL"
-     columnType Integer = "INTEGER NOT NULL"
-
-schemaURI :: Schema -> String
-schemaURI Schema.Audit = schemaURI' "Audit" [] $
-  [ Tuple "EventCategory" Text
-  , Tuple "EventID" Text
-  , Tuple "EventType" Text
-  , Tuple "EventSource" Text
-  , Tuple "EventURI" Text
-  , Tuple "StartTime" Text
-  , Tuple "Duration" Integer
-  , Tuple "EndTime" Text
-  ]
 
 startTime :: Event.EventTime -> Date
 startTime (Event.EventTime x) = x.startTime
@@ -122,10 +96,11 @@ assert :: forall a b. String -> Either a b -> Aff Unit
 assert x (Left _)  = liftEffect $ Exception.throw x
 assert _ (Right _)   = pure unit 
 
-insertURI' :: forall a b. Event.EventCategory a => Event.EventID b => Table -> Event a b -> String
-insertURI' table' (Event event) = query
+insertURI' :: forall a b. Event.EventCategory a => Event.EventID b => Schema -> Event a b -> String
+insertURI' schema (Event event) = query
   where
-    query = "INSERT INTO " <> table' <> " (" <> columns <> ") VALUES (" <> values <> ")"
+    query    = "INSERT INTO " <> table <> " (" <> columns <> ") VALUES (" <> values <> ")"
+    table    = show schema
     columns  = "'" <> (intercalate "','" columns') <> "'"
     values   = "'" <> (intercalate "','" values') <> "'"
     columns' = fst <$> params
@@ -142,11 +117,11 @@ insertURI' table' (Event event) = query
       ]
 
 insertURI :: Forward.Event ->  Aff String
-insertURI (Forward.Alert event)   = pure $ insertURI' "Alert" event
-insertURI (Forward.Audit event)   = pure $ insertURI' "Audit" event
-insertURI (Forward.Traffic event) = pure $ insertURI' "Traffic" event 
-insertURI (Forward.Linux event)   = pure $ insertURI' "Linux" event 
-insertURI (Forward.Windows event) = pure $ insertURI' "Windows" event 
+insertURI (Forward.Alert event)   = pure $ insertURI' Schema.Alert event
+insertURI (Forward.Audit event)   = pure $ insertURI' Schema.Audit event
+insertURI (Forward.Traffic event) = pure $ insertURI' Schema.Traffic event 
+insertURI (Forward.Linux event)   = pure $ insertURI' Schema.Linux event 
+insertURI (Forward.Windows event) = pure $ insertURI' Schema.Windows event 
 
 reportAuditURI' :: Report.ReportType -> Table -> Table
 reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY EventSource" 
@@ -193,9 +168,11 @@ executeTouch file = do
 executeSchemas :: String -> Aff Unit
 executeSchemas file = do
   database <- SQLite3.connect file SQLite3.OpenReadWrite
-  _        <- SQLite3.all (schemaURI Schema.Audit) database
+  _        <- sequence (executeSchema database <$> Schema.schemas)
   _        <- SQLite3.close database
   pure unit
+  where
+    executeSchema database = \schema -> SQLite3.all (Schema.create schema) database
 
 executeForward :: Target -> Forward.Event -> Aff Resource
 executeForward (Failover uri) query = do

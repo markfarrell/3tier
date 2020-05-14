@@ -25,6 +25,7 @@ import Test.Text.Parsing.Risk       as Risk
 import Test.Text.Parsing.Statistics as Statistics
 import Test.Text.Parsing.Linux      as Linux
 import Test.Text.Parsing.Windows    as Windows
+import Test.Text.Parsing.Forward    as Forward
 
 main :: Effect Unit
 main = void $ launchAff $ do
@@ -50,7 +51,7 @@ main = void $ launchAff $ do
   _ <- render (completeSuite  "Text.Parsing.Traffic")     *> Traffic.suite
   _ <- render (pendingSuite   "Text.Parsing.Risk")        *> Risk.suite
   _ <- render (completeSuite  "Text.Parsing.Windows")     *> Windows.suite
-  _ <- render (assignedSuite  "Text.Parsing.Forward") 
+  _ <- render (completeSuite  "Text.Parsing.Forward")     *> Forward.suite 
   _ <- render (assignedSuite  "Text.Parsing.Report") 
   _ <- render (assignedSuite  "Text.Parsing.Route")
   _ <- render (pendingIssue   "Logging/Traffic")

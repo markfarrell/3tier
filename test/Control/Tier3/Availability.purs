@@ -16,8 +16,6 @@ import Effect.Console (log) as Console
 import Effect.Class (liftEffect)
 import Effect.Exception (throw) as Exception
 
-import Effect.Audit (random) as Audit
-
 import FFI.Date as Date
 import FFI.Math as Math
 import FFI.FS as FS
@@ -30,13 +28,12 @@ import Data.Event (EventTime(..), EventType(..)) as Event
 import Control.Authorization as Authorization
 import Control.Authentication as Authentication
 
-import Data.Forward as Forward
 import Data.Report (Event(..), ReportType(..), events) as Report
 import Data.Route as Route
 
 import Control.Tier3 as Tier3
 
-import Effect.Range (random) as Range
+import Effect.Forward (random) as Forward
 
 import Test.Data.Test as Test
 
@@ -56,18 +53,11 @@ reports settings = do
   _ <- failures settings
   pure unit
 
-forwardAudit :: Tier3.Settings -> Tier3.Request Unit
-forwardAudit settings  = do
-  event <- lift $ liftEffect Audit.random
-  _     <- Tier3.request settings (Route.Forward (Forward.Audit event)) 
-  pure unit 
-
 forward :: Tier3.Settings -> Tier3.Request Unit
-forward settings = do
-  choice <- lift $ liftEffect (Range.random 0 0)
-  case choice of
-    0 -> forwardAudit settings
-    _ -> lift $ liftEffect $ Exception.throw "Unxpected behaviour." 
+forward settings  = do
+  event <- lift $ liftEffect Forward.random
+  _     <- Tier3.request settings (Route.Forward event) 
+  pure unit 
 
 forwards :: Tier3.Settings -> Int -> Tier3.Request Unit
 forwards = \settings n ->  do
