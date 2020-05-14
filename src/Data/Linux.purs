@@ -29,6 +29,7 @@ data EventCategory =
   | CredRefr
   | AnomPromisc
   | Login
+  | DaemonEnd
 
 data EventID = EventID Int
 
@@ -55,6 +56,7 @@ instance showEventCategoryLinux :: Show EventCategory where
   show CredRefr       = "CRED-REFR"
   show AnomPromisc    = "ANOM-PROMISCUOUS"
   show Login          = "LOGIN"
+  show DaemonEnd      = "DAEMON-END"
 
 instance showEventIDLinux :: Show EventID where
   show (EventID x) = show x
@@ -85,6 +87,7 @@ instance eventCategoryLinux :: E.EventCategory EventCategory where
     , CredRefr
     , AnomPromisc
     , Login
+    , DaemonEnd
     ]
 
 instance eventIDLinux :: E.EventID EventID where
