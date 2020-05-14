@@ -33,14 +33,14 @@ data EventTime = EventTime
 
 type EventSource = UUID
 
-data Event a b = Event
+data Event a b = Event (EventCategory a => EventID b =>
   { eventCategory :: a
   , eventType     :: EventType
   , eventID       :: b
   , eventURI      :: EventURI
   , eventTime     :: EventTime
   , eventSource   :: EventSource
-  } 
+  }) 
 
 instance showEventType :: Show EventType where
   show Success = "SUCCESS"
@@ -53,7 +53,7 @@ derive instance eqEventType :: Eq EventType
 
 derive instance eqEventTime :: Eq EventTime
 
-derive instance eqEvent :: (Eq a, Eq b) => Eq (Event a b)
+derive instance eqEvent :: (EventCategory a, EventID b) => Eq (Event a b)
 
 eventTypes :: Array EventType
 eventTypes = [ Success, Failure ]

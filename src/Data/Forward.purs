@@ -18,10 +18,10 @@ data Event =
   | Windows Windows.Event
 
 instance showEventForward :: Show Event where
-  show (Alert event)   = "/forward/alert?event="   <> show event
-  show (Audit event)   = "/forward/audit?event="   <> show event
-  show (Traffic event) = "/forward/traffic?event=" <> show event
-  show (Linux event)   = "/forward/linux?event="   <> show event
-  show (Windows event) = "/forward/windows?event=" <> show event
+  show (Alert event)   = "/forward/alert?"   <> show event
+  show (Audit event)   = "/forward/audit?"   <> show event
+  show (Traffic event) = "/forward/traffic?" <> show event
+  show (Linux event)   = "/forward/linux?"   <> show event
+  show (Windows event) = "/forward/windows?" <> show event
 
 derive instance eqForwardEvent :: Eq Event
