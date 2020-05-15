@@ -36,7 +36,6 @@ import Effect.Exception as Exception
 import Foreign (readNumber) as Foreign
 import Foreign.Index ((!))
 
-import FFI.Date (Date)
 import FFI.Date    as Date
 import FFI.Math    as Math
 import FFI.SQLite3 as SQLite3
@@ -82,19 +81,9 @@ type Request a = DSL.Request Settings Resource Forward.Event Report.Event a
 
 type Result a = DSL.Result a
 
-startTime :: Event.EventTime -> Date
-startTime (Event.EventTime x) = x.startTime
-
-duration :: Event.EventTime -> Int
-duration (Event.EventTime x) = x.duration
-
-endTime :: Event.EventTime -> Date
-endTime (Event.EventTime x) = x.endTime
-
-
 assert :: forall a b. String -> Either a b -> Aff Unit
 assert x (Left _)  = liftEffect $ Exception.throw x
-assert _ (Right _)   = pure unit 
+assert _ (Right _) = pure unit 
 
 insertURI' :: forall a b. Event.EventCategory a => Event.EventID b => Schema -> Event a b -> String
 insertURI' schema (Event event) = query
@@ -111,9 +100,9 @@ insertURI' schema (Event event) = query
       , Tuple "EventID" (show event.eventID)
       , Tuple "SourceID" (show event.sourceID)
       , Tuple "InstanceID" (show event.instanceID)
-      , Tuple "StartTime" (show $ startTime event.eventTime)
-      , Tuple "Duration" (show $ duration event.eventTime)
-      , Tuple "EndTime" (show $ endTime event.eventTime)
+      , Tuple "StartTime" (show $ event.startTime)
+      , Tuple "Duration" (show $ event.duration)
+      , Tuple "EndTime" (show $ event.endTime)
       ]
 
 insertURI :: Forward.Event ->  Aff String
@@ -286,10 +275,10 @@ resource settings (Route.Report query)  = liftFreeT $ (DSL.Report settings query
 
 audit :: Settings -> Route -> Request Resource
 audit = \settings route -> do
-  startTime'  <- lift $ liftEffect $ Date.current
-  result      <- lift $ execute (resource settings route)
-  endTime'    <- lift $ liftEffect $ Date.current
-  duration'   <- pure $ Math.floor $ (Date.getTime endTime') - (Date.getTime startTime')
+  startTime  <- lift $ liftEffect $ Date.current
+  result     <- lift $ execute (resource settings route)
+  endTime    <- lift $ liftEffect $ Date.current
+  duration   <- pure $ Math.floor $ (Date.getTime endTime) - (Date.getTime startTime)
   eventCategory <- pure $ case route of
     (Route.Forward _) -> Audit.Forward
     (Route.Report  _) -> Audit.Report
@@ -303,7 +292,6 @@ audit = \settings route -> do
   eventType   <- pure $ case result of
     (Left _)  -> Event.Failure
     (Right _) -> Event.Success
-  eventTime   <- pure $ Event.EventTime { startTime : startTime', duration : duration', endTime : endTime' }
   event       <- pure $ Event $
                  { eventCategory : eventCategory
                  , eventType     : eventType
@@ -313,7 +301,9 @@ audit = \settings route -> do
                  , instanceID    : UUID.default
                  , sourceID      : UUID.default
                  , destinationID : UUID.default
-                 , eventTime     : eventTime
+                 , startTime     : startTime
+                 , duration      : duration
+                 , endTime       : endTime
                  }
   _           <- lift $ execute (resource settings $ Route.Forward (Forward.Audit event))
   case result of

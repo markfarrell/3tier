@@ -7,9 +7,9 @@ module Test.Data.Test
 
 import Prelude
 
-import Data.Foldable (intercalate)
+import FFI.Date (Date)
 
-import Data.Event as Event
+import Data.Foldable (intercalate)
 
 data EventCategory = Tier1 | Tier2 | Tier3
 
@@ -22,7 +22,9 @@ data Event = Event
   { eventCategory :: EventCategory
   , eventType     :: EventType
   , eventID       :: EventID
-  , eventTime     :: Event.EventTime
+  , startTime     :: Date
+  , duration      :: Int
+  , endTime       :: Date
   }
 
 instance showEventTest :: Show Event where
@@ -33,7 +35,7 @@ instance showEventTest :: Show Event where
         , dim $ fgMagenta (show test.eventCategory)
         , dim $ fgCyan    (show test.eventType)
         , dim $ fgYellow  (show test.eventID)
-        , dim $ fgWhite $ round (case test.eventTime of (Event.EventTime x) -> (show $ x.duration / 1000) <> "s")
+        , dim $ fgWhite $ round (show (test.duration / 1000) <> "s")
         ]
       h1         = dim <<< fgGreen
       h2         = dim <<< fgMagenta

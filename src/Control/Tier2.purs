@@ -157,7 +157,6 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
       _      -> case response of
         (Left _)  -> Event.Failure
         (Right _) -> Event.Success
-  eventTime    <- pure $ Event.EventTime { startTime : startTime, duration : duration, endTime : endTime }
   port         <- pure $ Socket.remotePort $ HTTPS.socket req
   event        <- pure $ Event $
                      { eventCategory : eventCategory
@@ -168,7 +167,9 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
                      , instanceID    : UUID.default
                      , sourceID      : UUID.default
                      , destinationID : UUID.default
-                     , eventTime     : eventTime
+                     , startTime     : startTime
+                     , duration      : duration
+                     , endTime       : endTime
                      }
   _            <- Tier3.execute $ audit settings event
   pure unit

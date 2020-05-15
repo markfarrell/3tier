@@ -24,7 +24,6 @@ random eventCategory eventID = do
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
-  eventTime      <- pure $ Event.EventTime { startTime : startTime, duration : duration, endTime : endTime }
   sessionID      <- UUID.uuidv4
   featureID      <- UUID.uuidv4
   instanceID     <- UUID.uuidv4
@@ -39,5 +38,7 @@ random eventCategory eventID = do
     , instanceID    : instanceID
     , sourceID      : sourceID
     , destinationID : destinationID
-    , eventTime     : eventTime
+    , startTime     : startTime
+    , duration      : duration
+    , endTime       : endTime
     }
