@@ -1,7 +1,5 @@
 module Text.Parsing.Event
-  ( source
-  , time
-  , event
+  ( event
   ) where
 
 import Prelude
@@ -17,12 +15,6 @@ import Data.Event as Event
 
 eventType :: Parser String Event.EventType
 eventType = array $ Event.eventTypes
-
-eventURI :: Parser String Event.EventURI
-eventURI = uuid
-
-source :: Parser String Event.EventSource
-source = uuid
 
 time :: Foreign -> Parser String Event.EventTime
 time = \x -> do
@@ -42,13 +34,19 @@ event eventCategory eventID = do
   eventType'     <- property  "eventType"     x $ eventType
   eventID'       <- property  "eventID"       x $ eventID
   eventTime      <- readIndex "eventTime"     x >>= time 
-  eventSource    <- property  "eventSource"   x $ source
-  eventURI'      <- property  "eventURI"      x $ eventURI
+  sessionID      <- property  "sessionID"     x $ uuid
+  featureID      <- property  "featureID"     x $ uuid
+  instanceID     <- property  "instanceID"    x $ uuid
+  sourceID       <- property  "sourceID"      x $ uuid
+  destinationID  <- property  "destinationID" x $ uuid
   pure $ Event $
     { eventCategory : eventCategory'
     , eventType     : eventType'
     , eventID       : eventID'
     , eventTime     : eventTime
-    , eventSource   : eventSource
-    , eventURI      : eventURI'
+    , sessionID     : sessionID
+    , featureID     : featureID
+    , instanceID    : instanceID
+    , sourceID      : sourceID
+    , destinationID : destinationID
     }

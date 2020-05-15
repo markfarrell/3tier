@@ -132,7 +132,6 @@ testSingleForward = do
     { eventCategory : Test.Tier3
     , eventType     : Test.Single
     , eventID       : Test.Forward
-    , eventURI      : unit
     , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
@@ -154,7 +153,6 @@ testReplicationForward = do
     { eventCategory : Test.Tier3
     , eventType     : Test.Replication
     , eventID       : Test.Forward
-    , eventURI      : unit
     , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
@@ -176,7 +174,6 @@ testSingleReports = do
     { eventCategory : Test.Tier3
     , eventType     : Test.Single
     , eventID       : Test.Report
-    , eventURI      : unit
     , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
@@ -197,7 +194,6 @@ testReplicationReports = do
     { eventCategory : Test.Tier3
     , eventType     : Test.Replication
     , eventID       : Test.Report
-    , eventURI      : unit
     , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
@@ -218,7 +214,6 @@ testFailoverForwards = do
     { eventCategory : Test.Tier3
     , eventType     : Test.Failover
     , eventID       : Test.Forward
-    , eventURI      : unit
     , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)
@@ -240,7 +235,6 @@ testFailoverReports = do
     { eventCategory : Test.Tier3
     , eventType     : Test.Failover
     , eventID       : Test.Report
-    , eventURI      : unit
     , eventTime     : Event.EventTime $ { startTime : startTime, duration : duration, endTime : endTime }
     }
   _     <- lift $ liftEffect (Console.log $ show event)

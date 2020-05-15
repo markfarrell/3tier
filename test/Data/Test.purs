@@ -3,7 +3,6 @@ module Test.Data.Test
   , EventCategory(..)
   , EventType(..)
   , EventID(..)
-  , EventURI
   ) where
 
 import Prelude
@@ -18,14 +17,11 @@ data EventType = Single | Replication | Failover
 
 data EventID = Forward | Report 
 
-type EventURI = Unit
-
 {-- | Analogous to Data.{Alert,Audit,Flow,Report,Linux,Windows,...}.Event --}
 data Event = Event
   { eventCategory :: EventCategory
   , eventType     :: EventType
   , eventID       :: EventID
-  , eventURI      :: EventURI
   , eventTime     :: Event.EventTime
   }
 

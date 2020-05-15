@@ -109,8 +109,8 @@ insertURI' schema (Event event) = query
       [ Tuple "EventCategory" (show event.eventCategory)
       , Tuple "EventType" (show event.eventCategory)
       , Tuple "EventID" (show event.eventID)
-      , Tuple "EventSource" (show event.eventSource)
-      , Tuple "EventURI" (show event.eventURI)
+      , Tuple "SourceID" (show event.sourceID)
+      , Tuple "InstanceID" (show event.instanceID)
       , Tuple "StartTime" (show $ startTime event.eventTime)
       , Tuple "Duration" (show $ duration event.eventTime)
       , Tuple "EndTime" (show $ endTime event.eventTime)
@@ -124,7 +124,7 @@ insertURI (Forward.Linux event)   = pure $ insertURI' Schema.Linux event
 insertURI (Forward.Windows event) = pure $ insertURI' Schema.Windows event 
 
 reportAuditURI' :: Report.ReportType -> Table -> Table
-reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY EventSource" 
+reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceID" 
 reportAuditURI' Report.Time = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
 reportURI :: Report.Event -> Table
@@ -304,17 +304,15 @@ audit = \settings route -> do
     (Left _)  -> Event.Failure
     (Right _) -> Event.Success
   eventTime   <- pure $ Event.EventTime { startTime : startTime', duration : duration', endTime : endTime' }
-  {-- todo: derive event source from auth. settings --}
-  eventSource <- lift $ pure UUID.default
-  {-- todo: derive namespace UUID from auth. settings --}
-  sessionUUID <- lift $ pure UUID.default
-  eventURI    <- lift $ liftEffect $ UUID.uuidv5 (show route) sessionUUID
   event       <- pure $ Event $
                  { eventCategory : eventCategory
                  , eventType     : eventType
                  , eventID       : eventID
-                 , eventSource   : eventSource
-                 , eventURI      : eventURI
+                 , sessionID     : UUID.default
+                 , featureID     : UUID.default
+                 , instanceID    : UUID.default
+                 , sourceID      : UUID.default
+                 , destinationID : UUID.default
                  , eventTime     : eventTime
                  }
   _           <- lift $ execute (resource settings $ Route.Forward (Forward.Audit event))

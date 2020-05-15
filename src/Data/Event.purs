@@ -1,8 +1,11 @@
 module Data.Event
   ( Event(..)
   , EventType(..)
-  , EventURI
-  , EventSource(..)
+  , SessionID
+  , FeatureID
+  , InstanceID
+  , SourceID
+  , DestinationID
   , EventTime(..)
   , module Data.Event.Class
   , eventTypes
@@ -23,23 +26,28 @@ import Data.Event.Class (class EventCategory, class EventID, eventCategories, ev
 
 data EventType = Success | Failure
 
-type EventURI  = UUID 
-
 data EventTime = EventTime
   { startTime :: Date
   , duration  :: Int
   , endTime   :: Date 
   }
 
-type EventSource = UUID
+type SessionID     = UUID
+type FeatureID     = UUID
+type InstanceID    = UUID 
+type SourceID      = UUID
+type DestinationID = UUID
 
 data Event a b = Event (EventCategory a => EventID b =>
   { eventCategory :: a
   , eventType     :: EventType
   , eventID       :: b
-  , eventURI      :: EventURI
   , eventTime     :: EventTime
-  , eventSource   :: EventSource
+  , sessionID     :: SessionID
+  , featureID     :: FeatureID
+  , instanceID    :: InstanceID
+  , sourceID      :: SourceID
+  , destinationID :: DestinationID
   }) 
 
 instance showEventType :: Show EventType where
@@ -65,18 +73,15 @@ foreignEventTime (EventTime x) = unsafeCoerce $
   , endTime   : show x.endTime
   }
 
-foreignEventSource :: EventSource -> Foreign
-foreignEventSource = unsafeCoerce <<< show
-
-foreignEventURI :: EventURI -> Foreign
-foreignEventURI = unsafeCoerce <<< show
-
 foreignEvent :: forall a b. EventCategory a => EventID b => Event a b -> Foreign
 foreignEvent (Event x) = unsafeCoerce $
   { eventCategory : show x.eventCategory
   , eventType     : show x.eventType
   , eventID       : show x.eventID
-  , eventSource   : foreignEventSource x.eventSource
-  , eventURI      : foreignEventURI x.eventURI
+  , sessionID     : show x.sessionID
+  , featureID     : show x.featureID
+  , instanceID    : show x.instanceID
+  , sourceID      : show x.sourceID
+  , destinationID : show x.destinationID
   , eventTime     : foreignEventTime x.eventTime
   }

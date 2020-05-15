@@ -61,7 +61,6 @@ import Data.Event (Event(..))
 import Data.Event as Event
 import Data.Statistics (Event) as Statistics
 
-import Text.Parsing.Common (ipv4)
 import Text.Parsing.Statistics (event) as Statistics
 
 data Role = Production | Testing
@@ -160,18 +159,15 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
         (Right _) -> Event.Success
   eventTime    <- pure $ Event.EventTime { startTime : startTime, duration : duration, endTime : endTime }
   port         <- pure $ Socket.remotePort $ HTTPS.socket req
-  {-- todo: derive namespace UUID from auth. settings  --}
-  sessionUUID  <- pure $ UUID.default
-  eventSource  <- case (runParser (Socket.remoteAddress $ HTTPS.socket req) ipv4) of
-    (Left _)   -> pure $ sessionUUID
-    (Right ip) -> liftEffect $ UUID.uuidv5 (show ip <> ":" <> show port) sessionUUID 
-  eventURI     <- liftEffect $ UUID.uuidv5 (HTTPS.messageURL req) sessionUUID 
   event        <- pure $ Event $
                      { eventCategory : eventCategory
                      , eventType     : eventType
                      , eventID       : eventID
-                     , eventSource   : eventSource
-                     , eventURI      : eventURI
+                     , sessionID     : UUID.default
+                     , featureID     : UUID.default
+                     , instanceID    : UUID.default
+                     , sourceID      : UUID.default
+                     , destinationID : UUID.default
                      , eventTime     : eventTime
                      }
   _            <- Tier3.execute $ audit settings event

@@ -40,8 +40,8 @@ create schema = query
         [ Tuple "EventCategory" Text
         , Tuple "EventID" Text
         , Tuple "EventType" Text
-        , Tuple "EventSource" Text
-        , Tuple "EventURI" Text
+        , Tuple "SourceID" Text
+        , Tuple "InstanceID" Text
         , Tuple "StartTime" Text
         , Tuple "Duration" Integer
         , Tuple "EndTime" Text
