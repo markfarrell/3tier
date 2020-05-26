@@ -4,11 +4,9 @@ module Text.Parsing.Event
 
 import Prelude
 
-import Foreign (Foreign)
-
 import Text.Parsing.Parser (Parser)
 
-import Text.Parsing.Common (json, property, date, nonnegativeInteger, array, uuid, readIndex)
+import Text.Parsing.Common (json, property, date, nonnegativeInteger, array, uuid)
 
 import Data.Event (Event(..), class EventCategory, class EventID)
 import Data.Event as Event

@@ -10,7 +10,6 @@ module Text.Parsing.Common
   , octet
   , port
   , ipv4
-  , flags
   , json
   , property
   , validation
@@ -50,7 +49,6 @@ import FFI.UUID (UUID)
 
 import Data.IPv4 (IPv4(..))
 import Data.Port (Port) 
-import Data.TCP.Flag (Flag(..))
 
 foreign import parseInt      :: String -> Int
 
@@ -173,23 +171,6 @@ ipv4 = do
   z <- octet
   pure $ IPv4 w x y z
   where dot = "."
-
-flags :: Parser String (Array Flag)
-flags = do
-  u <- urg
-  r <- rst
-  f <- fin
-  s <- syn
-  p <- psh
-  a <- ack
-  pure [u,r,f,s,p,a]
-  where
-    urg = choice [try (char 'U') *> pure (U true), pure (U false)]
-    rst = choice [try (char 'R') *> pure (R true), pure (R false)]
-    fin = choice [try (char 'F') *> pure (F true), pure (F false)]
-    syn = choice [try (char 'S') *> pure (S true), pure (S false)]
-    psh = choice [try (char 'P') *> pure (P true), pure (P false)]
-    ack = choice [try (char 'A') *> pure (A true), pure (A false)]
 
 json :: Parser String Foreign
 json = do
