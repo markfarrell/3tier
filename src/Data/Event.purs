@@ -36,10 +36,10 @@ data Event a b = Event (EventCategory a => EventID b =>
   , eventType     :: EventType
   , eventID       :: b
   , sessionID     :: SessionID
-  , featureID     :: FeatureID
-  , instanceID    :: InstanceID
   , sourceID      :: SourceID
   , destinationID :: DestinationID
+  , featureID     :: FeatureID
+  , instanceID    :: InstanceID
   , startTime     :: Date
   , duration      :: Int
   , endTime       :: Date

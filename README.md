@@ -7,9 +7,10 @@ A prototype 3-tier web application written in PureScript. The project is current
   * [Introduction](#introduction)
     * [Diagram of 3-Tier Architecture](#diagram) 
   * [Goals](#goals)
-    * [Data-Access Tier](#data-access-tier)
-    * [Application Tier](#application-tier)
-    * [Presentation Tier](#presentation-tier)
+    * [Tier 3](#tier-3)
+    * [Tier 2](#tier-2)
+    * [Tier 1](#tier-1)
+  * [Schedule](#schedule)
   * [Timeline](#timeline)
 
 ## Proposal
@@ -17,7 +18,7 @@ A prototype 3-tier web application written in PureScript. The project is current
 ### Purpose
 
 <p align="justify">
-Fileless Malware and Insider Threat incidents are currently causing significant disruptions to the services and operations of industries employing IT. For example, Fileless Malware attacks are currently costing industries, such as healthcare and finance, millions upon millions of dollars due to successful Fileless Malware attacks (e.g. SAMSAM and GoLacker). According to reputable sources, we are currently seeing a dramatic rate of increase in Fileless Malware incidents reported across industries employing IT ([TrendMicro, 2019](https://www.trendmicro.com/vinfo/us/security/news/security-technology/risks-under-the-radar-understanding-fileless-threats)), and it is possible that the majority of successful cyberattacks now involve Fileless Malware incidents that are currently occurring undetected by targeted organizations ([Carbon Black, 2019](https://www.carbonblack.com/resources/definitions/what-is-fileless-malware/)). Our motivational goal for this project is to research & develop a model SIEM/IDS software solution (as a 3-tier web application), that can applied to faciliate security risk management for these types of threats. We are currently seeking applicants & contributors to assist in the research & development, testing, and project management for the current prototype of our 3-tier application. 
+Fileless Malware and Insider Threat incidents are currently causing significant disruptions to the services and operations of industries employing IT. For example, Fileless Malware attacks are currently costing industries, such as healthcare and finance, millions upon millions of dollars due to successful Fileless Malware attacks (e.g. SAMSAM and GoLacker). According to reputable sources, we are currently seeing a dramatic rate of increase in Fileless Malware incidents reported across industries employing IT (<a href="https://www.trendmicro.com/vinfo/us/security/news/security-technology/risks-under-the-radar-understanding-fileless-threats">TrendMicro,2019</a>), and it is possible that the majority of successful cyberattacks now involve Fileless Malware incidents that are currently occurring undetected by targeted organizations (<a href="https://www.carbonblack.com/resources/definitions/what-is-fileless-malware/">Carbon Black, 2019</a>). Our motivational goal for this project is to research & develop a model SIEM/IDS software solution (as a 3-tier web application), that can applied to faciliate security risk management for these types of threats. We are currently seeking applicants & contributors to assist in the research & development, testing, and project management for the current prototype of our 3-tier application. 
 </p>
 
 ### Introduction
@@ -38,24 +39,24 @@ The current prototype development & testing for our 3-tier application  was mode
 
 ### Goals
 
-#### Data-Access Tier
+#### Tier 3
 
 *	Awaits *Tier 3* resource requests to retrieve statistics reports about forwarded & audited events.
 *	Awaits *Tier 3* resource requests to store forwarded and audited events, abstracting over a suitable choice of DBMS backend(s).
 *	Audits all incoming *Tier 3* resource requests according to specification.
 *	Enforces authentication, authorization/access control, and project risk management policies for *Tier 3* resource requests.
 
-#### Application Tier
+#### Tier 2
 
 *	Emits *Tier 3* resource requests to retrieve statistics reports about forwarded & audited events.
 *	Awaits *Tier 2* resource requests to retrieve statistics reports at the report route(s) defined by the backend web application.
-*	Awaits *Tier 2* resource requests to forward "raw" Windows Security Event Log and Linux Auditing System data in JSON format at the forward route(s) defined by the backend web application.
-*	Awaits *Tier 2* "raw" traffic/gateway event data in JSON format, e.g. flow records in SiLk *rwfilter/rwcut* format at the appropriate forward route defined by the backend web application.
+*	Awaits *Tier 2* resource requests to forward Windows Security Event Log and Linux Auditing System data in JSON format at the forward route(s) defined by the backend web application.
+*	Awaits *Tier 2* traffic/gateway event data in JSON format, e.g. flow records in SiLk *rwfilter/rwcut* format at the appropriate forward route defined by the backend web application.
 *	Audits all incoming *Tier 2* resource requests according to specification.
 *	Emits *Tier 3* resource requests to store audited & forwarded events after parsing & validation.
 *	Enforces authentication, authorization/access control, and project risk management policies for *Tier 2* resource requests.
 
-#### Presentation Tier
+#### Tier 1
 
 *	Emits *Tier 2* resource requests to retrieve statistics reports about forwarded & audited events.
 * Awaits *Tier 1* resource requests to retrieve summary reports about forwarded & audited events (e.g. in feature matrix format). 
@@ -64,6 +65,8 @@ The current prototype development & testing for our 3-tier application  was mode
 *	Awaits *Tier 1* resource requests to push and forward triggered alerts to an incident response platform, such as PagerDuty or JIRA, at the forward route(s) defined by frontend web application.
 *	Audits all incoming *Tier 1* resource requests according to specification.
 *	Enforces authentication, authorization/access control, and project risk management policies for *Tier 1* resource requests.
+
+### Schedule
 
 ### Timeline
 
