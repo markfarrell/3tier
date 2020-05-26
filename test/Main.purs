@@ -29,6 +29,7 @@ import Test.Text.Parsing.Forward    as Forward
 
 main :: Effect Unit
 main = void $ launchAff $ do
+  {-- todo: data type for tree of issues and resolution suites --}
   _ <- render (h1 "--------------------\n- Issue Management -\n--------------------")
   {-- RELEASE-01/TIER-02/ISSUE-01 --}
   _ <- render (pendingIssue  "Dependencies/FFI")
