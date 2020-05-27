@@ -68,6 +68,8 @@ The current prototype development & testing for our 3-tier application  was mode
 
 ### Schedule
 
+See [milestones](/markfarrell/3tier/milestones/).
+
 ### Timeline
 
 ![Timeline](./README/timeline.png)
