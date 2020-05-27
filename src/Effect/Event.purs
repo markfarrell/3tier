@@ -17,28 +17,32 @@ import Data.Event as Event
 import Effect.Array (random) as Array
 
 random :: forall a b. EventCategory a => EventID b => Effect a -> Effect b -> Effect (Event a b)
-random eventCategory eventID = do
-  eventCategory' <- eventCategory
-  eventID'       <- eventID
-  eventType'     <- Array.random Event.Success $ Event.eventTypes
+random f g = do
+  eventCategory  <- f
+  eventID        <- g
+  eventType      <- Array.random Event.Success $ Event.eventTypes
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))
+  sourceID       <- UUID.uuidv4
   sessionID      <- UUID.uuidv4
+  destinationID  <- UUID.uuidv4
+  logID          <- UUID.uuidv4
+  schemaID       <- UUID.uuidv4
   featureID      <- UUID.uuidv4
   instanceID     <- UUID.uuidv4
-  sourceID       <- UUID.uuidv4
-  destinationID  <- UUID.uuidv4
   pure $ Event $
-    { eventCategory : eventCategory'
-    , eventID       : eventID'
-    , eventType     : eventType'
-    , sessionID     : sessionID
-    , featureID     : featureID
-    , instanceID    : instanceID
-    , sourceID      : sourceID
-    , destinationID : destinationID
-    , startTime     : startTime
-    , duration      : duration
-    , endTime       : endTime
+    { eventCategory
+    , eventType
+    , eventID
+    , sourceID
+    , sessionID
+    , destinationID
+    , logID
+    , schemaID
+    , featureID
+    , instanceID
+    , startTime
+    , duration
+    , endTime
     }

@@ -162,11 +162,13 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
                      { eventCategory : eventCategory
                      , eventType     : eventType
                      , eventID       : eventID
+                     , sourceID      : UUID.default
                      , sessionID     : UUID.default
+                     , destinationID : UUID.default
+                     , logID         : UUID.default
+                     , schemaID      : UUID.default
                      , featureID     : UUID.default
                      , instanceID    : UUID.default
-                     , sourceID      : UUID.default
-                     , destinationID : UUID.default
                      , startTime     : startTime
                      , duration      : duration
                      , endTime       : endTime

@@ -17,11 +17,13 @@ event v w = do
   eventCategory  <- property  "eventCategory" x $ v
   eventType      <- property  "eventType"     x $ array Event.eventTypes
   eventID        <- property  "eventID"       x $ w
+  sourceID       <- property  "sourceID"      x $ uuid
   sessionID      <- property  "sessionID"     x $ uuid
+  destinationID  <- property  "destinationID" x $ uuid
+  logID          <- property  "logID"         x $ uuid
+  schemaID       <- property  "schemaID"      x $ uuid
   featureID      <- property  "featureID"     x $ uuid
   instanceID     <- property  "instanceID"    x $ uuid
-  sourceID       <- property  "sourceID"      x $ uuid
-  destinationID  <- property  "destinationID" x $ uuid
   startTime      <- property  "startTime"     x $ date
   duration       <- property  "duration"      x $ nonnegativeInteger
   endTime        <- property  "endTime"       x $ date
@@ -29,11 +31,13 @@ event v w = do
     { eventCategory
     , eventType
     , eventID
+    , sourceID
     , sessionID
+    , destinationID
+    , logID
+    , schemaID
     , featureID
     , instanceID
-    , sourceID
-    , destinationID
     , startTime
     , duration
     , endTime

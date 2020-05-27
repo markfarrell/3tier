@@ -2,6 +2,7 @@ module Data.Schema
   ( Schema(..)
   , schemas
   , create
+  , insert
   ) where
 
 import Prelude
@@ -9,6 +10,10 @@ import Prelude
 import Data.Tuple (Tuple(..), fst, snd)
 
 import Data.Foldable (intercalate)
+
+import Data.Event (Event(..), class EventCategory, class EventID)
+
+import Data.Forward as Forward
 
 data Schema = Alert | Audit | Traffic | Linux | Windows
 
@@ -41,9 +46,46 @@ create schema = query
         , Tuple "EventID" Text
         , Tuple "EventType" Text
         , Tuple "SourceID" Text
+        , Tuple "SessionID" Text
+        , Tuple "DestinationID" Text
+        , Tuple "LogID" Text
+        , Tuple "SchemaID" Text
+        , Tuple "FeatureID" Text
         , Tuple "InstanceID" Text
         , Tuple "StartTime" Text
         , Tuple "Duration" Integer
         , Tuple "EndTime" Text
         ]
+
+insert' :: forall a b. EventCategory a => EventID b => Schema -> Event a b -> String
+insert' schema (Event event) = query
+  where
+    query    = "INSERT INTO " <> table <> " (" <> columns <> ") VALUES (" <> values <> ")"
+    table    = show schema
+    columns  = "'" <> (intercalate "','" columns') <> "'"
+    values   = "'" <> (intercalate "','" values') <> "'"
+    columns' = fst <$> params
+    values'  = snd <$> params
+    params   =
+      [ Tuple "EventCategory" (show event.eventCategory)
+      , Tuple "EventType" (show event.eventCategory)
+      , Tuple "EventID" (show event.eventID)
+      , Tuple "SourceID" (show event.sourceID)
+      , Tuple "SessionID" (show event.sessionID)
+      , Tuple "DestinationID" (show event.destinationID)
+      , Tuple "LogID" (show event.logID)
+      , Tuple "SchemaID" (show event.schemaID)
+      , Tuple "FeatureID" (show event.featureID)
+      , Tuple "InstanceID" (show event.instanceID)
+      , Tuple "StartTime" (show $ event.startTime)
+      , Tuple "Duration" (show $ event.duration)
+      , Tuple "EndTime" (show $ event.endTime)
+      ]
+
+insert :: Forward.Event -> String
+insert (Forward.Alert event)   = insert' Alert event
+insert (Forward.Audit event)   = insert' Audit event
+insert (Forward.Traffic event) = insert' Traffic event 
+insert (Forward.Linux event)   = insert' Linux event 
+insert (Forward.Windows event) = insert' Windows event 
 

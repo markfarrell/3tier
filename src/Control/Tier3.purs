@@ -23,10 +23,8 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Traversable (sequence)
 
-import Data.Foldable (foldl, intercalate)
+import Data.Foldable (foldl)
 import Data.Foldable (oneOf) as Foldable
-
-import Data.Tuple (Tuple(..), fst, snd)
 
 import Effect.Aff (Aff)
 import Effect.Aff (parallel, sequential) as Aff
@@ -49,7 +47,6 @@ import Data.Event (Event(..))
 import Data.Event as Event
 import Data.Statistics as Statistics
 
-import Data.Schema (Schema)
 import Data.Schema as Schema
 
 import Control.Authorization (Authorization)
@@ -85,60 +82,6 @@ assert :: forall a b. String -> Either a b -> Aff Unit
 assert x (Left _)  = liftEffect $ Exception.throw x
 assert _ (Right _) = pure unit 
 
-insertURI' :: forall a b. Event.EventCategory a => Event.EventID b => Schema -> Event a b -> String
-insertURI' schema (Event event) = query
-  where
-    query    = "INSERT INTO " <> table <> " (" <> columns <> ") VALUES (" <> values <> ")"
-    table    = show schema
-    columns  = "'" <> (intercalate "','" columns') <> "'"
-    values   = "'" <> (intercalate "','" values') <> "'"
-    columns' = fst <$> params
-    values'  = snd <$> params
-    params   =
-      [ Tuple "EventCategory" (show event.eventCategory)
-      , Tuple "EventType" (show event.eventCategory)
-      , Tuple "EventID" (show event.eventID)
-      , Tuple "SourceID" (show event.sourceID)
-      , Tuple "InstanceID" (show event.instanceID)
-      , Tuple "StartTime" (show $ event.startTime)
-      , Tuple "Duration" (show $ event.duration)
-      , Tuple "EndTime" (show $ event.endTime)
-      ]
-
-insertURI :: Forward.Event ->  Aff String
-insertURI (Forward.Alert event)   = pure $ insertURI' Schema.Alert event
-insertURI (Forward.Audit event)   = pure $ insertURI' Schema.Audit event
-insertURI (Forward.Traffic event) = pure $ insertURI' Schema.Traffic event 
-insertURI (Forward.Linux event)   = pure $ insertURI' Schema.Linux event 
-insertURI (Forward.Windows event) = pure $ insertURI' Schema.Windows event 
-
-reportAuditURI' :: Report.ReportType -> Table -> Table
-reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceID" 
-reportAuditURI' Report.Time = \table -> "SELECT Duration as X FROM (" <> table <> ")"
-
-reportURI :: Report.Event -> Table
-reportURI (Report.Audit eventCategory eventType eventID reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "' AND EventID='" <> show eventID <> "'"
-
-maxURI :: Report.Event -> String
-maxURI report = "SELECT MAX(X) AS Y FROM (" <> (reportURI report) <> ")"
-
-minURI :: Report.Event -> String
-minURI report = "SELECT MIN(X) AS Y FROM (" <> (reportURI report) <> ")"
-
-averageURI :: Report.Event -> String
-averageURI report = "SELECT AVG(X) AS Y FROM (" <> (reportURI report) <> ")"
-
-sumURI :: Report.Event -> String
-sumURI report = "SELECT SUM(X) AS Y FROM (" <> (reportURI report) <> ")"
-
-totalURI :: Report.Event -> String
-totalURI report = "SELECT COUNT(*) as Y FROM (" <> (reportURI report) <> ")"
-
-varianceURI :: Report.Event -> Number -> String
-varianceURI report avg = query
-  where 
-    query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
-    query' = "(X - " <> show avg <> ")"
 
 interpret :: forall a. Query (Request a) -> Aff (Request a)
 interpret (DSL.Forward (Settings _ _ dbms) query next) = do
@@ -179,7 +122,7 @@ executeForward (Single uri) query = do
   _        <- executeTouch (path uri)
   _        <- executeSchemas (path uri)
   database <- SQLite3.connect (path uri) SQLite3.OpenReadWrite
-  uri'     <- insertURI query
+  uri'     <- pure $ Schema.insert query
   _        <- SQLite3.all uri' database
   _        <- SQLite3.close database
   pure (Forward unit)
@@ -296,11 +239,13 @@ audit = \settings route -> do
                  { eventCategory : eventCategory
                  , eventType     : eventType
                  , eventID       : eventID
+                 , sourceID      : UUID.default
                  , sessionID     : UUID.default
+                 , destinationID : UUID.default
+                 , logID         : UUID.default
+                 , schemaID      : UUID.default
                  , featureID     : UUID.default
                  , instanceID    : UUID.default
-                 , sourceID      : UUID.default
-                 , destinationID : UUID.default
                  , startTime     : startTime
                  , duration      : duration
                  , endTime       : endTime
@@ -315,3 +260,34 @@ request = audit
 
 execute ::  forall a. Request a -> Aff (Result a)
 execute = try <<< runFreeT interpret
+
+{-- todo: move to separate module --}
+
+reportAuditURI' :: Report.ReportType -> Table -> Table
+reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceID" 
+reportAuditURI' Report.Time = \table -> "SELECT Duration as X FROM (" <> table <> ")"
+
+reportURI :: Report.Event -> Table
+reportURI (Report.Audit eventCategory eventType eventID reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "' AND EventID='" <> show eventID <> "'"
+
+maxURI :: Report.Event -> String
+maxURI report = "SELECT MAX(X) AS Y FROM (" <> (reportURI report) <> ")"
+
+minURI :: Report.Event -> String
+minURI report = "SELECT MIN(X) AS Y FROM (" <> (reportURI report) <> ")"
+
+averageURI :: Report.Event -> String
+averageURI report = "SELECT AVG(X) AS Y FROM (" <> (reportURI report) <> ")"
+
+sumURI :: Report.Event -> String
+sumURI report = "SELECT SUM(X) AS Y FROM (" <> (reportURI report) <> ")"
+
+totalURI :: Report.Event -> String
+totalURI report = "SELECT COUNT(*) as Y FROM (" <> (reportURI report) <> ")"
+
+varianceURI :: Report.Event -> Number -> String
+varianceURI report avg = query
+  where 
+    query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
+    query' = "(X - " <> show avg <> ")"
+

@@ -1,11 +1,13 @@
 module Data.Event
   ( Event(..)
   , EventType(..)
+  , SourceID
   , SessionID
+  , DestinationID
+  , LogID
+  , SchemaID
   , FeatureID
   , InstanceID
-  , SourceID
-  , DestinationID
   , module Data.Event.Class
   , eventTypes
   , foreignEvent
@@ -25,19 +27,24 @@ import Data.Event.Class (class EventCategory, class EventID, eventCategories, ev
 
 data EventType = Success | Failure
 
+type SourceID      = UUID
 type SessionID     = UUID
+type DestinationID = UUID
+type LogID         = UUID
+type SchemaID      = UUID
+
 type FeatureID     = UUID
 type InstanceID    = UUID 
-type SourceID      = UUID
-type DestinationID = UUID
 
 data Event a b = Event (EventCategory a => EventID b =>
   { eventCategory :: a
   , eventType     :: EventType
   , eventID       :: b
-  , sessionID     :: SessionID
   , sourceID      :: SourceID
+  , sessionID     :: SessionID
   , destinationID :: DestinationID
+  , logID         :: LogID
+  , schemaID      :: SchemaID
   , featureID     :: FeatureID
   , instanceID    :: InstanceID
   , startTime     :: Date
@@ -64,11 +71,13 @@ foreignEvent (Event x) = unsafeCoerce $
   { eventCategory : show x.eventCategory
   , eventType     : show x.eventType
   , eventID       : show x.eventID
+  , sourceID      : show x.sourceID
   , sessionID     : show x.sessionID
+  , destinationID : show x.destinationID
+  , logID         : show x.logID
+  , schemaID      : show x.schemaID
   , featureID     : show x.featureID
   , instanceID    : show x.instanceID
-  , sourceID      : show x.sourceID
-  , destinationID : show x.destinationID
   , startTime     : show x.startTime
   , duration      : show x.duration
   , endTime       : show x.endTime
