@@ -11,10 +11,10 @@ import Data.Linux   as Linux
 import Data.Windows as Windows
 
 data Event = 
-    Alert Alert.Event
-  | Audit Audit.Event 
+    Alert   Alert.Event
+  | Audit   Audit.Event 
   | Traffic Traffic.Event
-  | Linux Linux.Event
+  | Linux   Linux.Event
   | Windows Windows.Event
 
 instance showEventForward :: Show Event where
