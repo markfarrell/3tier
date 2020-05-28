@@ -12,11 +12,6 @@ import FFI.Math as Math
 import FFI.UUID as UUID
 
 import Data.Event (Event(..), class EventCategory, class EventType, class EventID)
-import Data.Event as E
-
-import Data.EventType (EventType(..))
-
-import Effect.Array (random) as Array
 
 random :: forall a b c. EventCategory a => EventType b => EventID c => Effect a -> Effect b -> Effect c -> Effect (Event a b c)
 random f g h = do

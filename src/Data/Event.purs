@@ -8,7 +8,6 @@ module Data.Event
   , FeatureID
   , InstanceID
   , module Data.Event.Class
-  , foreignEvent
   ) where
 
 import Prelude
@@ -76,14 +75,14 @@ type Period =
   }
 
 instance showEvent :: (EventCategory a, EventType b, EventID c) => Show (Event a b c) where
-  show = JSON.stringify <<< foreignEvent
+  show = JSON.stringify <<< marshall
 
 derive instance eqEvent :: (EventCategory a, EventType b, EventID c) => Eq (Event a b c)
 
 {-- todo: see https://github.com/markfarrell/3tier/issues/27 --}
 
-foreignEvent :: forall a b c. EventCategory a => EventType b => EventID c => Event a b c -> Foreign
-foreignEvent (Event x) = unsafeCoerce $
+marshall :: forall a b c. EventCategory a => EventType b => EventID c => Event a b c -> Foreign
+marshall (Event x) = unsafeCoerce $
   { eventCategory : show x.eventCategory
   , eventType     : show x.eventType
   , eventID       : show x.eventID
