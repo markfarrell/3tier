@@ -49,12 +49,6 @@ data Event a b c = Event (EventCategory a => EventType b => EventID c =>
 
 {-- todo: see https://github.com/markfarrell/3iter/issues/5 --}
 
-type Feature a b c = (EventCategory a => EventType b => EventID c =>
-  { eventCategory :: a 
-  , eventType     :: b
-  , eventID       :: c
-  })
-
 type Identifier =
   { sourceID      :: SourceID
   , sessionID     :: SessionID
