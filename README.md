@@ -11,6 +11,7 @@ A prototype 3-tier web application written in PureScript. The project is current
     * [Tier 2](#tier-2)
     * [Tier 1](#tier-1)
   * [Schedule](#schedule)
+  * [Issues](#issues)
   * [Timeline](#timeline)
 
 ## Proposal
@@ -69,6 +70,15 @@ The current prototype development & testing for our 3-tier application  was mode
 ### Schedule
 
 See [milestones](/markfarrell/3tier/milestones/).
+
+### Issues
+
+See [issues](/markfarrell/3tier/issues).
+
+#### RELEASE-01/TIER-02
+
+* [Event Forwarding](/markfarrell/3tier/issues/5)
+* _..._
 
 ### Timeline
 
