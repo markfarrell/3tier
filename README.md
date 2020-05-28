@@ -69,15 +69,15 @@ The current prototype development & testing for our 3-tier application  was mode
 
 ### Schedule
 
-See [milestones](/markfarrell/3tier/milestones/).
+See [milestones](https://github.com/markfarrell/3tier/milestones).
 
 ### Issues
 
-See [issues](/markfarrell/3tier/issues).
+See [issues](https://github.com/markfarrell/3tier/issues).
 
 #### RELEASE-01/TIER-02
 
-* [Event Forwarding](/markfarrell/3tier/issues/5)
+* [Event Forwarding](https://github.com/markfarrell/3tier/issues/5)
 * _..._
 
 ### Timeline
