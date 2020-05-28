@@ -11,15 +11,15 @@ import Data.Maybe (Maybe(..))
 import Text.Parsing.Parser (Parser, fail)
 
 import Data.Event (Event(..))
-import Data.Event   as Event
+import Data.Event   as E
 import Data.Windows as Windows
 
 import Text.Parsing.Common (array)
-import Text.Parsing.Event (event) as E
+import Text.Parsing.Event (event) as Event
 
 event :: Parser String Windows.Event
 event = do
-  x <- E.event (array Event.eventCategories) (array Event.eventIDs) 
+  x <- Event.event (array E.eventCategories) (array E.eventIDs) 
   case x of (Event y) ->
     case Array.elemIndex y.eventID (Windows.eventIDs' y.eventCategory) of
       (Just _)  -> pure x

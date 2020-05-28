@@ -44,7 +44,7 @@ import Control.DSL as DSL
 import Data.Audit as Audit
 
 import Data.Event (Event(..))
-import Data.Event as Event
+import Data.EventType (EventType(..))
 import Data.Statistics as Statistics
 
 import Data.Schema as Schema
@@ -233,8 +233,8 @@ audit = \settings route -> do
     (Route.Forward (Forward.Windows _))   -> Audit.Windows
     (Route.Report (Report.Audit _ _ _ _)) -> Audit.Audit
   eventType   <- pure $ case result of
-    (Left _)  -> Event.Failure
-    (Right _) -> Event.Success
+    (Left _)  -> Failure
+    (Right _) -> Success
   event       <- pure $ Event $
                  { eventCategory : eventCategory
                  , eventType     : eventType

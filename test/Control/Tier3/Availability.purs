@@ -23,7 +23,7 @@ import FFI.FS as FS
 import Data.Audit (EventCategory(..), EventID(..)) as Audit
 import Data.Statistics (minimum, maximum, sum, total, average, variance) as S
 
-import Data.Event (EventType(..)) as Event
+import Data.EventType (EventType(..))
 
 import Control.Authorization as Authorization
 import Control.Authentication as Authentication
@@ -68,7 +68,7 @@ forwards = \settings n ->  do
 
 failure :: Tier3.Settings -> Report.ReportType -> Audit.EventCategory -> Audit.EventID -> Tier3.Request Unit
 failure settings reportType eventCategory eventID = do
-  x <- Tier3.request settings (Route.Report (Report.Audit eventCategory Event.Failure eventID reportType))
+  x <- Tier3.request settings (Route.Report (Report.Audit eventCategory Failure eventID reportType))
   case x of
     (Tier3.Forward _) -> lift (liftEffect $ Exception.throw "Unexpected behaviour.")
     (Tier3.Report y)  -> do
@@ -89,9 +89,9 @@ failures settings = void $ sequence $
 
 success :: forall a. Tier3.Settings -> Report.ReportType -> Audit.EventCategory -> Audit.EventID -> Tier3.Request a -> Tier3.Request Unit
 success settings reportType eventCategory eventID = \request -> do
-  w <- Tier3.request settings (Route.Report (Report.Audit eventCategory Event.Success eventID reportType))
+  w <- Tier3.request settings (Route.Report (Report.Audit eventCategory Success eventID reportType))
   _ <- request
-  x <- Tier3.request settings (Route.Report (Report.Audit eventCategory Event.Success eventID reportType))
+  x <- Tier3.request settings (Route.Report (Report.Audit eventCategory Success eventID reportType))
   case [w,x] of
     [(Tier3.Report y), (Tier3.Report z)]  -> do
       result <- pure $ foldl (&&) true [S.minimum z >= 0, S.maximum z >= S.maximum y, S.sum z >= S.sum y, S.total z >= S.total y, S.average z >= 0, S.variance z >= 0]

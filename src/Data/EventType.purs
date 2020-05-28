@@ -1,8 +1,10 @@
-module Data.Event.EventType
+module Data.EventType
   ( EventType (..)
   ) where
 
 import Prelude
+
+import Data.Event as E
 
 {-- todo: see https://github.com/markfarrell/3tier/issues/5 --}
 
@@ -13,3 +15,6 @@ instance showEventType :: Show EventType where
   show Failure = "FAILURE"
 
 derive instance eqEventType :: Eq EventType
+
+instance eventTypeDefault :: E.EventType EventType where
+  eventTypes = [ Success,  Failure ]

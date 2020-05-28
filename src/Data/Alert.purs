@@ -7,12 +7,13 @@ module Data.Alert
 import Prelude
 
 import Data.Event as E
+import Data.EventType (EventType)
 
 data EventCategory = Anomalous
 
 data EventID = Risk
 
-type Event = E.Event EventCategory EventID
+type Event = E.Event EventCategory EventType EventID
 
 instance showEventCategory :: Show EventCategory where
   show Anomalous = "ANOMALOUS"

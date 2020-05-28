@@ -12,15 +12,17 @@ import FFI.Math as Math
 import FFI.UUID as UUID
 
 import Data.Event (Event(..), class EventCategory, class EventID)
-import Data.Event as Event
+import Data.Event as E
+
+import Data.EventType (EventType(..))
 
 import Effect.Array (random) as Array
 
-random :: forall a b. EventCategory a => EventID b => Effect a -> Effect b -> Effect (Event a b)
+random :: forall a b. EventCategory a => EventID b => Effect a -> Effect b -> Effect (Event a EventType b)
 random f g = do
   eventCategory  <- f
   eventID        <- g
-  eventType      <- Array.random Event.Success $ Event.eventTypes
+  eventType      <- Array.random Success $ E.eventTypes
   startTime      <- pure $ Date.epoch
   endTime        <- Date.random
   duration       <- pure $ Math.floor ((Date.getTime endTime) - (Date.getTime startTime))

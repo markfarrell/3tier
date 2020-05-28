@@ -11,12 +11,13 @@ import Data.Foldable (intercalate)
 import FFI.String as String
 
 import Data.Audit as Audit
-import Data.Event as Event
+import Data.Event as E
+import Data.EventType (EventType)
 
 data ReportType = Source | Time
 
 {-- todo: same format as Forward.event, e.g. SQLite3 LIKE clause on start time and end time? --}
-data Event = Audit Audit.EventCategory Event.EventType Audit.EventID ReportType
+data Event = Audit Audit.EventCategory EventType Audit.EventID ReportType
 
 instance showEventReport :: Show Event where
   show = uri
@@ -31,9 +32,9 @@ reportTypes = [ Source, Time ]
 events :: Array Event
 events = do
   reportType    <- reportTypes
-  eventCategory <- Event.eventCategories
-  eventType     <- Event.eventTypes
-  eventID       <- Event.eventIDs
+  eventCategory <- E.eventCategories
+  eventType     <- E.eventTypes
+  eventID       <- E.eventIDs
   pure $ Audit eventCategory eventType eventID reportType 
 
 uri :: Event -> String

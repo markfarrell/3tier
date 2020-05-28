@@ -7,12 +7,13 @@ module Data.Audit
 import Prelude
 
 import Data.Event as E
+import Data.EventType (EventType)
 
 data EventID = Alert | Audit | Traffic | Windows | Linux
 
 data EventCategory = Forward | Report
 
-type Event = E.Event EventCategory EventID
+type Event = E.Event EventCategory EventType EventID
 
 instance showEventIDAudit :: Show EventID where
   show Alert      = "ALERT"

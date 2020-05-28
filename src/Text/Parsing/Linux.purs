@@ -8,10 +8,10 @@ import Text.Parsing.Parser (Parser)
 
 import Data.Linux as Linux
 
-import Data.Event as Event
+import Data.Event as E
 
 import Text.Parsing.Common (array, nonnegativeInteger)
-import Text.Parsing.Event (event) as E
+import Text.Parsing.Event (event) as Event
 
 event :: Parser String Linux.Event
-event = E.event (array Event.eventCategories) (Linux.EventID <$> nonnegativeInteger) 
+event = Event.event (array E.eventCategories) (Linux.EventID <$> nonnegativeInteger) 

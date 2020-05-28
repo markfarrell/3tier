@@ -27,88 +27,61 @@ import Test.Text.Parsing.Linux      as Linux
 import Test.Text.Parsing.Windows    as Windows
 import Test.Text.Parsing.Forward    as Forward
 
-data IssueCategory = DependenciesFFI | ParsingValidation
+{-- todo: issue data type --}
+data IssueCategory = DependenciesFFI | ParsingValidation | RisksAvailability
 
-data Status = Assigned | Complete | Pending
+data Status = Tracked | Resolved | Pending
+
+data Priority = None | Low | Medium | High | Top
 
 main :: Effect Unit
 main = void $ launchAff $ do
-  {-- todo: data type for tree of issues and resolution suites --}
   _ <- render (h1 "--------------------\n- Issue Management -\n--------------------")
-  {-- RELEASE-01/TIER-02/ISSUE-01 --}
-  _ <- render (issue Pending DependenciesFFI)
-  _ <- render (suite Assigned "FFI.Date")
-  _ <- render (suite Assigned "FFI.HTTPS")
-  _ <- render (suite Assigned "FFI.JSON")
-  _ <- render (suite Assigned "FFI.Process")
-  _ <- render (suite Assigned "FFI.Readline")
-  _ <- render (suite Assigned "FFI.RSA")
-  _ <- render (suite Assigned "FFI.SQLite3")
-  _ <- render (suite Complete "FFI.UUID")                  *> UUID.suite
-  {-- RELEASE-01/TIER-02/ISSUE-02 --}
-  _ <- render (issue Pending ParsingValidation)
-  _ <- render (suite Assigned  "Text.Parsing.Common")      *> Common.suite
-  _ <- render (suite Pending   "Text.Parsing.Risk")        *> Risk.suite
-  _ <- render (suite Complete  "Text.Parsing.Statistics")  *> Statistics.suite
-  _ <- render (suite Assigned  "Text.Parsing.TCP.Flag")
-  {-- RELEASE-01/TIER-02/ISSUE-03 --}
-  _ <- render (issue Pending ParsingValidation)
-  _ <- render (suite Complete  "Text.Parsing.Alert")       *> Alert.suite
-  _ <- render (suite Complete  "Text.Parsing.Audit")       *> Audit.suite
-  _ <- render (suite Complete  "Text.Parsing.Linux")       *> Linux.suite
-  _ <- render (suite Complete  "Text.Parsing.Traffic")     *> Traffic.suite
-  _ <- render (suite Complete  "Text.Parsing.Windows")     *> Windows.suite
-  _ <- render (suite Complete  "Text.Parsing.Forward")     *> Forward.suite 
-  _ <- render (issue Pending ParsingValidation)
-  _ <- render (suite Assigned  "Text.Parsing.Report") 
-  _ <- render (suite Assigned  "Text.Parsing.Route")
-  _ <- render (issue Pending ParsingValidation)
-  _ <- render (suite Complete  "Text.Parsing.Flow")        *> Flow.suite
-  _ <- render (suite Assigned  "Text.Parsing.NetFlowv9")   *> NetFlowv9.suite
-  _ <- render (issue Pending ParsingValidation)
-  _ <- render (suite Assigned  "Text.Parsing.Linux.Audit")
-  _ <- render (issue Pending ParsingValidation)
-  _ <- render (suite Assigned  "Text.Parsing.Windows.Security")
-  _ <- render (h1 "-------------------\n- Risk Management -\n-------------------")
-  _ <- render (h2 "Risk/Audit")
-  _ <- render (suite Assigned "Control.Tier3")
-  _ <- render (suite Assigned "Control.Tier2")
-  _ <- render (suite Assigned "Control.Tier1")
-  _ <- render (h2 "Risk/Access-Control")
-  _ <- render (suite Assigned "Control.Tier3")
-  _ <- render (suite Assigned "Control.Tier2")
-  _ <- render (suite Assigned "Control.Tier1")
-  _ <- render (h2 "Risk/Availability")
-  _ <- render (suite Complete "Control.Tier3")             *> Tier3.availability
-  _ <- render (suite Assigned "Control.Tier2")
-  _ <- render (suite Assigned "Control.Tier1")
-  _ <- render (h2 "Risk/Exposure")
-  _ <- render (suite Assigned   "Control.Tier3")
-  _ <- render (suite Assigned  "Control.Tier2")
-  _ <- render (suite Assigned "Control.Tier1")
-  _ <- render (h2 "Risk/Injection")
-  _ <- render (suite Assigned "Control.Tier3")
-  _ <- render (suite Assigned "Control.Tier2")
-  _ <- render (suite Assigned "Control.Tier1")
-  _ <- render (h2 "Risk/Scalability")
-  _ <- render (suite Assigned "Control.Tier3")
-  _ <- render (suite Assigned "Control.Tier2")
-  _ <- render (suite Assigned "Control.Tier1")
+  {-- DEPENDENCIES/FFI --}
+  _ <- UUID.suite
+  {-- PARSING/VALIDATION --}
+  _ <- Common.suite
+  _ <- Risk.suite
+  _ <- Statistics.suite
+  {-- PARSING/VALIDATION --}
+  _ <- render (issue Pending High ParsingValidation 5)
+  _ <- Alert.suite
+  _ <- Audit.suite
+  _ <- Traffic.suite
+  _ <- Linux.suite
+  _ <- Windows.suite
+  _ <- Forward.suite
+  {-- PARSING/VALIDATION --}
+  _ <- render (issue Tracked Medium ParsingValidation 16)
+  {-- PARSING/VALIDATION --}
+  _ <- render (issue Pending Medium ParsingValidation 17)
+  _ <- Flow.suite
+  _ <- NetFlowv9.suite
+  {-- PARSING/VALIDATION --}
+  _ <- render (issue Tracked Top ParsingValidation 18)
+  {-- PARSING/VALIDATION --}
+  _ <- render (issue Tracked High ParsingValidation 19)
+  {-- RISKS/AVAILABILITY --}
+  _ <- render (issue Pending Medium RisksAvailability 13)
+  _ <- Tier3.availability
   pure unit
   where
-    suite         = \x y -> div [status "SUITE" $ x, label y $ x]
-    issue         = \x y -> div [status "ISSUE" $ x, issueCategory y]
-    status        = \x y -> case y of 
-      Assigned -> dim  $ fgWhite x
-      Pending  -> bold $ fgYellow x
-      Complete -> bold $ fgGreen x
-    label         = \x y -> case y of
-      Assigned -> dim  $ fgWhite x
-      Pending  -> bold $ fgCyan x  
-      Complete -> bold $ fgCyan x
+    issue         = \w x y z -> div [status w, priority x, issueCategory y, issueID z]
+    priority      = \x -> case x of
+      Top    -> bold $ fgRed     "TOP   "
+      High   -> bold $ fgYellow  "HIGH  "
+      Medium -> bold $ fgMagenta "MEDIUM" 
+      Low    -> bold $ fgGreen   "LOW   "
+      None   -> bold $ fgWhite   "NONE  "
+    status        = \x -> case x of 
+      Tracked  -> bold $ fgYellow    "TRACKED  "
+      Pending  -> bold $ fgGreen     "PENDING  "
+      Resolved -> bold $ fgWhite     "RESOLVED "
     issueCategory = \x -> case x of
-      DependenciesFFI   -> bold $ fgRed "Dependencies/FFI"
-      ParsingValidation -> bold $ fgRed "Parsing/Validation"
+      DependenciesFFI   -> bold $ fgWhite "DEPENDENCIES/FFI  "
+      ParsingValidation -> bold $ fgWhite "PARSING/VALIDATION"
+      RisksAvailability -> bold $ fgWhite "RISK/AVAILABILITY "
+    issueID       = \x -> dim $ fgWhite (intercalate "" ["(", "/markfarrell/3tier/issues/", show x, ")"])
     render        = liftEffect <<< log
     div           = \x -> intercalate " " $ x
     h1            = bold <<< fgYellow

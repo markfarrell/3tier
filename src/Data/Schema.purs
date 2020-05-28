@@ -13,6 +13,8 @@ import Data.Foldable (intercalate)
 
 import Data.Event (Event(..), class EventCategory, class EventID)
 
+import Data.EventType (EventType)
+
 import Data.Forward as Forward
 
 data Schema = Alert | Audit | Traffic | Linux | Windows
@@ -57,7 +59,7 @@ create schema = query
         , Tuple "EndTime" Text
         ]
 
-insert' :: forall a b. EventCategory a => EventID b => Schema -> Event a b -> String
+insert' :: forall a b. EventCategory a => EventID b => Schema -> Event a EventType b -> String
 insert' schema (Event event) = query
   where
     query    = "INSERT INTO " <> table <> " (" <> columns <> ") VALUES (" <> values <> ")"

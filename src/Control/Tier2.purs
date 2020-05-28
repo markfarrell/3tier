@@ -58,7 +58,7 @@ import Data.IPv4 (IPv4)
 import Data.Audit as Audit
 
 import Data.Event (Event(..))
-import Data.Event as Event
+import Data.EventType (EventType(..))
 import Data.Statistics (Event) as Statistics
 
 import Text.Parsing.Statistics (event) as Statistics
@@ -151,12 +151,12 @@ resourceRequest settings (HTTPS.IncomingRequest req res) = do
     (Right (Route.Forward (Forward.Windows _)))    -> Audit.Windows
     (Right (Route.Report  (Report.Audit _ _ _ _))) -> Audit.Audit
   eventType     <- pure $ case routingResult of
-    (Left  _) -> Event.Failure
+    (Left  _) -> Failure
     (Right _) -> case resource of
-      (Ok _) -> Event.Success
+      (Ok _) -> Success
       _      -> case response of
-        (Left _)  -> Event.Failure
-        (Right _) -> Event.Success
+        (Left _)  -> Failure
+        (Right _) -> Success
   port         <- pure $ Socket.remotePort $ HTTPS.socket req
   event        <- pure $ Event $
                      { eventCategory : eventCategory

@@ -8,8 +8,6 @@ module Data.Event
   , FeatureID
   , InstanceID
   , module Data.Event.Class
-  , module Data.Event.EventType
-  , eventTypes
   , foreignEvent
   ) where
 
@@ -23,9 +21,7 @@ import FFI.Date (Date)
 import FFI.JSON (stringify) as JSON
 import FFI.UUID (UUID)
 
-import Data.Event.Class (class EventCategory, class EventID, eventCategories, eventIDs)
-
-import Data.Event.EventType (EventType(..))
+import Data.Event.Class (class EventCategory, class EventID, class EventType, eventCategories, eventTypes, eventIDs)
 
 type SourceID      = UUID
 type SessionID     = UUID
@@ -36,10 +32,10 @@ type SchemaID      = UUID
 type FeatureID     = UUID
 type InstanceID    = UUID 
 
-data Event a b = Event (EventCategory a => EventID b =>
+data Event a b c = Event (EventCategory a => EventType b => EventID c =>
   { eventCategory :: a
-  , eventType     :: EventType
-  , eventID       :: b
+  , eventType     :: b
+  , eventID       :: c
   , sourceID      :: SourceID
   , sessionID     :: SessionID
   , destinationID :: DestinationID
@@ -54,10 +50,10 @@ data Event a b = Event (EventCategory a => EventID b =>
 
 {-- todo: see https://github.com/markfarrell/3iter/issues/5 --}
 
-type Feature a b = (EventCategory a => EventID b =>
+type Feature a b c = (EventCategory a => EventType b => EventID c =>
   { eventCategory :: a 
-  , eventType     :: EventType
-  , eventID       :: b
+  , eventType     :: b
+  , eventID       :: c
   })
 
 type Identifier =
@@ -79,17 +75,14 @@ type Period =
   , endTime   :: Date 
   }
 
-instance showEvent :: (EventCategory a, EventID b) => Show (Event a b) where
+instance showEvent :: (EventCategory a, EventType b, EventID c) => Show (Event a b c) where
   show = JSON.stringify <<< foreignEvent
 
-derive instance eqEvent :: (EventCategory a, EventID b) => Eq (Event a b)
-
-eventTypes :: Array EventType
-eventTypes = [ Success, Failure ]
+derive instance eqEvent :: (EventCategory a, EventType b, EventID c) => Eq (Event a b c)
 
 {-- todo: see https://github.com/markfarrell/3tier/issues/27 --}
 
-foreignEvent :: forall a b. EventCategory a => EventID b => Event a b -> Foreign
+foreignEvent :: forall a b c. EventCategory a => EventType b => EventID c => Event a b c -> Foreign
 foreignEvent (Event x) = unsafeCoerce $
   { eventCategory : show x.eventCategory
   , eventType     : show x.eventType

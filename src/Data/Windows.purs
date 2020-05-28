@@ -10,6 +10,7 @@ import Prelude
 import Data.Foldable (foldl)
 
 import Data.Event as E
+import Data.EventType (EventType)
 
 data EventCategory = AccountLogon
   | AccountManagement
@@ -25,7 +26,7 @@ data EventCategory = AccountLogon
 
 data EventID = EventID Int
 
-type Event = E.Event EventCategory EventID
+type Event = E.Event EventCategory EventType EventID
 
 instance showEventCategoryWindows :: Show EventCategory where
   show AccountLogon      = "ACCOUNT-LOGON"

@@ -12,12 +12,13 @@ import Unsafe.Coerce (unsafeCoerce)
 
 import Data.Port (Port)
 import Data.Event as E
+import Data.EventType (EventType)
 
 data EventCategory = In | Out
                        
 data EventID = EventID Port
 
-type Event = E.Event EventCategory EventID
+type Event = E.Event EventCategory EventType EventID
 
 instance showEventCategoryTraffic :: Show EventCategory where 
   show In  = "IN"

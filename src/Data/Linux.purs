@@ -7,6 +7,7 @@ module Data.Linux
 import Prelude
 
 import Data.Event as E
+import Data.EventType (EventType)
 
 data EventCategory =
     DaemonStart
@@ -33,7 +34,7 @@ data EventCategory =
 
 data EventID = EventID Int
 
-type Event = E.Event EventCategory EventID
+type Event = E.Event EventCategory EventType EventID
 
 instance showEventCategoryLinux :: Show EventCategory where
   show DaemonStart    = "DAEMON-START"
