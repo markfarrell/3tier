@@ -14,4 +14,4 @@ import Text.Parsing.Common (array, port)
 import Text.Parsing.Event (event) as Event
 
 event :: Parser String Traffic.Event
-event = Event.event (array E.eventCategories) (Traffic.EventID <$> port) 
+event = Event.event (array E.eventCategories) (array E.eventTypes) (Traffic.EventID <$> port) 

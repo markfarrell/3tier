@@ -14,4 +14,4 @@ import Text.Parsing.Common (array, nonnegativeInteger)
 import Text.Parsing.Event (event) as Event
 
 event :: Parser String Linux.Event
-event = Event.event (array E.eventCategories) (Linux.EventID <$> nonnegativeInteger) 
+event = Event.event (array E.eventCategories) (array E.eventTypes) (Linux.EventID <$> nonnegativeInteger) 

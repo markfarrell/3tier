@@ -19,7 +19,7 @@ import Text.Parsing.Event (event) as Event
 
 event :: Parser String Windows.Event
 event = do
-  x <- Event.event (array E.eventCategories) (array E.eventIDs) 
+  x <- Event.event (array E.eventCategories) (array E.eventTypes) (array E.eventIDs) 
   case x of (Event y) ->
     case Array.elemIndex y.eventID (Windows.eventIDs' y.eventCategory) of
       (Just _)  -> pure x

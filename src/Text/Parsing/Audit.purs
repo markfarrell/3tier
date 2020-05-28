@@ -12,4 +12,4 @@ import Text.Parsing.Common (array)
 import Text.Parsing.Event (event) as Event
 
 event :: Parser String Audit.Event
-event = Event.event (array E.eventCategories) (array E.eventIDs)
+event = Event.event (array E.eventCategories) (array E.eventTypes) (array E.eventIDs)
