@@ -7,6 +7,9 @@ module Data.Windows
 
 import Prelude
 
+import Foreign.Class (class Marshall) as F
+import Foreign.Coerce (coerce) as F
+
 import Data.Foldable (foldl)
 
 import Data.Event as E
@@ -47,6 +50,12 @@ instance showEventIDWindows :: Show EventID where
 derive instance eqEventCategoryWindows :: Eq EventCategory
  
 derive instance eqEventIDWindows :: Eq EventID
+
+instance marshallEventCategory :: F.Marshall EventCategory where
+  marshall = F.coerce <<< show
+
+instance marshallEventID :: F.Marshall EventID where
+  marshall = F.coerce <<< show
 
 instance eventCategoryWindws :: E.EventCategory EventCategory where
   eventCategories = eventCategories'

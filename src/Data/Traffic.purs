@@ -10,6 +10,9 @@ import Data.Array as Array
 
 import Unsafe.Coerce (unsafeCoerce)
 
+import Foreign.Class (class Marshall) as F
+import Foreign.Coerce (coerce) as F
+
 import Data.Port (Port)
 import Data.Event as E
 import Data.EventType (EventType)
@@ -30,6 +33,12 @@ instance showEventIDTraffic :: Show EventID where
 derive instance eqEventCategoryTraffic :: Eq EventCategory
 
 derive instance eqEventIDTraffic :: Eq EventID
+
+instance marshallEventCategory :: F.Marshall EventCategory where
+  marshall = F.coerce <<< show
+
+instance marshallEventID :: F.Marshall EventID where
+  marshall = F.coerce <<< show
 
 instance eventCategoryTraffic :: E.EventCategory EventCategory where
   eventCategories = [ In, Out ]

@@ -6,6 +6,9 @@ module Data.Linux
 
 import Prelude
 
+import Foreign.Class (class Marshall) as F
+import Foreign.Coerce (coerce) as F
+
 import Data.Event as E
 import Data.EventType (EventType)
 
@@ -65,6 +68,12 @@ instance showEventIDLinux :: Show EventID where
 derive instance eqEventCategoryLinux :: Eq EventCategory
 
 derive instance eqEventIDLinux :: Eq EventID
+
+instance marshallEventCategory :: F.Marshall EventCategory where
+  marshall = F.coerce <<< show
+
+instance marshallEventID :: F.Marshall EventID where
+  marshall = F.coerce <<< show
 
 instance eventCategoryLinux :: E.EventCategory EventCategory where
   eventCategories =

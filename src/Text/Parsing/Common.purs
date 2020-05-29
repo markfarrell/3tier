@@ -38,7 +38,7 @@ import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.String (string, anyChar, char)
-import Text.Parsing.Parser.Combinators (optional,choice,try,lookAhead)
+import Text.Parsing.Parser.Combinators (optional,choice,lookAhead)
 
 import Unsafe.Coerce (unsafeCoerce)
 

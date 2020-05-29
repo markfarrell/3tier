@@ -12,9 +12,8 @@ module Data.Event
 
 import Prelude
 
-import Foreign (Foreign)
-
-import Unsafe.Coerce (unsafeCoerce)
+import Foreign.Class (class Marshall, marshall) as F
+import Foreign.Coerce (coerce) as F
 
 import FFI.Date (Date)
 import FFI.JSON (stringify) as JSON
@@ -69,25 +68,25 @@ type Period =
   }
 
 instance showEvent :: (EventCategory a, EventType b, EventID c) => Show (Event a b c) where
-  show = JSON.stringify <<< marshall
+  show = JSON.stringify <<< F.marshall
 
 derive instance eqEvent :: (EventCategory a, EventType b, EventID c) => Eq (Event a b c)
 
 {-- todo: see https://github.com/markfarrell/3tier/issues/27 --}
-
-marshall :: forall a b c. EventCategory a => EventType b => EventID c => Event a b c -> Foreign
-marshall (Event x) = unsafeCoerce $
-  { eventCategory : show x.eventCategory
-  , eventType     : show x.eventType
-  , eventID       : show x.eventID
-  , sourceID      : show x.sourceID
-  , sessionID     : show x.sessionID
-  , destinationID : show x.destinationID
-  , logID         : show x.logID
-  , schemaID      : show x.schemaID
-  , featureID     : show x.featureID
-  , instanceID    : show x.instanceID
-  , startTime     : show x.startTime
-  , duration      : show x.duration
-  , endTime       : show x.endTime
-  }
+{-- todo: use `purescript-heterogenous` (?) --}
+instance marshallEvent :: (EventCategory a, EventType b, EventID c) => F.Marshall (Event a b c) where
+  marshall (Event x) = F.coerce $
+    { eventCategory : F.marshall x.eventCategory
+    , eventType     : F.marshall x.eventType
+    , eventID       : F.marshall x.eventID
+    , sourceID      : F.marshall x.sourceID
+    , sessionID     : F.marshall x.sessionID
+    , destinationID : F.marshall x.destinationID
+    , logID         : F.marshall x.logID
+    , schemaID      : F.marshall x.schemaID
+    , featureID     : F.marshall x.featureID
+    , instanceID    : F.marshall x.instanceID
+    , startTime     : F.marshall x.startTime
+    , duration      : F.marshall x.duration
+    , endTime       : F.marshall x.endTime
+    }

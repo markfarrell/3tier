@@ -6,6 +6,9 @@ module Data.Audit
 
 import Prelude
 
+import Foreign.Class (class Marshall) as F
+import Foreign.Coerce (coerce) as F
+
 import Data.Event as E
 import Data.EventType (EventType)
 
@@ -29,6 +32,12 @@ instance showEventCategory :: Show EventCategory where
 derive instance eqEventCategoryAudit :: Eq EventCategory
 
 derive instance eqEventIDAudit :: Eq EventID
+
+instance marshallEventCategory :: F.Marshall EventCategory where
+  marshall = F.coerce <<< show
+
+instance marshallEventID :: F.Marshall EventID where
+  marshall = F.coerce <<< show
 
 instance eventCategoryAudit :: E.EventCategory EventCategory where
   eventCategories = [ Forward, Report ]
