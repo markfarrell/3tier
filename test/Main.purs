@@ -42,9 +42,11 @@ main = void $ launchAff $ do
   {-- DEPENDENCIES/FFI --}
   _ <- UUID.suite
   {-- PARSING/VALIDATION --}
+  _ <- render (issue Pending Medium ParsingValidation 29)
   _ <- Common.suite
   _ <- Alphanumeric.suite
   _ <- Repeat.suite
+  {-- PARSING/VALIDATION --}
   _ <- Risk.suite
   _ <- Statistics.suite
   {-- PARSING/VALIDATION --}
