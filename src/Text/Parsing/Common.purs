@@ -5,8 +5,6 @@ module Text.Parsing.Common
   , nonnegativeFloat
   , anyString
   , date
-  , lowercase
-  , uppercase
   , octet
   , port
   , ipv4
@@ -124,24 +122,6 @@ date = do
       , millis
       , "Z"
       ]
-
-{-- | Parses a valid lowercase letter, or fails otherwise. --}
-lowercase :: Parser String String
-lowercase = choice (string <$> letters)
-  where 
-    letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
-      <> ["i", "j", "k", "l", "m", "n", "o", "p"] 
-      <> ["q", "r", "s", "t", "u", "v", "w", "x"]
-      <> ["y", "z"]
-
-{-- | Parses a valid uppercase letter, or fails otherwise. --}
-uppercase :: Parser String String
-uppercase = choice (string <$> letters)
-  where 
-    letters = ["A", "B", "C", "D", "E", "F", "G", "H"]
-      <> ["I", "J", "K", "L", "M", "N", "O", "P"] 
-      <> ["Q", "R", "S", "T", "U", "V", "W", "Z"]
-      <> ["Y", "Z"]
 
 octet :: Parser String Int
 octet = do

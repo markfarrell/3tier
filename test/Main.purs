@@ -16,16 +16,17 @@ import Test.FFI.UUID as UUID
 import Test.Control.Tier3           as Tier3
 import Test.Data.NetFlowv9          as NetFlowv9
 
-import Test.Text.Parsing.Common     as Common
-import Test.Text.Parsing.Alert      as Alert
-import Test.Text.Parsing.Audit      as Audit
-import Test.Text.Parsing.Traffic    as Traffic
-import Test.Text.Parsing.Flow       as Flow
-import Test.Text.Parsing.Risk       as Risk
-import Test.Text.Parsing.Statistics as Statistics
-import Test.Text.Parsing.Linux      as Linux
-import Test.Text.Parsing.Windows    as Windows
-import Test.Text.Parsing.Forward    as Forward
+import Test.Text.Parsing.Common       as Common
+import Test.Text.Parsing.Alphanumeric as Alphanumeric
+import Test.Text.Parsing.Alert        as Alert
+import Test.Text.Parsing.Audit        as Audit
+import Test.Text.Parsing.Traffic      as Traffic
+import Test.Text.Parsing.Flow         as Flow
+import Test.Text.Parsing.Risk         as Risk
+import Test.Text.Parsing.Statistics   as Statistics
+import Test.Text.Parsing.Linux        as Linux
+import Test.Text.Parsing.Windows      as Windows
+import Test.Text.Parsing.Forward      as Forward
 
 {-- todo: issue data type --}
 data IssueCategory = DependenciesFFI | ParsingValidation | RisksAvailability
@@ -41,6 +42,7 @@ main = void $ launchAff $ do
   _ <- UUID.suite
   {-- PARSING/VALIDATION --}
   _ <- Common.suite
+  _ <- Alphanumeric.suite
   _ <- Risk.suite
   _ <- Statistics.suite
   {-- PARSING/VALIDATION --}
