@@ -3,7 +3,6 @@ module Text.Parsing.Common
   , digits
   , nonnegativeInteger
   , nonnegativeFloat
-  , anyString
   , date
   , octet
   , port
@@ -27,7 +26,6 @@ import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Foldable (foldMap, foldl, intercalate)
 import Data.List as List
-import Data.String.CodeUnits (singleton)
 import Data.Maybe (Maybe(..))
 
 import Foreign (Foreign)
@@ -35,7 +33,7 @@ import Foreign as Foreign
 import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, fail, runParser)
-import Text.Parsing.Parser.String (string, anyChar, char)
+import Text.Parsing.Parser.String (string, char)
 import Text.Parsing.Parser.Combinators (optional,choice,lookAhead)
 
 import Unsafe.Coerce (unsafeCoerce)
@@ -47,6 +45,8 @@ import FFI.UUID (UUID)
 
 import Data.IPv4 (IPv4(..))
 import Data.Port (Port) 
+
+import Text.Parsing.String as String
 
 foreign import parseInt      :: String -> Int
 
@@ -82,9 +82,6 @@ nonnegativeFloat = do
   case result >= 0.0 of
     true  -> pure result
     false -> fail "Invalid nonnegative float."
-
-anyString :: Parser String String
-anyString = foldMap singleton <$> List.many anyChar
 
 date :: Parser String Date
 date = do
@@ -154,7 +151,7 @@ ipv4 = do
 
 json :: Parser String Foreign
 json = do
-  x <- anyString
+  x <- String.any
   y <- pure $ JSON.parse x
   case y of
     (Left _)  -> fail "Invalid JSON."
@@ -237,7 +234,7 @@ array = \x -> choice (show' <$> x)
 
 substring :: String -> Parser String String
 substring = \x -> do
-  y <- lookAhead $ anyString
+  y <- lookAhead $ String.any
   z <- pure $ indexOf y x 
   case z == -1 of
     true  -> fail $ "Substring not found (" <> x <> "," <> y <> ")"

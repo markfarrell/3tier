@@ -28,3 +28,7 @@ equal = S.char '='
 
 comma :: forall s m. S.StringLike s => Monad m => ParserT s m Char
 comma = S.char ','
+
+{-- same type as S.eof --}
+delimiter :: forall s m. S.StringLike s => Monad m => Char -> ParserT s m Unit
+delimiter x = S.char x *> pure unit 
