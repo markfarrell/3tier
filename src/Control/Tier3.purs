@@ -58,6 +58,8 @@ import Data.Route as Route
 import Data.Forward as Forward
 import Data.Report as Report
 
+import Text.SQLite3.Aggregate as Aggregate
+
 data Role = Production | Testing
 
 data URI = Primary Role | Secondary Role | Offsite Role
@@ -180,37 +182,9 @@ executeReport (Single uri) query = do
   _          <- executeTouch (path uri)
   _          <- executeSchemas (path uri)
   database   <- SQLite3.connect (path uri) SQLite3.OpenReadOnly
-  min        <- executeReport'' database (minURI query)
-  max        <- executeReport'' database (maxURI query)
-  sum        <- executeReport'' database (sumURI query)
-  total      <- executeReport'' database (totalURI query)
-  average    <- executeReport'' database (averageURI query)
-  variance   <- executeReport'' database (varianceURI query average)
-  _          <- SQLite3.close database
-  event     <- pure $ Statistics.Event $
-    { min           : Math.floor min
-    , max           : Math.floor max
-    , sum           : Math.floor sum
-    , total         : Math.floor total
-    , average       : Math.floor average
-    , variance      : Math.floor variance
-    }
+  event      <- readStatistics database "X" "Y" (reportURI query)
   pure $ Report event
 
-executeReport'' :: Connection -> String -> Aff Number
-executeReport'' database uri = do
-  rows    <- SQLite3.all uri database
-  results <- sequence (runResult <$> rows)
-  case results of
-    [number'] -> pure number'
-    _         -> throwError error
-  where
-    runResult row = do
-       result' <- pure (runExcept $ row ! "Y" >>= Foreign.readNumber)
-       case result' of
-         (Left _)        -> pure 0.0
-         (Right number') -> pure number'
-    error = Exception.error "Unexpected results."
 
 resource :: Settings -> Route -> Request Resource
 resource settings (Route.Forward query) = liftFreeT $ (DSL.Forward settings query identity)
@@ -261,33 +235,51 @@ request = audit
 execute ::  forall a. Request a -> Aff (Result a)
 execute = try <<< runFreeT interpret
 
-{-- todo: move to separate module --}
+{-- todo: move the following  definitions to separate module(s) --}
 
 reportAuditURI' :: Report.ReportType -> Table -> Table
 reportAuditURI' Report.Source   = \table -> "SELECT COUNT(*) AS X FROM (" <> table <> ") GROUP BY SourceID" 
 reportAuditURI' Report.Time = \table -> "SELECT Duration as X FROM (" <> table <> ")"
 
+{-- todo: add 'Text.SQLite3.Feature' module 
+  e.g. feature :: forall a b c. EventCategory a => EventType b => EventID c => Feature a b c -> String 
+--}
 reportURI :: Report.Event -> Table
 reportURI (Report.Audit eventCategory eventType eventID reportType) = reportAuditURI' reportType $ "SELECT * FROM Audit WHERE EventCategory='" <> show eventCategory <> "' AND EventType='" <> show eventType <> "' AND EventID='" <> show eventID <> "'"
 
-maxURI :: Report.Event -> String
-maxURI report = "SELECT MAX(X) AS Y FROM (" <> (reportURI report) <> ")"
 
-minURI :: Report.Event -> String
-minURI report = "SELECT MIN(X) AS Y FROM (" <> (reportURI report) <> ")"
+{-- todo: move to 'Effect.SQLite3' module --}
+readNumber :: Connection -> String -> String -> Aff Number
+readNumber database y q = do
+  rows    <- SQLite3.all q database
+  results <- sequence (runResult <$> rows)
+  case results of
+    [number'] -> pure number'
+    _         -> throwError error
+  where
+    runResult row = do
+       result' <- pure (runExcept $ row ! y >>= Foreign.readNumber)
+       case result' of
+         (Left _)        -> pure 0.0
+         (Right number') -> pure number'
+    error = Exception.error "Unexpected results."
 
-averageURI :: Report.Event -> String
-averageURI report = "SELECT AVG(X) AS Y FROM (" <> (reportURI report) <> ")"
-
-sumURI :: Report.Event -> String
-sumURI report = "SELECT SUM(X) AS Y FROM (" <> (reportURI report) <> ")"
-
-totalURI :: Report.Event -> String
-totalURI report = "SELECT COUNT(*) as Y FROM (" <> (reportURI report) <> ")"
-
-varianceURI :: Report.Event -> Number -> String
-varianceURI report avg = query
-  where 
-    query  = "SELECT AVG(" <> query' <> " * " <> query' <> ") AS Y FROM (" <> (reportURI report) <> ")"
-    query' = "(X - " <> show avg <> ")"
-
+{-- todo: move to 'Effect.SQLite3.Statistics' module --}
+readStatistics :: Connection -> String -> String -> String -> Aff Statistics.Event
+readStatistics database x y q = do
+  min        <- readNumber database y (Aggregate.minimum  x y q)
+  max        <- readNumber database y (Aggregate.maximum  x y q)
+  sum        <- readNumber database y (Aggregate.sum      x y q)
+  total      <- readNumber database y (Aggregate.count    x y q)
+  average    <- readNumber database y (Aggregate.average  x y q)
+  variance   <- readNumber database y (Aggregate.variance x y q $ average)
+  _          <- SQLite3.close database
+  event     <- pure $ Statistics.Event $
+    { min           : Math.floor min
+    , max           : Math.floor max
+    , sum           : Math.floor sum
+    , total         : Math.floor total
+    , average       : Math.floor average
+    , variance      : Math.floor variance
+    }
+  pure event
