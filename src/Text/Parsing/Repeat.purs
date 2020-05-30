@@ -1,6 +1,8 @@
 module Text.Parsing.Repeat
   ( until
   , maximum
+  , exact
+  , minimum
   ) where
 
 import Prelude
@@ -33,4 +35,34 @@ maximum = \n u -> case n > 0 of
       true -> do
         x <- u 
         y <- maximum' (acc <> [x]) (n - 1) u
+        pure y
+
+{-- | Repeats a parser *u* exactly *n* times. --}
+exact :: forall a b. Int -> Parser a b -> Parser a (Array b)
+exact n = \u -> case n > 0 of
+  false  -> fail "Exact repeat limit must be positive."
+  true   -> exact' [] n u
+  where
+    exact' acc m u = case m > 0 of
+      false -> case (n - m) == n of
+        false -> fail $ "Invalid exact # of occurrences (" <> show m <> "," <> show n <> ")."
+        true  -> pure acc
+      true -> do
+        x <- u 
+        y <- exact' (acc <> [x]) (m - 1) u
+        pure y
+
+{-- | Repeats a parser *u* at least *n* times. --}
+minimum :: forall a b. Int -> Parser a b -> Parser a (Array b)
+minimum n = \u -> case n > 0 of
+  false  -> fail "Minimum repeat limit must be positive."
+  true   -> minimum' [] n u
+  where
+    minimum' acc m u = case m > 0 of
+      false -> case (n - m) <= n of
+        false -> fail $ "Invalid least # of occurrences (" <> show m <> "," <> show n <> ")."
+        true  -> pure acc
+      true -> do
+        x <- u 
+        y <- minimum' (acc <> [x]) (m - 1) u
         pure y
