@@ -7,14 +7,12 @@ import Prelude
 import Data.Array as Array
 import Data.List as List
 
-import Data.Foldable (foldMap)
-
-import Data.String.CodeUnits (singleton)
-
 import Text.Parsing.Parser (Parser, fail)
 
 import Text.Parsing.Parser.Combinators as C
 import Text.Parsing.Parser.String as S
+
+import Text.String (fromArray) as String
 
 {-- | Parses a single lowercase alphanumeric character. --}
 lowercaseChar :: Parser String Char
@@ -33,4 +31,4 @@ lowercase = do
   x <- Array.fromFoldable <$> List.many lowercaseChar 
   case (Array.length x) > 0 of
     false -> fail "Invalid # of lowercase characters."
-    true  -> pure $ foldMap singleton x
+    true  -> pure $ String.fromArray x
