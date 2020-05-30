@@ -29,6 +29,8 @@ import Test.Text.Parsing.Linux        as Linux
 import Test.Text.Parsing.Windows      as Windows
 import Test.Text.Parsing.Forward      as Forward
 
+import Test.Text.Parsing.Linux.Audit  as L
+
 {-- todo: issue data type --}
 data IssueCategory = DependenciesFFI | ParsingValidation | RisksAvailability
 
@@ -50,6 +52,9 @@ main = void $ launchAff $ do
   _ <- Risk.suite
   _ <- Statistics.suite
   {-- PARSING/VALIDATION --}
+  _ <- render (issue Tracked Top ParsingValidation 18)
+  _ <- L.suite
+  {-- PARSING/VALIDATION --}
   _ <- render (issue Pending High ParsingValidation 5)
   _ <- Alert.suite
   _ <- Audit.suite
@@ -63,8 +68,6 @@ main = void $ launchAff $ do
   _ <- render (issue Pending Medium ParsingValidation 17)
   _ <- Flow.suite
   _ <- NetFlowv9.suite
-  {-- PARSING/VALIDATION --}
-  _ <- render (issue Tracked Top ParsingValidation 18)
   {-- PARSING/VALIDATION --}
   _ <- render (issue Tracked High ParsingValidation 19)
   {-- RISKS/AVAILABILITY --}

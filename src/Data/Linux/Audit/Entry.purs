@@ -15,4 +15,4 @@ type Name  = String
 
 type Value = String
 
-type Entry = Tree (NonEmpty Array) Key Name Value
+type Entry = (Tree (NonEmpty Array) Key Name Value)

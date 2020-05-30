@@ -12,13 +12,13 @@ import Effect.Exception (throw) as Exception
 
 import Text.Parsing.Parser (Parser, runParser)
 
-assert :: forall a b. Show a => Show b => Boolean -> a -> Parser a b -> Aff Unit
+assert :: forall a b. Boolean -> a -> Parser a b -> Aff Unit
 assert expect check parser = do
   result <- pure $ runParser check parser
-  _      <- assert' check result expect (E.isRight result)
+  _      <- assert' expect (E.isRight result)
   pure unit
 
-assert' :: forall a b. Show a => Show b => a -> b -> Boolean -> Boolean -> Aff Unit
-assert' w x y z = case y == z of
-  false -> liftEffect $ Exception.throw ("Test.Text.Parsing.assert (" <> show w <> "," <> show x <> "," <> show y <> "," <> show z <> ")")
+assert' :: Boolean -> Boolean -> Aff Unit
+assert' x y = case x == y of
+  false -> liftEffect $ Exception.throw ("Test.Text.Parsing.assert (unexpected result).")
   true  -> pure unit

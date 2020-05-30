@@ -1,14 +1,20 @@
 module Text.Parsing.Char
   ( quote
+  , quotes
   , space
   , colon
   , equal
   , comma
+  , fail
   ) where
 
 import Prelude
 
+import Data.Maybe as Maybe
+
 import Text.Parsing.Parser (ParserT)
+import Text.Parsing.Parser as P
+import Text.Parsing.Parser.Combinators as C
 import Text.Parsing.Parser.String as S
 
 import Data.Quote (Quote(..))
@@ -16,6 +22,9 @@ import Data.Quote (Quote(..))
 quote :: forall s m. S.StringLike s => Monad m => Quote -> ParserT s m Char
 quote Single = S.char '\''
 quote Double = S.char '"'
+
+quotes :: forall s m. S.StringLike s => Monad m => ParserT s m Char
+quotes = C.choice [quote Single, quote Double]
 
 space :: forall s m. S.StringLike s => Monad m => ParserT s m Char
 space = S.char ' '
@@ -29,6 +38,9 @@ equal = S.char '='
 comma :: forall s m. S.StringLike s => Monad m => ParserT s m Char
 comma = S.char ','
 
-{-- same type as S.eof --}
-delimiter :: forall s m. S.StringLike s => Monad m => Char -> ParserT s m Unit
-delimiter x = S.char x *> pure unit 
+fail :: forall s m. S.StringLike s => Monad m => ParserT s m Char -> ParserT s m Unit
+fail x = do
+  y <- C.optionMaybe x 
+  case Maybe.isJust y of
+    true  -> P.fail $ "Parsed an invalid character."
+    false -> pure unit

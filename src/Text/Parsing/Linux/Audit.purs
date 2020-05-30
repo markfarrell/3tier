@@ -17,9 +17,17 @@ import Text.Parsing.Repeat as Repeat
 
 import Text.String as String
 
-single :: Parser String Unit -> Parser String Audit.Entry
-single delimiter = do
+delimiters :: Parser String Unit
+delimiters = C.choice [Char.space *> pure unit, Char.colon *> pure unit, S.eof]
+
+single :: Parser String Audit.Entry
+single = do
   x <- Alphanumeric.lowercase
   _ <- Char.equal
-  y <- C.choice [String.fromArray <$> Repeat.until (S.anyChar) (C.lookAhead delimiter)]
+  _ <- Char.fail (C.lookAhead $ Char.quotes)
+  y <- String.fromArray <$> Repeat.until (S.anyChar) (C.lookAhead $ delimiters)
   pure $ Tree.Single x y
+
+{-- todo: partition :: Parser String Audit.Entry --}
+
+{-- todo: index :: Parser String 
