@@ -5,8 +5,11 @@ module Foreign.Class
 
 import Prelude
 
+import Data.Tuple (Tuple)
+
 import Foreign (Foreign)
 import Foreign.Coerce (coerce) as F
+import Foreign.Object (fromArray) as F
 
 import FFI.Date (Date)
 import FFI.UUID (UUID)
@@ -25,3 +28,6 @@ instance marshallUUID :: Marshall UUID where
 
 instance marshallString :: Marshall String where
   marshall = F.coerce
+
+instance marshallFromArray :: Marshall (Array (Tuple String Foreign)) where
+  marshall = F.fromArray

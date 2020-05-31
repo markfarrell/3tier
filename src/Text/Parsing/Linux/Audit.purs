@@ -1,5 +1,5 @@
 module Text.Parsing.Linux.Audit
-  ( fields
+  ( body
   ) where
 
 import Prelude
@@ -31,10 +31,8 @@ field = do
   where
     delimiters = C.choice [Char.space *> pure unit, S.eof]
 
-{-- Parse the body of a Linux Auditing System entry. --}
 fields :: Parser String (Array (Tuple String Foreign))
-fields = do
-  x <- Array.fromFoldable <$> List.many field
-  {-- todo: Foreign.Object.fromArray :: Array (Tuple String Foreign) -> Foreign --}
-  {-- todo: pure $ Object.fromArray --} 
-  pure x
+fields = Array.fromFoldable <$> List.many field
+
+body :: Parser String Foreign
+body = marshall <$> fields
