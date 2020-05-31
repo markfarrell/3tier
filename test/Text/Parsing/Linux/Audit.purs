@@ -10,22 +10,22 @@ import Text.Parsing.Linux.Audit as A
 
 import Test.Text.Parsing as P
 
-single :: Aff Unit
-single = do
-  _ <- P.assert true  "a=a"   A.single 
-  _ <- P.assert true  "a=$"   A.single
-  _ <- P.assert false "a="    A.single
-  _ <- P.assert true  "a= "   A.single
-  _ <- P.assert true  "a= :"  A.single
-  _ <- P.assert false "a='"   A.single
-  _ <- P.assert false "a=\""  A.single
-  _ <- P.assert true  "a0=- " A.single
+fields :: Aff Unit
+fields = do
+  _ <- P.assert true  "a=a"   A.fields 
+  _ <- P.assert true  "a=$"   A.fields
+  _ <- P.assert false "a="    A.fields
+  _ <- P.assert true  "a= "   A.fields
+  _ <- P.assert true  "a= :"  A.fields
+  _ <- P.assert true  "a='"   A.fields
+  _ <- P.assert true  "a=\""  A.fields
+  _ <- P.assert true  "a0=- " A.fields
   pure unit
 
 {-- https://github.com/markfarrell/3tier/issues/18 --}
 suite :: Aff Unit
 suite = do
-  _ <- single
+  _ <- fields
   pure unit
 
 inputs :: Array String

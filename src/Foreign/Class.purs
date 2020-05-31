@@ -22,3 +22,6 @@ instance marshallDate :: Marshall Date where
 
 instance marshallUUID :: Marshall UUID where
   marshall = F.coerce <<< show
+
+instance marshallString :: Marshall String where
+  marshall = F.coerce
