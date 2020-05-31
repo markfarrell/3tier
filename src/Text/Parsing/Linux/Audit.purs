@@ -7,7 +7,8 @@ import Prelude
 import Data.Array as Array
 import Data.List as List
 
-import Data.Tuple (Tuple(..))
+import Data.Foldable (intercalate)
+import Data.Tuple (Tuple(..), fst, snd)
 
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators as C
@@ -22,29 +23,35 @@ import Text.Parsing.Repeat as Repeat
 
 import Text.String as String
 
-arg :: Parser String String -> Parser String Unit -> Parser String Unit -> Parser String (Tuple String Foreign)
-arg name assignment delimiters = do
+argument :: Parser String String -> Parser String Unit -> Parser String Unit -> Parser String (Tuple String String)
+argument name assignment delimiters = do
   x <- name
   _ <- assignment
   y <- String.fromArray <$> Repeat.until (S.anyChar) delimiters
-  pure $ Tuple x (marshall y)
+  pure $ Tuple x y
 
-field :: Parser String (Tuple String Foreign)
-field = arg name assignment delimiters
+property :: Parser String String -> Parser String Unit -> Parser String Unit -> Parser String (Tuple String Foreign)
+property name assignment delimiters = do
+  x <- argument name assignment delimiters
+  pure $ Tuple (fst x) (marshall $ snd x)
+
+msgField :: Parser String (Tuple String Foreign)
+msgField = property name assignment delimiters
   where
     name       = Alphanumeric.lowercase
     assignment = Char.equal *> pure unit
     delimiters = C.choice [Char.space *> pure unit, S.eof]
 
-fields :: Parser String (Array (Tuple String Foreign))
-fields = Array.fromFoldable <$> List.many field
+messageMsg :: Parser String Foreign
+messageMsg = marshall <$> Array.fromFoldable <$> List.many msgField
 
-msg :: Parser String (Tuple String Foreign)
-msg = do
-  x <- arg name assignment delimiters
+messageID :: Parser String Foreign
+messageID = do
+  x <- argument name assignment delimiters
   _ <- Char.colon
-  pure x
+  pure $ id x
   where
+    id         = \x -> marshall $ intercalate "" ["(", "audit", snd x, ")"]
     name       = S.string "msg"
     assignment = do
       _ <- Char.equal
@@ -53,18 +60,25 @@ msg = do
       pure unit                  
     delimiters = S.char ')' *> pure unit
 
-messageType :: Parser String (Tuple String Foreign)
-messageType = arg name assignment delimiters
+messageType :: Parser String Foreign
+messageType = do
+  x <- property name assignment delimiters
+  pure $ snd x
   where
     name       = S.string "type"
     assignment = Char.equal *> pure unit
     delimiters = C.choice [Char.space *> pure unit, S.eof]
 
-entry :: Parser String (Tuple Foreign Foreign)
+entry :: Parser String Foreign
 entry = do
-  x <- messageType
-  y <- msg 
+  w <- messageType
+  x <- messageID 
   _ <- Char.space
-  z <- fields
+  y <- messageMsg
   _ <- S.eof
-  pure $ Tuple (marshall [x,y]) (marshall z)
+  z <- pure $
+   [ Tuple "type" w
+   , Tuple "id"   x
+   , Tuple "msg"  y 
+   ]
+  pure $ marshall z

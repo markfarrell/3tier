@@ -10,8 +10,8 @@ import Text.Parsing.Linux.Audit as A
 
 import Test.Text.Parsing as P
 
-body :: Aff Unit
-body = do
+format :: Aff Unit
+format = do
   _ <- P.assert false ""                               A.entry
   _ <- P.assert false "a0=$"                           A.entry
   _ <- P.assert false "type="                          A.entry
@@ -32,11 +32,11 @@ body = do
 {-- https://github.com/markfarrell/3tier/issues/18 --}
 suite :: Aff Unit
 suite = do
-  _ <- body
+  _ <- format
   pure unit
 
-inputs :: Array String
-inputs =
+examples :: Array String
+examples =
   {-- DAEMON-START --}
   [ "type=DAEMON_START msg=audit(1589480737.598:9117): op=start ver=2.8.2 format=raw kernel=4.15.0-99-generic auid=4294967295 pid=4041 uid=0 ses=4294967295 subj=unconfined  res=success"
   {-- CONFIG-CHANGE --}
@@ -44,7 +44,7 @@ inputs =
   , "type=CONFIG_CHANGE msg=audit(1589480737.643:23): audit_failure=1 old=1 auid=4294967295 ses=4294967295 res=1"
   , "type=CONFIG_CHANGE msg=audit(1589480737.643:24): audit_backlog_wait_time=0 old=15000 auid=4294967295 ses=4294967295 res=1" 
   {-- SYSTEM-BOOT --}
-  , "type=SYSTEM_BOOT msg=audit(1589481288.931:17): pid=666 uid=0 auid=4294967295 ses=4294967295 msg=' comm=\"systemd-update-utmp\" exe=\"/lib/systemd/systemd-update-utmp\" hostname=? addr=? terminal=? res=success'"
+  , "type=SYSTEM_BOOT msg=audit(1589481288.931:17): pid=666 uid=0 auid=4294967295 ses=4294967295 msg='comm=\"systemd-update-utmp\" exe=\"/lib/systemd/systemd-update-utmp\" hostname=? addr=? terminal=? res=success'"
   {-- SYSTEM-RUNLEVEL --}
   , "type=SYSTEM_RUNLEVEL msg=audit(1589481298.003:60): pid=1198 uid=0 auid=4294967295 ses=4294967295 msg='old-level=N new-level=5 comm=\"systemd-update-utmp\" exe=\"/lib/systemd/systemd-update-utmp\" hostname=? addr=? terminal=? res=success'"
   {-- SERVICE-START --}
