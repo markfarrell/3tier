@@ -12,14 +12,21 @@ import Test.Text.Parsing as P
 
 body :: Aff Unit
 body = do
-  _ <- P.assert true  "a=a"   A.body 
-  _ <- P.assert true  "a=$"   A.body
-  _ <- P.assert false "a="    A.body
-  _ <- P.assert true  "a= "   A.body
-  _ <- P.assert true  "a= :"  A.body
-  _ <- P.assert true  "a='"   A.body
-  _ <- P.assert true  "a=\""  A.body
-  _ <- P.assert true  "a0=- " A.body
+  _ <- P.assert false ""                               A.entry
+  _ <- P.assert false "a0=$"                           A.entry
+  _ <- P.assert false "type="                          A.entry
+  _ <- P.assert false "type= msg="                     A.entry
+  _ <- P.assert false "type=$ msg=audit("              A.entry
+  _ <- P.assert false "type=$ msg=audit()"             A.entry
+  _ <- P.assert false "type=$ msg=audit():"            A.entry
+  _ <- P.assert false "type=$ msg=audit($):"           A.entry
+  _ <- P.assert true  "type=$ msg=audit($): a0=$"      A.entry
+  _ <- P.assert false "type=$ msg=audit($): $=$"       A.entry
+  _ <- P.assert true  "type=$ msg=audit($): a0=\"$\""  A.entry
+  _ <- P.assert true  "type=$ msg=audit($): a0='$'"    A.entry
+  _ <- P.assert true  "type=$ msg=audit($): a0=$ b0=$" A.entry
+  {-- todo: should entries with duplicate field names be valid? --}
+  _ <- P.assert true  "type=$ msg=audit($): a0=$ a0=$" A.entry
   pure unit
 
 {-- https://github.com/markfarrell/3tier/issues/18 --}
