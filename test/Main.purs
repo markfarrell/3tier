@@ -34,7 +34,7 @@ import Test.Text.Parsing.Linux.Audit  as L
 {-- todo: issue data type --}
 data IssueCategory = DependenciesFFI | ParsingValidation | RisksAvailability
 
-data Status = Tracked | Resolved | Pending
+data Status = Tracked | Pending | Expired | Complete
 
 data Priority = None | Low | Medium | High | Top
 
@@ -55,7 +55,7 @@ main = void $ launchAff $ do
   _ <- render (issue Tracked Top ParsingValidation 18)
   _ <- L.suite
   {-- PARSING/VALIDATION --}
-  _ <- render (issue Pending High ParsingValidation 5)
+  _ <- render (issue Expired High ParsingValidation 5)
   _ <- Alert.suite
   _ <- Audit.suite
   _ <- Traffic.suite
@@ -65,8 +65,9 @@ main = void $ launchAff $ do
   {-- PARSING/VALIDATION --}
   _ <- render (issue Tracked Medium ParsingValidation 16)
   {-- PARSING/VALIDATION --}
-  _ <- render (issue Pending Medium ParsingValidation 17)
+  _ <- render (issue Complete Medium ParsingValidation 17)
   _ <- Flow.suite
+  {-- PARSING/VALIDATION --}
   _ <- NetFlowv9.suite
   {-- PARSING/VALIDATION --}
   _ <- render (issue Tracked High ParsingValidation 19)
@@ -83,9 +84,10 @@ main = void $ launchAff $ do
       Low    -> bold $ fgGreen   "LOW   "
       None   -> bold $ fgWhite   "NONE  "
     status        = \x -> case x of 
-      Tracked  -> bold $ fgYellow    "TRACKED  "
-      Pending  -> bold $ fgGreen     "PENDING  "
-      Resolved -> bold $ fgWhite     "RESOLVED "
+      Tracked  -> bold $ fgYellow  "ASSIGNED "
+      Pending  -> bold $ fgGreen   "ASSIGNED "
+      Expired  -> bold $ fgMagenta "RESOLVED "
+      Complete -> bold $ fgGreen   "RESOLVED "
     issueCategory = \x -> case x of
       DependenciesFFI   -> bold $ fgWhite "DEPENDENCIES/FFI  "
       ParsingValidation -> bold $ fgWhite "PARSING/VALIDATION"
