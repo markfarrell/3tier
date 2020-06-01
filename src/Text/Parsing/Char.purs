@@ -6,10 +6,11 @@ module Text.Parsing.Char
   , equal
   , comma
   , underscore
-  , fail
   ) where
 
 import Prelude
+
+import Data.Array as Array
 
 import Data.Maybe as Maybe
 
@@ -41,10 +42,3 @@ equal = S.char '='
 
 comma :: forall s m. S.StringLike s => Monad m => ParserT s m Char
 comma = S.char ','
-
-fail :: forall s m. S.StringLike s => Monad m => ParserT s m Char -> ParserT s m Unit
-fail x = do
-  y <- C.optionMaybe x 
-  case Maybe.isJust y of
-    true  -> P.fail $ "Parsed an invalid character."
-    false -> pure unit

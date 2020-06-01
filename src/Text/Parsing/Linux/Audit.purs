@@ -20,23 +20,27 @@ import Foreign.Class (marshall)
 import Text.Parsing.Alphanumeric as Alphanumeric
 import Text.Parsing.Char as Char
 import Text.Parsing.Repeat as Repeat
+import Text.Parsing.Unit as Unit
 
 import Text.String as String
 
-argument :: Parser String String -> Parser String Unit -> Parser String Unit -> Parser String (Tuple String String)
-argument name assignment delimiters = do
+delimited :: Parser String Unit -> Parser String String 
+delimited delimiters = String.fromArray <$> Repeat.until (Unit.fail delimiters *> S.anyChar) delimiters
+
+argument :: Parser String String -> Parser String Unit -> Parser String String -> Parser String (Tuple String String)
+argument name assignment value = do
   x <- name
   _ <- assignment
-  y <- String.fromArray <$> Repeat.until (S.anyChar) delimiters
+  y <- value
   pure $ Tuple x y
 
-property :: Parser String String -> Parser String Unit -> Parser String Unit -> Parser String (Tuple String Foreign)
-property name assignment delimiters = do
-  x <- argument name assignment delimiters
-  pure $ Tuple (fst x) (marshall $ snd x)
+property :: Parser String (Tuple String String) -> Parser String (Tuple String Foreign)
+property x = do
+  y <- x
+  pure $ Tuple (fst y) (marshall $ snd y)
 
 msgField :: Parser String (Tuple String Foreign)
-msgField = property name assignment delimiters
+msgField = property $ argument name assignment (delimited delimiters)
   where
     name  = do
       x  <- Alphanumeric.lowercase
@@ -55,7 +59,7 @@ messageMsg = marshall <$> Array.fromFoldable <$> List.many msgField
 
 messageID :: Parser String Foreign
 messageID = do
-  x <- argument name assignment delimiters
+  x <- argument name assignment (delimited delimiters)
   _ <- Char.colon
   pure $ id x
   where
@@ -70,7 +74,7 @@ messageID = do
 
 messageType :: Parser String Foreign
 messageType = do
-  x <- property name assignment delimiters
+  x <- property $ argument name assignment (delimited delimiters)
   pure $ snd x
   where
     name       = S.string "type"
