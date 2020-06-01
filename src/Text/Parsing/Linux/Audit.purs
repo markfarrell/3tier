@@ -38,9 +38,17 @@ property name assignment delimiters = do
 msgField :: Parser String (Tuple String Foreign)
 msgField = property name assignment delimiters
   where
-    name       = Alphanumeric.lowercase
+    name  = do
+      x  <- Alphanumeric.lowercase
+      xs <- Array.fromFoldable <$> List.many name'
+      pure $ intercalate underscore ([x] <> xs)
+    name' = do
+      _ <- Char.underscore
+      x <- Alphanumeric.lowercase
+      pure x
     assignment = Char.equal *> pure unit
     delimiters = C.choice [Char.space *> pure unit, S.eof]
+    underscore = "_"
 
 messageMsg :: Parser String Foreign
 messageMsg = marshall <$> Array.fromFoldable <$> List.many msgField

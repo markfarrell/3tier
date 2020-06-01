@@ -12,23 +12,35 @@ import Test.Text.Parsing as P
 
 format :: Aff Unit
 format = do
-  _ <- P.assert false ""                               A.entry
-  _ <- P.assert false "a0=$"                           A.entry
-  _ <- P.assert false "type="                          A.entry
-  _ <- P.assert false "type= msg="                     A.entry
-  _ <- P.assert false "type=$ msg=audit("              A.entry
-  _ <- P.assert false "type=$ msg=audit()"             A.entry
-  _ <- P.assert false "type=$ msg=audit():"            A.entry
-  _ <- P.assert false "type=$ msg=audit($):"           A.entry
-  _ <- P.assert true  "type=$ msg=audit($): a0=$"      A.entry
-  _ <- P.assert false "type=$ msg=audit($): $=$"       A.entry
-  _ <- P.assert true  "type=$ msg=audit($): a0=\"$\""  A.entry
-  _ <- P.assert true  "type=$ msg=audit($): a0='$'"    A.entry
-  _ <- P.assert true  "type=$ msg=audit($): a0=$ b0=$" A.entry
-  {-- todo: should entries with duplicate field names be valid? --}
-  _ <- P.assert true  "type=$ msg=audit($): a0=$ a0=$" A.entry
+  _ <- failure ""
+  _ <- failure "a0=$"
+  _ <- failure "type="
+  _ <- failure "type= msg="
+  _ <- failure "type=$ msg=audit("
+  _ <- failure "type=$ msg=audit()"
+  _ <- failure "type=$ msg=audit():"
+  _ <- failure "type=$ msg=audit($):"
+  _ <- failure "type=$ msg=audit($): $=$"
+  _ <- success "type=$ msg=audit($): a0=$"
+  _ <- success "type=$ msg=audit($): a0=\"$\""
+  _ <- success "type=$ msg=audit($): a0='$'"
+  _ <- success "type=$ msg=audit($): a0=$ b0=$"
+  _ <- success "type=$ msg=audit($): a0=$ a0=$"
+  {-- DAEMON-START --}
+  _ <- success "type=DAEMON_START msg=audit(1589480737.598:9117): op=start ver=2.8.2 format=raw kernel=4.15.0-99-generic auid=4294967295 pid=4041 uid=0 ses=4294967295 subj=unconfined res=success"
+  {-- CONFIG-CHANGE --}
+  _ <- success "type=CONFIG_CHANGE msg=audit(1589480737.643:22): audit_limit=8192 old=64 auid=4294967295 ses=4294967295 res=1"
+  _ <- success "type=CONFIG_CHANGE msg=audit(1589480737.643:23): audit_failure=1 old=1 auid=4294967295 ses=4294967295 res=1"
+  _ <- success "type=CONFIG_CHANGE msg=audit(1589480737.643:24): audit_backlog_wait_time=0 old=15000 auid=4294967295 ses=4294967295 res=1"
+  {-- SYSTEM-BOOT --}
+  _ <- success "type=SYSTEM_BOOT msg=audit(1589481288.931:17): pid=666 uid=0 auid=4294967295 ses=4294967295 msg='comm=\"systemd-update-utmp\" exe=\"/lib/systemd/systemd-update-utmp\" hostname=? addr=? terminal=? res=success'"
+  {-- SYSTEM-RUNLEVEL --}
+  {-- todo: fix --}
+  _ <- failure "type=SYSTEM_RUNLEVEL msg=audit(1589481298.003:60): pid=1198 uid=0 auid=4294967295 ses=4294967295 msg='old-level=N new-level=5 comm=\"systemd-update-utmp\" exe=\"/lib/systemd/systemd-update-utmp\" hostname=? addr=? terminal=? res=success'"
   pure unit
-
+  where
+    success = \x -> P.assert true x A.entry
+    failure = \x -> P.assert false x A.entry
 {-- https://github.com/markfarrell/3tier/issues/18 --}
 suite :: Aff Unit
 suite = do
@@ -37,16 +49,8 @@ suite = do
 
 examples :: Array String
 examples =
-  {-- DAEMON-START --}
-  [ "type=DAEMON_START msg=audit(1589480737.598:9117): op=start ver=2.8.2 format=raw kernel=4.15.0-99-generic auid=4294967295 pid=4041 uid=0 ses=4294967295 subj=unconfined  res=success"
-  {-- CONFIG-CHANGE --}
-  , "type=CONFIG_CHANGE msg=audit(1589480737.643:22): audit_backlog_limit=8192 old=64 auid=4294967295 ses=4294967295 res=1"
-  , "type=CONFIG_CHANGE msg=audit(1589480737.643:23): audit_failure=1 old=1 auid=4294967295 ses=4294967295 res=1"
-  , "type=CONFIG_CHANGE msg=audit(1589480737.643:24): audit_backlog_wait_time=0 old=15000 auid=4294967295 ses=4294967295 res=1" 
-  {-- SYSTEM-BOOT --}
-  , "type=SYSTEM_BOOT msg=audit(1589481288.931:17): pid=666 uid=0 auid=4294967295 ses=4294967295 msg='comm=\"systemd-update-utmp\" exe=\"/lib/systemd/systemd-update-utmp\" hostname=? addr=? terminal=? res=success'"
   {-- SYSTEM-RUNLEVEL --}
-  , "type=SYSTEM_RUNLEVEL msg=audit(1589481298.003:60): pid=1198 uid=0 auid=4294967295 ses=4294967295 msg='old-level=N new-level=5 comm=\"systemd-update-utmp\" exe=\"/lib/systemd/systemd-update-utmp\" hostname=? addr=? terminal=? res=success'"
+  [ "type=SYSTEM_RUNLEVEL msg=audit(1589481298.003:60): pid=1198 uid=0 auid=4294967295 ses=4294967295 msg='old-level=N new-level=5 comm=\"systemd-update-utmp\" exe=\"/lib/systemd/systemd-update-utmp\" hostname=? addr=? terminal=? res=success'"
   {-- SERVICE-START --}
   , "type=SERVICE_START msg=audit(1590587740.353:47): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=getty@tty1 comm=\"systemd\" exe=\"/lib/systemd/systemd\" hostname=? addr=? terminal=? res=success'"
   {-- NETFILTER-CFG --}
@@ -63,7 +67,7 @@ examples =
   {-- USER-CMD --}
   , "type=USER_CMD msg=audit(1589480776.259:38): pid=4832 uid=1000 auid=1000 ses=4 msg='cwd=\"/home/mark\" cmd=73797374656D63746C2073746174757320617564697464 terminal=pts/1 res=success'"
   {-- USER-END --}
-  , "type=USER_END msg=audit(1590589021.193:91): pid=4302 uid=0 auid=0 ses=3 msg='op=PAM:session_close acct=\"root\" exe=\"/usr/sbin/cron\" hostname=? addr=? terminal=cron res=success'" 
+  , "type=USER_END msg=audit(1590589021.193:91): pid=4302 uid=0 auid=0 ses=3 msg='op=PAM:session_close acct=\"root\" exe=\"/usr/sbin/cron\" hostname=? addr=? terminal=cron res=success'"
   {-- USER-LOGIN --}
   , "type=USER_LOGIN msg=audit(1590587826.216:81): pid=3380 uid=0 auid=1000 ses=1 msg='op=login id=1000 exe=\"/usr/sbin/sshd\" hostname=192.168.208.1 addr=192.168.208.1 terminal=/dev/pts/0 res=success'"
   {-- USER-AUTH --}
@@ -83,7 +87,6 @@ examples =
   {-- DAEMON-END --}
   , "type=DAEMON_END msg=audit(1589480838.092:9118): op=terminate auid=0 pid=1 subj= res=success"
   , "type=DAEMON_END msg=audit(1589491253.635:1311): op=terminate auid=0 pid=1 subj=89491253.629:133): pid=1 uid=0 auid=4294967295 ses=4294967295 msg='unit=systemd-random-seed comm=\"systemd\" exe=\"/lib/systemd/systemd\" hostname=? addr=? terminal=? res=success'Apr 22 20:32:56 UTC 2020 res=success"
-  ] 
+  ]
 {-- todo: see [linux/audit.h](/torvalds/linux/blob/master/include/uapi/linux/audit.h) --}
 {-- todo: see [Audit Record Types](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/security_guide/sec-audit_record_types) --}
-

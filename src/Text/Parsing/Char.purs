@@ -5,6 +5,7 @@ module Text.Parsing.Char
   , colon
   , equal
   , comma
+  , underscore
   , fail
   ) where
 
@@ -18,6 +19,9 @@ import Text.Parsing.Parser.Combinators as C
 import Text.Parsing.Parser.String as S
 
 import Data.Quote (Quote(..))
+
+underscore :: forall s m. S.StringLike s => Monad m => ParserT s m Char
+underscore = S.char '_'
 
 quote :: forall s m. S.StringLike s => Monad m => Quote -> ParserT s m Char
 quote Single = S.char '\''
