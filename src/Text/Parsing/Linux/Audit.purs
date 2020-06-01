@@ -24,8 +24,15 @@ import Text.Parsing.Unit as Unit
 
 import Text.String as String
 
-delimited :: Parser String Unit -> Parser String String 
-delimited delimiters = String.fromArray <$> Repeat.until (Unit.fail delimiters *> S.anyChar) delimiters
+unquoted :: Parser String Unit -> Parser String String 
+unquoted delimiters = String.fromArray <$> Repeat.until (Unit.fail delimiters *> S.anyChar) delimiters
+
+quoted :: Parser String Unit -> Parser String Unit -> Parser String String 
+quoted quote delimiters = do
+  _ <- quote
+  x <- String.fromArray <$> Repeat.until (Unit.fail quote *> S.anyChar) quote
+  _ <- delimiters
+  pure x
 
 argument :: Parser String String -> Parser String Unit -> Parser String String -> Parser String (Tuple String String)
 argument name assignment value = do
@@ -40,26 +47,27 @@ property x = do
   pure $ Tuple (fst y) (marshall $ snd y)
 
 msgField :: Parser String (Tuple String Foreign)
-msgField = property $ argument name assignment (delimited delimiters)
+msgField = property $ argument name assignment value
   where
+    value = C.choice [quoted quote delimiters, unquoted delimiters] 
     name  = do
       x  <- Alphanumeric.lowercase
       xs <- Array.fromFoldable <$> List.many name'
-      pure $ intercalate underscore ([x] <> xs)
+      pure $ intercalate "" ([x] <> xs)
     name' = do
-      _ <- Char.underscore
-      x <- Alphanumeric.lowercase
-      pure x
+      x <- String.fromChar <$> C.choice [Char.underscore, Char.hyphen] 
+      y <- Alphanumeric.lowercase
+      pure (x <> y)
     assignment = Char.equal *> pure unit
+    quote      = Char.singleQuote *> pure unit
     delimiters = C.choice [Char.space *> pure unit, S.eof]
-    underscore = "_"
 
 messageMsg :: Parser String Foreign
 messageMsg = marshall <$> Array.fromFoldable <$> List.many msgField
 
 messageID :: Parser String Foreign
 messageID = do
-  x <- argument name assignment (delimited delimiters)
+  x <- argument name assignment (unquoted delimiters)
   _ <- Char.colon
   pure $ id x
   where
@@ -74,7 +82,7 @@ messageID = do
 
 messageType :: Parser String Foreign
 messageType = do
-  x <- property $ argument name assignment (delimited delimiters)
+  x <- property $ argument name assignment (unquoted delimiters)
   pure $ snd x
   where
     name       = S.string "type"
