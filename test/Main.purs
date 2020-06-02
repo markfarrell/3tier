@@ -18,7 +18,6 @@ import Test.Data.NetFlowv9          as NetFlowv9
 
 import Test.Text.Parsing.Common       as Common
 import Test.Text.Parsing.Alphanumeric as Alphanumeric
-import Test.Text.Parsing.Repeat       as Repeat
 import Test.Text.Parsing.Alert        as Alert
 import Test.Text.Parsing.Audit        as Audit
 import Test.Text.Parsing.Traffic      as Traffic
@@ -47,7 +46,6 @@ main = void $ launchAff $ do
   _ <- render (issue Pending Medium ParsingValidation 29)
   _ <- Common.suite
   _ <- Alphanumeric.suite
-  _ <- Repeat.suite
   {-- PARSING/VALIDATION --}
   _ <- Risk.suite
   _ <- Statistics.suite

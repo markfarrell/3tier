@@ -10,7 +10,8 @@
     "purescript-aff-coroutines": "^7.0.0",
     "purescript-aff": "^5.1.2",
     "purescript-parsing": "^5.0.3",
-    "purescript-foreign": "^5.0.0"
+    "purescript-foreign": "^5.0.0",
+    "purescript-parsing-repetition": "git@github.com:markfarrell/purescript-parsing-repetition.git"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0"
