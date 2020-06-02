@@ -12,11 +12,11 @@ import Test.Text.Parsing as P
 
 suite :: Aff Unit
 suite = do
-  _ <- P.assert true  "abcdefghijklmnopqrstuvwxyz0123456789" A.lowercase
-  _ <- P.assert false "ABCDEFGHIJKLMNOPQRSTUVWXYZ" A.lowercase
-  _ <- P.assert false "$..." A.lowercase
-  _ <- P.assert true  "aA" A.lowercase
-  _ <- P.assert true  "type=" A.lowercase
-  _ <- P.assert true  "type=DAEMON_START" A.lowercase
-  _ <- P.assert true  "type=DAEMON_START msg=audit(1589480737.598:9117)" A.lowercase
+  _ <- P.success "abcdefghijklmnopqrstuvwxyz0123456789" A.lowercase
+  _ <- P.failure "ABCDEFGHIJKLMNOPQRSTUVWXYZ" A.lowercase
+  _ <- P.failure "$..." A.lowercase
+  _ <- P.success "aA" A.lowercase
+  _ <- P.success "type=" A.lowercase
+  _ <- P.success "type=DAEMON_START" A.lowercase
+  _ <- P.success "type=DAEMON_START msg=audit(1589480737.598:9117)" A.lowercase
   pure unit

@@ -25,12 +25,16 @@ import Text.Parsing.Unit as Unit
 import Text.String as String
 
 unquoted :: Parser String Unit -> Parser String String 
-unquoted delimiters = String.fromArray <$> Repeat.until (Unit.fail delimiters *> S.anyChar) delimiters
+unquoted delimiters = do
+  x <- String.fromArray <$> Repeat.until (Unit.fail delimiters *> S.anyChar) delimiters
+  _ <- delimiters
+  pure x
 
 quoted :: Parser String Unit -> Parser String Unit -> Parser String String 
 quoted quote delimiters = do
   _ <- quote
   x <- String.fromArray <$> Repeat.until (Unit.fail quote *> S.anyChar) quote
+  _ <- quote
   _ <- delimiters
   pure x
 

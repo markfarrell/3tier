@@ -1,5 +1,6 @@
 module Test.Text.Parsing
-  ( assert
+  ( success
+  , failure
   ) where
 
 import Prelude
@@ -12,13 +13,21 @@ import Effect.Exception (throw) as Exception
 
 import Text.Parsing.Parser (Parser, runParser)
 
-assert :: forall a b. Boolean -> a -> Parser a b -> Aff Unit
-assert expect check parser = do
+successful :: forall a b. Boolean -> a -> Parser a b -> Aff Unit
+successful expect check parser = do
   result <- pure $ runParser check parser
-  _      <- assert' expect (E.isRight result)
+  _      <- successful' expect (E.isRight result)
   pure unit
 
-assert' :: Boolean -> Boolean -> Aff Unit
-assert' x y = case x == y of
-  false -> liftEffect $ Exception.throw ("Test.Text.Parsing.assert (unexpected result).")
+successful' :: Boolean -> Boolean -> Aff Unit
+successful' x y = case x == y of
+  false -> liftEffect $ Exception.throw ("Test.Text.Parsing.successful (unexpected result).")
   true  -> pure unit
+
+-- Asserts that the result of running a parser `p` with input `x` was successful.
+success :: forall a b. a -> Parser a b -> Aff Unit
+success = successful true
+
+-- Asserts that the result of running a parser `p` with input `x` was a failure.
+failure :: forall a b. a -> Parser a b -> Aff Unit
+failure = successful false

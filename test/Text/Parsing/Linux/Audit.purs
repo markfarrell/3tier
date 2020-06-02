@@ -32,8 +32,8 @@ entry = do
   _ <- void $ sequence (success <$> examples)
   pure unit
   where
-    success = \x -> P.assert true x A.entry
-    failure = \x -> P.assert false x A.entry
+    success = \x -> P.success x A.entry
+    failure = \x -> P.failure x A.entry
 
 {-- https://github.com/xxxxfarrell/3tier/issues/18 --}
 suite :: Aff Unit
