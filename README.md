@@ -3,7 +3,7 @@ A prototype 3-tier web application written in PureScript. The project is current
 
 # Contents
 - [Proposal](#proposal)
-  * [Abstract](#abstract)
+  * [Purpose](#purpose)
   * [Introduction](#introduction)
     * [Diagram of 3-Tier Architecture](#diagram) 
   * [Goals](#goals)
@@ -75,11 +75,6 @@ See [milestones](https://github.com/markfarrell/3tier/milestones).
 
 See [issues](https://github.com/markfarrell/3tier/issues).
 
-#### RELEASE-01/TIER-02
-
-* [Event Forwarding](https://github.com/markfarrell/3tier/issues/5)
-* _..._
-
 ### Timeline
 
-![Timeline](./README/timeline.png)
+See [timeline](./README/timeline.png).
