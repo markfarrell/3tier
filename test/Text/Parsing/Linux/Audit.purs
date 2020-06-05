@@ -6,13 +6,15 @@ import Prelude
 
 import Data.Traversable (sequence)
 
+import Effect (Effect)
 import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
 
 import Text.Parsing.Linux.Audit as A
 
-import Test.Text.Parsing as P
+import Text.Parsing.Expect as E
 
-entry :: Aff Unit
+entry :: Effect Unit
 entry = do
   _ <- failure ""
   _ <- failure "a0=$"
@@ -45,12 +47,12 @@ entry = do
   _ <- void $ sequence (success <$> examples)
   pure unit
   where
-    success = \x -> P.success x A.entry
-    failure = \x -> P.failure x A.entry
+    success = \x -> E.success x A.entry
+    failure = \x -> E.failure x A.entry
 
 {-- https://github.com/xxxxfarrell/3tier/issues/18 --}
 suite :: Aff Unit
-suite = do
+suite = liftEffect $ do
   _ <- entry
   pure unit
 
