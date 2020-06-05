@@ -5,7 +5,7 @@ module Text.Parsing.Linux.Audit
 import Prelude
 
 import Data.Array as Array
-import Data.List as List
+import Data.List  as List
 
 import Data.Foldable (intercalate)
 import Data.Tuple (Tuple(..), fst, snd)
@@ -14,27 +14,27 @@ import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators as C
 import Text.Parsing.Parser.String as S
 
-import Text.Parsing.Array.Repetition as R
-
 import Foreign (Foreign)
 import Foreign.Class (marshall)
 
-import Text.Parsing.Alphanumeric as Alphanumeric
+import Text.Parsing.String.Alphanumeric as Alphanumeric
+import Text.Parsing.String.Repetition as R
+
 import Text.Parsing.Char as Char
 import Text.Parsing.Unit as Unit
 
-import Text.String as String
+import Text.String (fromChar, fromArray)  as String
 
 unquoted :: Parser String Unit -> Parser String String 
 unquoted delimiters = do
-  x <- String.fromArray <$> R.until (Unit.fail delimiters *> S.anyChar) delimiters
+  x <- R.until (Unit.fail delimiters *> S.anyChar) delimiters
   _ <- delimiters
   pure x
 
 quoted :: Parser String Unit -> Parser String Unit -> Parser String String 
 quoted quote delimiters = do
   _ <- quote
-  x <- String.fromArray <$> R.until (Unit.fail quote *> S.anyChar) quote
+  x <- R.until (Unit.fail quote *> S.anyChar) quote
   _ <- quote
   _ <- delimiters
   pure x
@@ -54,17 +54,17 @@ property x = do
 msgField :: Parser String (Tuple String Foreign)
 msgField = property $ argument name assignment value
   where
-    value = C.choice [quoted quote delimiters, unquoted delimiters] 
+    value = C.choice [quoted (Char.singleQuote *> pure unit) delimiters, unquoted delimiters] 
     name  = do
       x  <- Alphanumeric.lowercase
       xs <- Array.fromFoldable <$> List.many name'
       pure $ intercalate "" ([x] <> xs)
+    name' :: Parser String String
     name' = do
       x <- String.fromChar <$> C.choice [Char.underscore, Char.hyphen] 
       y <- Alphanumeric.lowercase
       pure (x <> y)
     assignment = Char.equal *> pure unit
-    quote      = Char.singleQuote *> pure unit
     delimiters = C.choice [Char.space *> pure unit, S.eof]
 
 messageMsg :: Parser String Foreign

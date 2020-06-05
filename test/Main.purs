@@ -17,7 +17,6 @@ import Test.Control.Tier3           as Tier3
 import Test.Data.NetFlowv9          as NetFlowv9
 
 import Test.Text.Parsing.Common       as Common
-import Test.Text.Parsing.Alphanumeric as Alphanumeric
 import Test.Text.Parsing.Alert        as Alert
 import Test.Text.Parsing.Audit        as Audit
 import Test.Text.Parsing.Traffic      as Traffic
@@ -45,7 +44,6 @@ main = void $ launchAff $ do
   {-- PARSING/VALIDATION --}
   _ <- render (issue Pending Medium ParsingValidation 29)
   _ <- Common.suite
-  _ <- Alphanumeric.suite
   {-- PARSING/VALIDATION --}
   _ <- Risk.suite
   _ <- Statistics.suite
