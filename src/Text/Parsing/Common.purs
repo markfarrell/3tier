@@ -48,6 +48,10 @@ import Data.Port (Port)
 
 import Text.Parsing.String as String
 
+import Text.Parsing.Char.Hexadecimal as H
+import Text.Parsing.String.Repetition  as R
+
+
 foreign import parseInt      :: String -> Int
 
 foreign import parseFloat    :: String -> Number
@@ -240,30 +244,16 @@ substring = \x -> do
     true  -> fail $ "Substring not found (" <> x <> "," <> y <> ")"
     false -> string (substringImpl y 0 z) *> string x
     
-hex :: Parser String String
-hex = choice (string <$> ["a","b","c","d","e","f","0","1","2","3","4","5","6","7","8","9"])
-
-repeat' :: forall a. Monoid a => Int -> Parser String a -> a -> Parser String a
-repeat' n x = \acc ->
-  case n <= 0 of
-    true  -> pure acc
-    false -> do
-      acc' <- x
-      repeat' (n - 1) x $ acc <> acc' 
-
-repeat :: forall a. Monoid a => Int -> Parser String a -> Parser String a
-repeat  n x = repeat' n x $ mempty 
-
 uuid :: Parser String UUID
 uuid = do
-  v <- repeat 8 hex
+  v <- R.least 8  $ H.lowercase 
   _ <- hyphen
-  w <- repeat 4 hex
+  w <- R.least 4  $ H.lowercase
   _ <- hyphen
-  x <- repeat 4 hex
+  x <- R.least 4  $ H.lowercase
   _ <- hyphen
-  y <- repeat 4 hex
+  y <- R.least 4  $ H.lowercase
   _ <- hyphen
-  z <- repeat 12 hex
+  z <- R.least 12 $ H.lowercase
   pure $ unsafeCoerce (intercalate "-" [v,w,x,y,z])
   where hyphen = char '-'

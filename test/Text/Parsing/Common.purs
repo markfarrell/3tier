@@ -4,25 +4,30 @@ module Test.Text.Parsing.Common
 
 import Prelude
 
-import Data.Either (Either(..))
-
+import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
-import Effect.Exception (throw) as Exception
 
-import Text.Parsing.Parser (runParser)
+import Text.Parsing.Common as C
 
-import Text.Parsing.Common (substring)
+import Text.Parsing.Expect as E
 
-suite :: Aff Unit
-suite = do
-  _ <- runParser' "' OR 1=1" (substring "")
-  _ <- runParser' "' OR 1=1" (substring "OR")
-  _ <- runParser' "' OR 1=1" (substring "' OR 1=1")
+uuid :: Effect Unit
+uuid = do
+  _ <- failure ""
+  _ <- failure "82fa951b"
+  _ <- failure "82fa951b-b591"
+  _ <- failure "82fa951b-b591-4ace"
+  _ <- failure "82fa951b-b591-4ace-b473"
+  _ <- failure "82fa951b-b591-4ace-b473-f2aacaed56f"
+  _ <- success "82fa951b-b591-4ace-b473-f2aacaed56fd"
   pure unit
   where
-    runParser' x y = do
-      z <- pure $ runParser x y
-      case z of
-        (Left  _)  -> liftEffect $ Exception.throw ("Test.Text.Parsing.Common (" <> x <> ")")
-        (Right z') -> pure z' 
+    success = \check -> E.success check (C.uuid)
+    failure = \check -> E.failure check (C.uuid)
+    output  = \check expect -> E.output check expect (show <$> C.uuid)
+
+suite :: Aff Unit
+suite = liftEffect $ do
+  _ <- uuid
+  pure unit
