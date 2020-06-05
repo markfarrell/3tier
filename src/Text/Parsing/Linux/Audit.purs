@@ -19,22 +19,22 @@ import Foreign.Class (marshall)
 
 import Text.Parsing.String.Alphanumeric as Alphanumeric
 import Text.Parsing.String.Repetition as R
+import Text.Parsing.Combinators.Validation as V
 
 import Text.Parsing.Char as Char
-import Text.Parsing.Unit as Unit
 
-import Text.String (fromChar, fromArray)  as String
+import Text.String (fromChar)  as String
 
 unquoted :: Parser String Unit -> Parser String String 
 unquoted delimiters = do
-  x <- R.until (Unit.fail delimiters *> S.anyChar) delimiters
+  x <- R.until (V.fail delimiters *> S.anyChar) delimiters
   _ <- delimiters
   pure x
 
 quoted :: Parser String Unit -> Parser String Unit -> Parser String String 
 quoted quote delimiters = do
   _ <- quote
-  x <- R.until (Unit.fail quote *> S.anyChar) quote
+  x <- R.until (V.fail quote *> S.anyChar) quote
   _ <- quote
   _ <- delimiters
   pure x

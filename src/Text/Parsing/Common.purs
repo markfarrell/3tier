@@ -51,6 +51,8 @@ import Text.Parsing.String as String
 import Text.Parsing.Char.Hexadecimal as H
 import Text.Parsing.String.Repetition  as R
 
+import Text.Parsing.String.UUID as UUID
+
 
 foreign import parseInt      :: String -> Int
 
@@ -245,15 +247,4 @@ substring = \x -> do
     false -> string (substringImpl y 0 z) *> string x
     
 uuid :: Parser String UUID
-uuid = do
-  v <- R.least 8  $ H.lowercase 
-  _ <- hyphen
-  w <- R.least 4  $ H.lowercase
-  _ <- hyphen
-  x <- R.least 4  $ H.lowercase
-  _ <- hyphen
-  y <- R.least 4  $ H.lowercase
-  _ <- hyphen
-  z <- R.least 12 $ H.lowercase
-  pure $ unsafeCoerce (intercalate "-" [v,w,x,y,z])
-  where hyphen = char '-'
+uuid = unsafeCoerce <$> UUID.any
