@@ -24,7 +24,7 @@ import Control.Monad.Except (runExcept)
 
 import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Foldable (foldMap, foldl, intercalate)
+import Data.Foldable (foldMap, foldl)
 import Data.List as List
 import Data.Maybe (Maybe(..))
 
@@ -33,7 +33,7 @@ import Foreign as Foreign
 import Foreign.Index ((!))
 
 import Text.Parsing.Parser (Parser, fail, runParser)
-import Text.Parsing.Parser.String (string, char)
+import Text.Parsing.Parser.String (string)
 import Text.Parsing.Parser.Combinators (optional,choice,lookAhead)
 
 import Unsafe.Coerce (unsafeCoerce)
@@ -47,9 +47,6 @@ import Data.IPv4 (IPv4(..))
 import Data.Port (Port) 
 
 import Text.Parsing.String as String
-
-import Text.Parsing.Char.Hexadecimal as H
-import Text.Parsing.String.Repetition  as R
 
 import Text.Parsing.String.UUID as UUID
 
