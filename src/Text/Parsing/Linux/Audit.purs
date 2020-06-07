@@ -17,12 +17,13 @@ import Text.Parsing.Parser.String as S
 import Foreign (Foreign)
 import Foreign.Class (marshall)
 
-import Text.Parsing.String.Alphanumeric as Alphanumeric
 import Text.Parsing.String.Repetition as R
 import Text.Parsing.Combinators.Validation as V
 
-import Text.Parsing.Char as Char
+import Text.Parsing.String.Alphanumeric as Alphanumeric
+import Text.Parsing.Arguments.Value as Value
 
+import Text.Parsing.Char as Char
 import Text.String (fromChar)  as String
 
 unquoted :: Parser String Unit -> Parser String String 
@@ -52,9 +53,11 @@ property x = do
   pure $ Tuple (fst y) (marshall $ snd y)
 
 msgField :: Parser String (Tuple String Foreign)
-msgField = property $ argument name assignment value
+msgField = do
+  x <- property $ argument name assignment (Value.spaced)
+  _ <- delimiters
+  pure x
   where
-    value = C.choice [quoted (Char.singleQuote *> pure unit) delimiters, unquoted delimiters] 
     name  = do
       x  <- Alphanumeric.lowercase
       xs <- Array.fromFoldable <$> List.many name'
@@ -65,7 +68,7 @@ msgField = property $ argument name assignment value
       y <- Alphanumeric.lowercase
       pure (x <> y)
     assignment = Char.equal *> pure unit
-    delimiters = C.choice [Char.space *> pure unit, S.eof]
+    delimiters = C.choice [S.char ' ' *> pure unit, S.eof]
 
 messageMsg :: Parser String Foreign
 messageMsg = marshall <$> Array.fromFoldable <$> List.many msgField
