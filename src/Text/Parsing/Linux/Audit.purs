@@ -28,14 +28,14 @@ import Text.String (fromChar)  as String
 
 unquoted :: Parser String Unit -> Parser String String 
 unquoted delimiters = do
-  x <- R.until (V.fail delimiters *> S.anyChar) delimiters
+  x <- R.until (V.not delimiters *> S.anyChar) delimiters
   _ <- delimiters
   pure x
 
 quoted :: Parser String Unit -> Parser String Unit -> Parser String String 
 quoted quote delimiters = do
   _ <- quote
-  x <- R.until (V.fail quote *> S.anyChar) quote
+  x <- R.until (V.not quote *> S.anyChar) quote
   _ <- quote
   _ <- delimiters
   pure x

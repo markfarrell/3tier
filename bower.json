@@ -11,10 +11,10 @@
     "purescript-aff": "^5.1.2",
     "purescript-parsing": "^5.0.3",
     "purescript-foreign": "^5.0.0",
-    "purescript-parsing-common": "markfarrell/purescript-parsing-common#^0.0.6"
+    "purescript-parsing-common": "markfarrell/purescript-parsing-common"
   },
   "devDependencies": {
-    "purescript-parsing.expect": "markfarrell/purescript-parsing-expect#^0.0.1",
+    "purescript-parsing.expect": "markfarrell/purescript-parsing-expect",
     "purescript-psci-support": "^4.0.0"
   }
 }
