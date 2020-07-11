@@ -44,7 +44,7 @@ import FFI.JSON as JSON
 import FFI.UUID (UUID)
 
 import Data.IPv4 (IPv4(..))
-import Data.Port (Port) 
+import Data.Port (Port)
 
 import Text.Parsing.String as String
 
@@ -102,7 +102,7 @@ date = do
   _      <- string "."
   millis <- digits
   _      <- string "Z"
-  result <- pure $ format year month day hour minute second millis 
+  result <- pure $ format year month day hour minute second millis
   case Date.parse result of
     (Left _)        -> fail "Invalid date."
     (Right result') -> pure $ result'
@@ -158,58 +158,58 @@ json = do
   y <- pure $ JSON.parse x
   case y of
     (Left _)  -> fail "Invalid JSON."
-    (Right z) -> pure z 
+    (Right z) -> pure z
 
 readString :: String -> Foreign -> Parser String String
 readString name obj = do
   input <- except (obj ! name >>= Foreign.readString)
   pure input
-  where 
+  where
     except = \x -> do
       result <- pure $ runExcept x
       case result of
         (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readString)"
-        (Right raw) -> pure raw 
+        (Right raw) -> pure raw
 
 readInt :: String -> Foreign -> Parser String Int
 readInt name obj = do
   input <- except (obj ! name >>= Foreign.readInt)
   pure input
-  where 
+  where
     except = \x -> do
       result <- pure $ runExcept x
       case result of
         (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readInt)"
-        (Right raw) -> pure raw 
+        (Right raw) -> pure raw
 
 readArray :: String -> Foreign -> Parser String (Array Foreign)
 readArray name obj = do
   input <- except (obj ! name >>= Foreign.readArray)
   pure $ input
-  where 
+  where
     except = \x -> do
       result <- pure $ runExcept x
       case result of
         (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readArray)"
-        (Right raw) -> pure raw 
+        (Right raw) -> pure raw
 
 readIndex :: String -> Foreign -> Parser String Foreign
 readIndex name obj = do
   input <- except (obj ! name)
   pure $ input
-  where 
+  where
     except = \x -> do
       result <- pure $ runExcept x
       case result of
         (Left _)    -> fail $ "Property not found: \"" <> name <> "\" (readIndex)"
-        (Right raw) -> pure raw 
+        (Right raw) -> pure raw
 
 property :: forall a. String -> Foreign -> Parser String a -> Parser String a
 property = \x y z -> do
   input   <- choice [readString x y]
   result' <- parse x input z
   pure result'
-  where 
+  where
     parse = \x y z -> do
       result <- pure $ runParser y z
       case result of
@@ -221,7 +221,7 @@ validation = \x y z -> do
   input   <- choice [readString x y]
   result' <- validation' x input z
   pure result'
-  where 
+  where
     validation' = \x y z -> do
       result <- pure $ runParser y z
       case result of
@@ -238,10 +238,10 @@ array = \x -> choice (show' <$> x)
 substring :: String -> Parser String String
 substring = \x -> do
   y <- lookAhead $ String.any
-  z <- pure $ indexOf y x 
+  z <- pure $ indexOf y x
   case z == -1 of
     true  -> fail $ "Substring not found (" <> x <> "," <> y <> ")"
     false -> string (substringImpl y 0 z) *> string x
-    
+
 uuid :: Parser String UUID
-uuid = unsafeCoerce <$> UUID.any
+uuid = unsafeCoerce <$> UUID.lowercase
