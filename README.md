@@ -1,7 +1,7 @@
 # 3tier
 A prototype 3-tier web application written in PureScript. Currently extracting re-usable parsing/validation, FFI, control flow, DSL, and event collection packages for a follow-up / future project(s).
 
-**Current Status: (Transition-Out)**
+**Current Status: (Archived)**
  
 *In a follow-up project with analogous overarching goals: I would like to develop a model SIEM/IDS software solution (as a 3-tier web application) written in PureScript, e.g. like a model / lightweight FOSS alternative to Splunk. I would like to continue to explore and evaluate of PureScript and formal methods to manage and "provably" mitigate OWASP Top 10 web application security risks as well. In the near future, I would like to finish: transitioning the current iteration of this project for future projects, conduct a final post-mortem analysis, and review / revise the lessons learned throughout the duration of this project for an analogous future project.* 
 
